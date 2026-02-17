@@ -1,0 +1,17 @@
+<Application x:Class="AttendancePayrollSystem.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:AttendancePayrollSystem.Converters"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles/GlobalStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:ByteArrayToImageConverter x:Key="ByteToImage" />
+            <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibility" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

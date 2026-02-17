@@ -1,0 +1,151 @@
+<Window x:Class="AttendancePayrollSystem.PayrollModal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Payroll Processing"
+        Height="760"
+        Width="900"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Payroll Processing" Style="{StaticResource HeaderText}" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding EmployeeDisplay}" Foreground="#6B7280" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="Pay Period Start" Style="{StaticResource SectionTitle}" />
+                    <DatePicker x:Name="PayPeriodStartPicker" SelectedDate="{Binding PeriodStart}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                    <TextBlock Text="Pay Period End" Style="{StaticResource SectionTitle}" />
+                    <DatePicker x:Name="PayPeriodEndPicker" SelectedDate="{Binding PeriodEnd}" />
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Content="Calculate Payroll"
+                        Width="160"
+                        Height="38"
+                        Style="{StaticResource ModernButton}"
+                        VerticalAlignment="Bottom"
+                        Click="CalculatePayroll_Click" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Payroll Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
+
+                <DataGrid x:Name="PayrollDataGrid"
+                          Grid.Row="1"
+                          ItemsSource="{Binding Payrolls}"
+                          Style="{StaticResource ModernDataGrid}"
+                          SelectionChanged="PayrollDataGrid_SelectionChanged"
+                          Margin="0,8,0,0"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Period Start" Binding="{Binding PayPeriodStart, StringFormat=yyyy-MM-dd}" Width="120" />
+                        <DataGridTextColumn Header="Period End" Binding="{Binding PayPeriodEnd, StringFormat=yyyy-MM-dd}" Width="120" />
+                        <DataGridTextColumn Header="Regular Hrs" Binding="{Binding RegularHours, StringFormat=N2}" Width="95" />
+                        <DataGridTextColumn Header="OT Hrs" Binding="{Binding OvertimeHours, StringFormat=N2}" Width="85" />
+                        <DataGridTextColumn Header="Gross Pay" Binding="{Binding GrossPay, StringFormat=PHP {0:N2}}" Width="120" />
+                        <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=PHP {0:N2}}" Width="120" />
+                        <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=PHP {0:N2}}" Width="120" />
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource ModernCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="Period Start" Style="{StaticResource SectionTitle}" />
+                    <DatePicker x:Name="ManualPeriodStartPicker" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,10,0">
+                    <TextBlock Text="Period End" Style="{StaticResource SectionTitle}" />
+                    <DatePicker x:Name="ManualPeriodEndPicker" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,10,0">
+                    <TextBlock Text="Regular Hours" Style="{StaticResource SectionTitle}" />
+                    <TextBox x:Name="ManualRegularHoursTextBox" Style="{StaticResource ModernTextBox}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,10,0">
+                    <TextBlock Text="OT Hours" Style="{StaticResource SectionTitle}" />
+                    <TextBox x:Name="ManualOvertimeHoursTextBox" Style="{StaticResource ModernTextBox}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,10,10,0">
+                    <TextBlock Text="Gross Pay" Style="{StaticResource SectionTitle}" />
+                    <TextBox x:Name="ManualGrossPayTextBox" Style="{StaticResource ModernTextBox}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,10,10,0">
+                    <TextBlock Text="Deductions" Style="{StaticResource SectionTitle}" />
+                    <TextBox x:Name="ManualDeductionsTextBox" Style="{StaticResource ModernTextBox}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,10,10,0">
+                    <TextBlock Text="Net Pay" Style="{StaticResource SectionTitle}" />
+                    <TextBox x:Name="ManualNetPayTextBox" Style="{StaticResource ModernTextBox}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,10,10,0">
+                    <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
+                    <ComboBox x:Name="ManualStatusComboBox">
+                        <ComboBoxItem Content="Pending" />
+                        <ComboBoxItem Content="Processed" />
+                        <ComboBoxItem Content="Paid" />
+                        <ComboBoxItem Content="Cancelled" />
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Add" Width="90" Style="{StaticResource ModernButton}" Click="AddPayroll_Click" />
+            <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="UpdatePayroll_Click" />
+            <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeletePayroll_Click" />
+            <Button Content="Clear" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="ClearForm_Click" />
+            <Button Content="Close" Width="100" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="Close_Click" />
+        </StackPanel>
+    </Grid>
+</Window>

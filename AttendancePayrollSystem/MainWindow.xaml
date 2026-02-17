@@ -1,0 +1,138 @@
+<Window x:Class="AttendancePayrollSystem.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:views="clr-namespace:AttendancePayrollSystem.Views"
+        Title="Attendance and Payroll System"
+        Height="900"
+        Width="1450"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
+
+    <Grid Margin="12">
+        <TabControl x:Name="MainTabControl">
+            <TabItem Header="Dashboard">
+                <views:AdminDashboardView x:Name="AdminDashboardTab" />
+            </TabItem>
+
+            <TabItem Header="Employee Management">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="300" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Style="{StaticResource ModernCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AccountGroup" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="Employee List" Style="{StaticResource HeaderText}" />
+                                <Button Content="Refresh" Style="{StaticResource ModernButton}" Click="RefreshEmployees_Click" HorizontalAlignment="Right" Margin="16,0,0,0" />
+                            </StackPanel>
+
+                            <DataGrid x:Name="EmployeeDataGrid"
+                                      Grid.Row="1"
+                                      Style="{StaticResource ModernDataGrid}"
+                                      SelectionChanged="EmployeeDataGrid_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
+                                    <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="200" />
+                                    <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="150" />
+                                    <DataGridTextColumn Header="Department" Binding="{Binding Department}" Width="150" />
+                                    <DataGridTextColumn Header="Hourly Rate" Binding="{Binding HourlyRate, StringFormat=PHP {0:N2}}" Width="120" />
+                                    <DataGridTextColumn Header="Hire Date" Binding="{Binding HireDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                                    <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="80" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Visibility="{Binding IsEmployeeSelected, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource ModernCard}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Employee Details" Style="{StaticResource HeaderText}" />
+
+                                    <Ellipse Width="120" Height="120" HorizontalAlignment="Center" Margin="0,0,0,16">
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding SelectedEmployee.ProfileImage, Converter={StaticResource ByteToImage}}" Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+
+                                    <TextBlock Text="Basic Information" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock Text="{Binding SelectedEmployee.EmployeeCode, StringFormat='Code: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.FullName, StringFormat='Name: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.Email, StringFormat='Email: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.Phone, StringFormat='Phone: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.Position, StringFormat='Position: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.Department, StringFormat='Department: {0}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.HourlyRate, StringFormat='Hourly Rate: PHP {0:N2}'}" Margin="0,4" />
+                                    <TextBlock Text="{Binding SelectedEmployee.HireDate, StringFormat='Hire Date: {0:yyyy-MM-dd}'}" Margin="0,4" />
+
+                                    <TextBlock Text="Employee Actions" Style="{StaticResource SectionTitle}" Margin="0,16,0,8" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Add" Style="{StaticResource ModernButton}" Width="90" Click="AddEmployee_Click" />
+                                        <Button Content="Edit" Style="{StaticResource ModernButton}" Width="90" Click="EditEmployee_Click" />
+                                        <Button Content="Delete" Style="{StaticResource ModernButton}" Width="90" Click="DeleteEmployee_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource ModernCard}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Attendance Records" Style="{StaticResource HeaderText}" Margin="0,0,8,12" />
+                                    <Button Content="Open Attendance"
+                                            Style="{StaticResource ModernButton}"
+                                            Click="OpenAttendanceModal_Click"
+                                            HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <DataGrid x:Name="AttendanceDataGrid" Grid.Row="1" Style="{StaticResource ModernDataGrid}" Margin="0,8,0,0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                                        <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm:ss}" Width="110" />
+                                        <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm:ss}" Width="110" />
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                                        <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="80" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Style="{StaticResource ModernCard}">
+                            <StackPanel>
+                                <TextBlock Text="Payroll" Style="{StaticResource HeaderText}" />
+                                <TextBlock Text="Manage payroll calculation and employee payroll records in the popup modal."
+                                           Foreground="#6B7280"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,12" />
+                                <Button Content="Open Payroll Modal"
+                                        Style="{StaticResource ModernButton}"
+                                        Width="160"
+                                        Click="OpenPayrollModal_Click" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
