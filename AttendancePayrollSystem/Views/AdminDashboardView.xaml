@@ -3,25 +3,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              Loaded="UserControl_Loaded">
-    <Grid Margin="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
             <StackPanel DockPanel.Dock="Left">
                 <TextBlock Text="Admin Dashboard" Style="{StaticResource HeaderText}" Margin="0,0,0,4" />
                 <TextBlock Text="{Binding DashboardDateText}" Foreground="#6B7280" FontSize="13" />
             </StackPanel>
-            <Button DockPanel.Dock="Right"
-                    Content="Refresh"
-                    Style="{StaticResource ModernButton}"
-                    Width="110"
-                    Height="36"
-                    Click="RefreshButton_Click" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Backup Database"
+                        Style="{StaticResource ModernButton}"
+                        Width="150"
+                        Height="36"
+                        Margin="0,0,8,0"
+                        Click="BackupDatabaseButton_Click" />
+                <Button Content="Refresh"
+                        Style="{StaticResource ModernButton}"
+                        Width="110"
+                        Height="36"
+                        Click="RefreshButton_Click" />
+            </StackPanel>
         </DockPanel>
 
         <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,14">
@@ -91,29 +101,34 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="3" Style="{StaticResource ModernCard}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+            <Border Grid.Row="3" Style="{StaticResource ModernCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Latest Attendance Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
+                    <TextBlock Grid.Row="0" Text="Latest Attendance Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
 
-                <DataGrid Grid.Row="1"
-                          ItemsSource="{Binding LatestAttendances}"
-                          Style="{StaticResource ModernDataGrid}"
-                          Margin="0,8,0,0">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
-                        <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="220" />
-                        <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
-                        <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm}" Width="90" />
-                        <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="90" />
-                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Border>
-    </Grid>
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding LatestAttendances}"
+                              Style="{StaticResource ModernDataGrid}"
+                              Margin="0,8,0,0"
+                              MinHeight="220"
+                              MaxHeight="360"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
+                            <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="220" />
+                            <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                            <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm}" Width="90" />
+                            <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="90" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </UserControl>

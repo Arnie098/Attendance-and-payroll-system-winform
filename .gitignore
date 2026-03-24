@@ -6,3 +6,12 @@ obj/
 *.db
 *.sqlite
 *.log
+.env
+dist/
+Installer/build/
+installer_test_publish/
+.codex-temp/
+AttendancePayrollSystem/publish/
+Installer/bin/
+Installer/obj/
+School_sms_backup_*.sql

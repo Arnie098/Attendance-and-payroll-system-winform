@@ -49,11 +49,28 @@ namespace AttendancePayrollSystem
             try
             {
                 var payroll = _payrollCalculator.CalculatePayroll(_employee, _viewModel.PeriodStart.Value, _viewModel.PeriodEnd.Value);
-                _payrollRepository.AddPayroll(payroll);
+                var existingPayroll = _payrollRepository.GetPayrollByEmployeeAndPeriod(
+                    _employee.EmployeeId,
+                    payroll.PayPeriodStart,
+                    payroll.PayPeriodEnd);
+
+                var action = "created";
+                if (existingPayroll != null)
+                {
+                    payroll.PayrollId = existingPayroll.PayrollId;
+                    payroll.Status = existingPayroll.Status;
+                    _payrollRepository.UpdatePayroll(payroll);
+                    action = "updated";
+                }
+                else
+                {
+                    _payrollRepository.AddPayroll(payroll);
+                }
+
                 LoadPayrolls();
 
                 MessageBox.Show(
-                    $"Payroll calculated.\nGross: PHP {payroll.GrossPay:N2}\nNet: PHP {payroll.NetPay:N2}",
+                    $"Payroll {action}.\nGross: PHP {payroll.GrossPay:N2}\nNet: PHP {payroll.NetPay:N2}",
                     "Payroll Calculated",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -68,10 +85,12 @@ namespace AttendancePayrollSystem
         {
             if (PayrollDataGrid.SelectedItem is not Payroll selected)
             {
+                ClearSelectedPayroll();
                 return;
             }
 
             _selectedPayroll = selected;
+            _viewModel.HasSelectedPayroll = true;
             ManualPeriodStartPicker.SelectedDate = selected.PayPeriodStart;
             ManualPeriodEndPicker.SelectedDate = selected.PayPeriodEnd;
             ManualRegularHoursTextBox.Text = selected.RegularHours.ToString("N2", CultureInfo.InvariantCulture);
@@ -80,26 +99,6 @@ namespace AttendancePayrollSystem
             ManualDeductionsTextBox.Text = selected.Deductions.ToString("N2", CultureInfo.InvariantCulture);
             ManualNetPayTextBox.Text = selected.NetPay.ToString("N2", CultureInfo.InvariantCulture);
             SelectStatus(selected.Status);
-        }
-
-        private void AddPayroll_Click(object sender, RoutedEventArgs e)
-        {
-            if (!TryBuildPayrollFromForm(out var payroll))
-            {
-                return;
-            }
-
-            try
-            {
-                payroll.EmployeeId = _employee.EmployeeId;
-                _payrollRepository.AddPayroll(payroll);
-                LoadPayrolls();
-                MessageBox.Show("Payroll record added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to add payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
         private void UpdatePayroll_Click(object sender, RoutedEventArgs e)
@@ -162,9 +161,7 @@ namespace AttendancePayrollSystem
 
         private void ClearForm_Click(object sender, RoutedEventArgs e)
         {
-            _selectedPayroll = null;
-            PayrollDataGrid.SelectedItem = null;
-            ResetForm();
+            ClearSelectedPayroll();
         }
 
         private void LoadPayrolls()
@@ -176,9 +173,7 @@ namespace AttendancePayrollSystem
                 _viewModel.Payrolls.Add(payroll);
             }
 
-            _selectedPayroll = null;
-            PayrollDataGrid.SelectedItem = null;
-            ResetForm();
+            ClearSelectedPayroll();
         }
 
         private bool TryBuildPayrollFromForm(out Payroll payroll)
@@ -274,6 +269,19 @@ namespace AttendancePayrollSystem
                 : "Pending";
         }
 
+        private void ClearSelectedPayroll()
+        {
+            _selectedPayroll = null;
+            _viewModel.HasSelectedPayroll = false;
+
+            if (PayrollDataGrid.SelectedItem != null)
+            {
+                PayrollDataGrid.SelectedItem = null;
+            }
+
+            ResetForm();
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
@@ -285,6 +293,7 @@ namespace AttendancePayrollSystem
         private string _employeeDisplay = string.Empty;
         private DateTime? _periodStart;
         private DateTime? _periodEnd;
+        private bool _hasSelectedPayroll;
 
         public ObservableCollection<Payroll> Payrolls { get; } = new();
 
@@ -304,6 +313,12 @@ namespace AttendancePayrollSystem
         {
             get => _periodEnd;
             set => SetProperty(ref _periodEnd, value);
+        }
+
+        public bool HasSelectedPayroll
+        {
+            get => _hasSelectedPayroll;
+            set => SetProperty(ref _hasSelectedPayroll, value);
         }
     }
 }

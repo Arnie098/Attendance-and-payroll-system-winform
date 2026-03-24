@@ -80,71 +80,111 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Style="{StaticResource ModernCard}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+        <Grid Grid.Row="3">
+            <Border>
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource ModernCard}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSelectedPayroll}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Period Start" Style="{StaticResource SectionTitle}" />
-                    <DatePicker x:Name="ManualPeriodStartPicker" />
-                </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Period Start" Style="{StaticResource SectionTitle}" />
+                        <DatePicker x:Name="ManualPeriodStartPicker" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,10,0">
-                    <TextBlock Text="Period End" Style="{StaticResource SectionTitle}" />
-                    <DatePicker x:Name="ManualPeriodEndPicker" />
-                </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,10,0">
+                        <TextBlock Text="Period End" Style="{StaticResource SectionTitle}" />
+                        <DatePicker x:Name="ManualPeriodEndPicker" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,10,0">
-                    <TextBlock Text="Regular Hours" Style="{StaticResource SectionTitle}" />
-                    <TextBox x:Name="ManualRegularHoursTextBox" Style="{StaticResource ModernTextBox}" />
-                </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,10,0">
+                        <TextBlock Text="Regular Hours" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="ManualRegularHoursTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,10,0">
-                    <TextBlock Text="OT Hours" Style="{StaticResource SectionTitle}" />
-                    <TextBox x:Name="ManualOvertimeHoursTextBox" Style="{StaticResource ModernTextBox}" />
-                </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,10,0">
+                        <TextBlock Text="OT Hours" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="ManualOvertimeHoursTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,10,10,0">
-                    <TextBlock Text="Gross Pay" Style="{StaticResource SectionTitle}" />
-                    <TextBox x:Name="ManualGrossPayTextBox" Style="{StaticResource ModernTextBox}" />
-                </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,10,10,0">
+                        <TextBlock Text="Gross Pay" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="ManualGrossPayTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,10,10,0">
-                    <TextBlock Text="Deductions" Style="{StaticResource SectionTitle}" />
-                    <TextBox x:Name="ManualDeductionsTextBox" Style="{StaticResource ModernTextBox}" />
-                </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,10,10,0">
+                        <TextBlock Text="Deductions" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="ManualDeductionsTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,10,10,0">
-                    <TextBlock Text="Net Pay" Style="{StaticResource SectionTitle}" />
-                    <TextBox x:Name="ManualNetPayTextBox" Style="{StaticResource ModernTextBox}" />
-                </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,10,10,0">
+                        <TextBlock Text="Net Pay" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="ManualNetPayTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,10,10,0">
-                    <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
-                    <ComboBox x:Name="ManualStatusComboBox">
-                        <ComboBoxItem Content="Pending" />
-                        <ComboBoxItem Content="Processed" />
-                        <ComboBoxItem Content="Paid" />
-                        <ComboBoxItem Content="Cancelled" />
-                    </ComboBox>
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,10,10,0">
+                        <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
+                        <ComboBox x:Name="ManualStatusComboBox">
+                            <ComboBoxItem Content="Pending" />
+                            <ComboBoxItem Content="Processed" />
+                            <ComboBoxItem Content="Paid" />
+                            <ComboBoxItem Content="Cancelled" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border>
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource ModernCard}">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSelectedPayroll}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="Select a payroll record to update or delete it."
+                           Foreground="#4E5968"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+            </Border>
+        </Grid>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Add" Width="90" Style="{StaticResource ModernButton}" Click="AddPayroll_Click" />
-            <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="UpdatePayroll_Click" />
-            <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeletePayroll_Click" />
-            <Button Content="Clear" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="ClearForm_Click" />
+            <StackPanel x:Name="SelectedPayrollCrudPanel" Orientation="Horizontal">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSelectedPayroll}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="UpdatePayroll_Click" />
+                <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeletePayroll_Click" />
+                <Button Content="Clear" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="ClearForm_Click" />
+            </StackPanel>
             <Button Content="Close" Width="100" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="Close_Click" />
         </StackPanel>
     </Grid>

@@ -3,42 +3,73 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:views="clr-namespace:AttendancePayrollSystem.Views"
-        Title="Attendance and Payroll System"
+        Title="Admin Dashboard - Attendance and Payroll System"
         Height="900"
         Width="1450"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized">
 
     <Grid Margin="12">
-        <TabControl x:Name="MainTabControl">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="8,8,8,14">
+            <TextBlock DockPanel.Dock="Left"
+                       Text="Admin Dashboard"
+                       Style="{StaticResource HeaderText}"
+                       VerticalAlignment="Center" />
+            <Button DockPanel.Dock="Right"
+                    Content="Logout"
+                    Width="100"
+                    Style="{StaticResource ModernButton}"
+                    Click="Logout_Click" />
+        </DockPanel>
+
+        <TabControl x:Name="MainTabControl" Grid.Row="1">
             <TabItem Header="Dashboard">
                 <views:AdminDashboardView x:Name="AdminDashboardTab" />
             </TabItem>
 
             <TabItem Header="Employee Management">
-                <Grid Margin="8">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="300" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              CanContentScroll="False">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
                     <Border Grid.Row="0" Style="{StaticResource ModernCard}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0" Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="AccountGroup" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,8,0" />
                                 <TextBlock Text="Employee List" Style="{StaticResource HeaderText}" />
+                                <Button x:Name="AddEmployeeButton"
+                                        Content="Add"
+                                        Style="{StaticResource ModernButton}"
+                                        Width="90"
+                                        Click="AddEmployee_Click"
+                                        Margin="16,0,0,0" />
                                 <Button Content="Refresh" Style="{StaticResource ModernButton}" Click="RefreshEmployees_Click" HorizontalAlignment="Right" Margin="16,0,0,0" />
                             </StackPanel>
 
                             <DataGrid x:Name="EmployeeDataGrid"
                                       Grid.Row="1"
                                       Style="{StaticResource ModernDataGrid}"
-                                      SelectionChanged="EmployeeDataGrid_SelectionChanged">
+                                      SelectionChanged="EmployeeDataGrid_SelectionChanged"
+                                      Margin="0,8,0,0"
+                                      MinHeight="220"
+                                      MaxHeight="320"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
                                     <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="200" />
@@ -82,10 +113,14 @@
 
                                     <TextBlock Text="Employee Actions" Style="{StaticResource SectionTitle}" Margin="0,16,0,8" />
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Content="Add" Style="{StaticResource ModernButton}" Width="90" Click="AddEmployee_Click" />
-                                        <Button Content="Edit" Style="{StaticResource ModernButton}" Width="90" Click="EditEmployee_Click" />
-                                        <Button Content="Delete" Style="{StaticResource ModernButton}" Width="90" Click="DeleteEmployee_Click" />
+                                        <Button x:Name="EditEmployeeButton" Content="Edit" Style="{StaticResource ModernButton}" Width="90" Click="EditEmployee_Click" />
+                                        <Button x:Name="DeleteEmployeeButton" Content="Delete" Style="{StaticResource ModernButton}" Width="90" Click="DeleteEmployee_Click" />
                                     </StackPanel>
+                                    <TextBlock x:Name="EmployeeSourceInfoTextBlock"
+                                               Foreground="#64748B"
+                                               TextWrapping="Wrap"
+                                               Visibility="Collapsed"
+                                               Margin="0,8,0,0" />
                                 </StackPanel>
                             </ScrollViewer>
                         </Border>
@@ -94,7 +129,7 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
@@ -105,7 +140,14 @@
                                             HorizontalAlignment="Left" />
                                 </StackPanel>
 
-                                <DataGrid x:Name="AttendanceDataGrid" Grid.Row="1" Style="{StaticResource ModernDataGrid}" Margin="0,8,0,0">
+                                <DataGrid x:Name="AttendanceDataGrid"
+                                          Grid.Row="1"
+                                          Style="{StaticResource ModernDataGrid}"
+                                          Margin="0,8,0,0"
+                                          MinHeight="220"
+                                          MaxHeight="360"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
                                         <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm:ss}" Width="110" />
@@ -131,7 +173,8 @@
                             </StackPanel>
                         </Border>
                     </Grid>
-                </Grid>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

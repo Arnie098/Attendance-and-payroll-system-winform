@@ -32,12 +32,15 @@ namespace AttendancePayrollSystem.Services
                 }
             }
 
-            var regularPay = regularHours * employee.HourlyRate;
-            var overtimePay = overtimeHours * employee.HourlyRate * (decimal)DatabaseConfig.OvertimeMultiplier;
-            var grossPay = regularPay + overtimePay;
+            regularHours = RoundHours(regularHours);
+            overtimeHours = RoundHours(overtimeHours);
 
-            var deductions = CalculateDeductions(grossPay);
-            var netPay = grossPay - deductions;
+            var regularPay = RoundCurrency(regularHours * employee.HourlyRate);
+            var overtimePay = RoundCurrency(overtimeHours * employee.HourlyRate * (decimal)DatabaseConfig.OvertimeMultiplier);
+            var grossPay = RoundCurrency(regularPay + overtimePay);
+
+            var deductions = RoundCurrency(Math.Min(grossPay, CalculateDeductions(grossPay)));
+            var netPay = RoundCurrency(Math.Max(0m, grossPay - deductions));
 
             return new Payroll
             {
@@ -73,6 +76,16 @@ namespace AttendancePayrollSystem.Services
             if (grossPay <= 83332) return 4270.70m + (grossPay - 33332) * 0.25m;
             if (grossPay <= 333332) return 16770.70m + (grossPay - 83332) * 0.30m;
             return 91770.70m + (grossPay - 333332) * 0.35m;
+        }
+
+        private static decimal RoundHours(decimal hours)
+        {
+            return Math.Round(hours, 2, MidpointRounding.AwayFromZero);
+        }
+
+        private static decimal RoundCurrency(decimal amount)
+        {
+            return Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         }
     }
 }

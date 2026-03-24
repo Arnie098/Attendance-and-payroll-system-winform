@@ -13,15 +13,17 @@ namespace AttendancePayrollSystem
     public partial class AttendanceModal : Window
     {
         private readonly Employee _employee;
+        private readonly bool _allowCrud;
         private readonly AttendanceRepository _attendanceRepository = new();
         private readonly BiometricSimulator _biometricSimulator = new();
         private readonly AttendanceModalViewModel _viewModel;
         private Attendance? _selectedAttendance;
 
-        public AttendanceModal(Employee employee)
+        public AttendanceModal(Employee employee, bool allowCrud = true)
         {
             InitializeComponent();
             _employee = employee;
+            _allowCrud = allowCrud;
             _viewModel = new AttendanceModalViewModel
             {
                 HeaderText = "Biometric Attendance Terminal",
@@ -32,10 +34,15 @@ namespace AttendancePayrollSystem
             };
 
             DataContext = _viewModel;
-            CrudStatusComboBox.SelectedIndex = 0;
-            ResetCrudForm();
+            AttendanceCrudTab.Visibility = _allowCrud ? Visibility.Visible : Visibility.Collapsed;
+            if (_allowCrud)
+            {
+                CrudStatusComboBox.SelectedIndex = 0;
+                ResetCrudForm();
+                LoadAttendanceRecords();
+            }
+
             LoadTodayAttendance();
-            LoadAttendanceRecords();
         }
 
         private async void BiometricSimulation_Click(object sender, RoutedEventArgs e)
@@ -80,7 +87,10 @@ namespace AttendancePayrollSystem
             }
 
             LoadTodayAttendance();
-            LoadAttendanceRecords();
+            if (_allowCrud)
+            {
+                LoadAttendanceRecords();
+            }
         }
 
         private void LoadTodayAttendance()
@@ -116,45 +126,24 @@ namespace AttendancePayrollSystem
                 _viewModel.AttendanceRecords.Add(attendance);
             }
 
-            _selectedAttendance = null;
-            AttendanceCrudDataGrid.SelectedItem = null;
-            ResetCrudForm();
+            ClearSelectedAttendance();
         }
 
         private void AttendanceCrudDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (AttendanceCrudDataGrid.SelectedItem is not Attendance selected)
             {
+                ClearSelectedAttendance();
                 return;
             }
 
             _selectedAttendance = selected;
+            _viewModel.HasSelectedAttendance = true;
             CrudDatePicker.SelectedDate = selected.AttendanceDate.Date;
             CrudTimeInTextBox.Text = selected.TimeIn?.ToString("HH:mm") ?? string.Empty;
             CrudTimeOutTextBox.Text = selected.TimeOut?.ToString("HH:mm") ?? string.Empty;
             SelectCrudStatus(selected.Status);
             CrudBiometricVerifiedCheckBox.IsChecked = selected.IsBiometricVerified;
-        }
-
-        private void AddAttendanceCrud_Click(object sender, RoutedEventArgs e)
-        {
-            if (!TryBuildAttendanceFromForm(out var attendance))
-            {
-                return;
-            }
-
-            try
-            {
-                attendance.EmployeeId = _employee.EmployeeId;
-                _attendanceRepository.AddAttendance(attendance);
-                LoadAttendanceRecords();
-                LoadTodayAttendance();
-                MessageBox.Show("Attendance record added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to add attendance record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
         private void UpdateAttendanceCrud_Click(object sender, RoutedEventArgs e)
@@ -225,9 +214,7 @@ namespace AttendancePayrollSystem
 
         private void ClearAttendanceCrud_Click(object sender, RoutedEventArgs e)
         {
-            _selectedAttendance = null;
-            AttendanceCrudDataGrid.SelectedItem = null;
-            ResetCrudForm();
+            ClearSelectedAttendance();
         }
 
         private bool TryBuildAttendanceFromForm(out Attendance attendance)
@@ -325,6 +312,19 @@ namespace AttendancePayrollSystem
             CrudBiometricVerifiedCheckBox.IsChecked = false;
         }
 
+        private void ClearSelectedAttendance()
+        {
+            _selectedAttendance = null;
+            _viewModel.HasSelectedAttendance = false;
+
+            if (AttendanceCrudDataGrid.SelectedItem != null)
+            {
+                AttendanceCrudDataGrid.SelectedItem = null;
+            }
+
+            ResetCrudForm();
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
@@ -343,6 +343,7 @@ namespace AttendancePayrollSystem
         private string _lastScanText = string.Empty;
         private bool _isScanning;
         private bool _isScanButtonEnabled = true;
+        private bool _hasSelectedAttendance;
 
         public string HeaderText
         {
@@ -402,6 +403,12 @@ namespace AttendancePayrollSystem
         {
             get => _isScanButtonEnabled;
             set => SetProperty(ref _isScanButtonEnabled, value);
+        }
+
+        public bool HasSelectedAttendance
+        {
+            get => _hasSelectedAttendance;
+            set => SetProperty(ref _hasSelectedAttendance, value);
         }
 
         public ObservableCollection<Attendance> AttendanceRecords { get; } = new();

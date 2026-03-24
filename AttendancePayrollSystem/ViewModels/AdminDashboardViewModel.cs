@@ -1,12 +1,16 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Data.SqlClient;
+using System.Linq;
 using AttendancePayrollSystem.DataAccess;
+using AttendancePayrollSystem.Services;
+using MySqlConnector;
 
 namespace AttendancePayrollSystem.ViewModels
 {
     public class AdminDashboardViewModel : BaseViewModel
     {
+        private readonly EmployeeRepository _employeeRepository = new();
+        private readonly AttendanceRepository _attendanceRepository = new();
         private int _totalEmployees;
         private int _presentToday;
         private int _lateToday;
@@ -56,20 +60,45 @@ namespace AttendancePayrollSystem.ViewModels
 
         private void LoadStatistics()
         {
+            if (SupabaseConfig.UseApi)
+            {
+                var employees = _employeeRepository.GetAllEmployees();
+                var activeEmployees = employees.Where(employee => employee.IsActive).ToList();
+                var todaysAttendances = _attendanceRepository.GetAttendancesByDate(DateTime.Today);
+
+                TotalEmployees = activeEmployees.Count;
+                PresentToday = todaysAttendances
+                    .Where(attendance => attendance.TimeIn.HasValue)
+                    .Select(attendance => attendance.EmployeeId)
+                    .Distinct()
+                    .Count();
+                LateToday = todaysAttendances.Count(attendance => string.Equals(attendance.Status, "Late", StringComparison.OrdinalIgnoreCase));
+                AbsentToday = Math.Max(0, TotalEmployees - PresentToday);
+                return;
+            }
+
             using var connection = DatabaseHelper.GetConnection();
             connection.Open();
+            var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
+                ? " AND SourceTeacherId IS NOT NULL"
+                : string.Empty;
+            var joinedEmployeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
+                ? " AND e.SourceTeacherId IS NOT NULL"
+                : string.Empty;
 
-            TotalEmployees = ExecuteScalarInt(connection, "SELECT COUNT(*) FROM Employees WHERE IsActive = 1");
-            PresentToday = ExecuteScalarInt(connection, @"
-                SELECT COUNT(DISTINCT EmployeeId)
-                FROM AttendanceRecords
-                WHERE AttendanceDate = @Today
-                  AND TimeIn IS NOT NULL");
-            LateToday = ExecuteScalarInt(connection, @"
+            TotalEmployees = ExecuteScalarInt(connection, $"SELECT COUNT(*) FROM Employees WHERE IsActive = TRUE{employeeFilter}");
+            PresentToday = ExecuteScalarInt(connection, $@"
+                SELECT COUNT(DISTINCT a.EmployeeId)
+                FROM AttendanceRecords a
+                INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
+                WHERE a.AttendanceDate = @Today
+                  AND a.TimeIn IS NOT NULL{joinedEmployeeFilter}", includeToday: true);
+            LateToday = ExecuteScalarInt(connection, $@"
                 SELECT COUNT(*)
-                FROM AttendanceRecords
-                WHERE AttendanceDate = @Today
-                  AND Status = 'Late'");
+                FROM AttendanceRecords a
+                INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
+                WHERE a.AttendanceDate = @Today
+                  AND a.Status = 'Late'{joinedEmployeeFilter}", includeToday: true);
 
             AbsentToday = Math.Max(0, TotalEmployees - PresentToday);
         }
@@ -78,17 +107,40 @@ namespace AttendancePayrollSystem.ViewModels
         {
             BirthdayCelebrants.Clear();
 
+            if (SupabaseConfig.UseApi)
+            {
+                foreach (var employee in _employeeRepository.GetAllEmployees()
+                             .Where(employee => employee.IsActive)
+                             .Where(employee => employee.HireDate.Month == DateTime.Today.Month && employee.HireDate.Day == DateTime.Today.Day)
+                             .OrderBy(employee => employee.FullName))
+                {
+                    BirthdayCelebrants.Add(new BirthdayEmployeeItem
+                    {
+                        EmployeeId = employee.EmployeeId,
+                        EmployeeCode = employee.EmployeeCode,
+                        FullName = employee.FullName,
+                        ProfileImage = employee.ProfileImage,
+                        Label = "Anniversary (Hire Date)"
+                    });
+                }
+
+                return;
+            }
+
             var birthdayColumnExists = ColumnExists("Employees", "BirthDate");
             var dateColumn = birthdayColumnExists ? "BirthDate" : "HireDate";
             var label = birthdayColumnExists ? "Birthday Today" : "Anniversary (Hire Date)";
 
             using var connection = DatabaseHelper.GetConnection();
-            using var command = new SqlCommand($@"
+            var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
+                ? " AND SourceTeacherId IS NOT NULL"
+                : string.Empty;
+            using var command = new MySqlCommand($@"
                 SELECT EmployeeId, EmployeeCode, FullName, ProfileImage
                 FROM Employees
-                WHERE IsActive = 1
+                WHERE IsActive = TRUE
                   AND MONTH({dateColumn}) = MONTH(@Today)
-                  AND DAY({dateColumn}) = DAY(@Today)
+                  AND DAY({dateColumn}) = DAY(@Today){employeeFilter}
                 ORDER BY FullName", connection);
 
             command.Parameters.AddWithValue("@Today", DateTime.Today);
@@ -112,9 +164,32 @@ namespace AttendancePayrollSystem.ViewModels
         {
             LatestAttendances.Clear();
 
+            if (SupabaseConfig.UseApi)
+            {
+                var employees = _employeeRepository.GetAllEmployees().ToDictionary(employee => employee.EmployeeId);
+                foreach (var attendance in _attendanceRepository.GetRecentAttendances(20))
+                {
+                    employees.TryGetValue(attendance.EmployeeId, out var employee);
+                    LatestAttendances.Add(new LatestAttendanceItem
+                    {
+                        EmployeeCode = employee?.EmployeeCode ?? string.Empty,
+                        FullName = employee?.FullName ?? string.Empty,
+                        AttendanceDate = attendance.AttendanceDate,
+                        TimeIn = attendance.TimeIn,
+                        TimeOut = attendance.TimeOut,
+                        Status = attendance.Status
+                    });
+                }
+
+                return;
+            }
+
             using var connection = DatabaseHelper.GetConnection();
-            using var command = new SqlCommand(@"
-                SELECT TOP 20
+            var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
+                ? "WHERE e.SourceTeacherId IS NOT NULL"
+                : string.Empty;
+            using var command = new MySqlCommand($@"
+                SELECT
                     a.AttendanceDate,
                     a.TimeIn,
                     a.TimeOut,
@@ -123,7 +198,9 @@ namespace AttendancePayrollSystem.ViewModels
                     e.FullName
                 FROM AttendanceRecords a
                 INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
-                ORDER BY a.AttendanceDate DESC, a.TimeIn DESC", connection);
+                {employeeFilter}
+                ORDER BY a.AttendanceDate DESC, a.TimeIn DESC
+                LIMIT 20", connection);
 
             connection.Open();
             using var reader = command.ExecuteReader();
@@ -141,21 +218,31 @@ namespace AttendancePayrollSystem.ViewModels
             }
         }
 
-        private static int ExecuteScalarInt(SqlConnection connection, string sql)
+        private static int ExecuteScalarInt(MySqlConnection connection, string sql, bool includeToday = false)
         {
-            using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@Today", DateTime.Today);
+            using var command = new MySqlCommand(sql, connection);
+            if (includeToday)
+            {
+                command.Parameters.AddWithValue("@Today", DateTime.Today);
+            }
+
             return Convert.ToInt32(command.ExecuteScalar());
         }
 
         private static bool ColumnExists(string tableName, string columnName)
         {
+            if (SupabaseConfig.UseApi)
+            {
+                return false;
+            }
+
             using var connection = DatabaseHelper.GetConnection();
-            using var command = new SqlCommand(@"
+            using var command = new MySqlCommand(@"
                 SELECT COUNT(*)
                 FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = @TableName
-                  AND COLUMN_NAME = @ColumnName", connection);
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND LOWER(TABLE_NAME) = LOWER(@TableName)
+                  AND LOWER(COLUMN_NAME) = LOWER(@ColumnName)", connection);
 
             command.Parameters.AddWithValue("@TableName", tableName);
             command.Parameters.AddWithValue("@ColumnName", columnName);

@@ -1,0 +1,105 @@
+<Window x:Class="AttendancePayrollSystem.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Login"
+        Height="700"
+        MinHeight="700"
+        Width="460"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="22">
+            <Border Style="{StaticResource ModernCard}" Padding="22">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,18">
+                        <materialDesign:PackIcon Kind="ShieldAccount" Width="48" Height="48" Foreground="#1D4ED8" />
+                        <TextBlock Text="Attendance Payroll System" FontSize="26" FontWeight="SemiBold" TextAlignment="Center" Margin="0,10,0,4" />
+                        <TextBlock Text="Sign in as Admin or Employee" Foreground="#6B7280" FontSize="14" />
+                    </StackPanel>
+
+                    <Border Grid.Row="1"
+                            Background="#EFF6FF"
+                            BorderBrush="#BFDBFE"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="12"
+                            Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Current Database Target" FontWeight="SemiBold" Foreground="#1E3A8A" />
+                            <TextBlock x:Name="DatabaseTargetTextBlock"
+                                       Foreground="#1F2937"
+                                       Margin="0,4,0,0"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Text="Username" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBox Grid.Row="3"
+                             x:Name="UsernameTextBox"
+                             Style="{StaticResource ModernTextBox}"
+                             Margin="0,0,0,12" />
+
+                    <TextBlock Grid.Row="4" Text="Password" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <PasswordBox Grid.Row="5"
+                                 x:Name="PasswordBox"
+                                 Height="38"
+                                 Padding="10,6"
+                                 BorderBrush="{StaticResource CardBorderBrush}"
+                                 BorderThickness="1"
+                                 Margin="0,0,0,12"
+                                 KeyDown="PasswordBox_KeyDown" />
+
+                    <TextBlock Grid.Row="6"
+                               x:Name="DatabaseStatusTextBlock"
+                               Foreground="#B91C1C"
+                               Visibility="Collapsed"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="7"
+                               x:Name="StatusTextBlock"
+                               Foreground="#B91C1C"
+                               Visibility="Collapsed"
+                               Margin="0,0,0,8" />
+
+                    <Button Grid.Row="8"
+                            x:Name="LoginButton"
+                            Content="Sign In"
+                            Height="40"
+                            Style="{StaticResource ModernButton}"
+                            Click="LoginButton_Click" />
+
+                    <Button Grid.Row="9"
+                            x:Name="DatabaseSettingsButton"
+                            Content="Database Settings"
+                            Height="40"
+                            Style="{StaticResource ModernButton}"
+                            Background="#0F766E"
+                            Margin="0,10,0,0"
+                            Click="DatabaseSettingsButton_Click" />
+
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Window>

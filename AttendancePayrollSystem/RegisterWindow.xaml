@@ -1,0 +1,160 @@
+<Window x:Class="AttendancePayrollSystem.RegisterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Register Employee Account"
+        Height="820"
+        Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="22">
+            <Border Style="{StaticResource ModernCard}" Padding="22">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,4,0,18">
+                        <TextBlock Text="Create Employee Account" FontSize="26" FontWeight="SemiBold" TextAlignment="Center" Margin="0,0,0,6" />
+                        <TextBlock Text="New accounts are registered as employees. Payroll details can be updated later by admin."
+                                   TextWrapping="Wrap"
+                                   Foreground="#6B7280"
+                                   FontSize="13"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+
+                    <Border Grid.Row="1"
+                            Width="136"
+                            Height="136"
+                            CornerRadius="68"
+                            BorderBrush="{StaticResource CardBorderBrush}"
+                            BorderThickness="1"
+                            Background="#E5EEF9"
+                            HorizontalAlignment="Center"
+                            ClipToBounds="True"
+                            Margin="0,0,0,10">
+                        <Grid>
+                            <TextBlock x:Name="PhotoPlaceholderText"
+                                       Text="No Photo"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="#64748B"
+                                       FontWeight="SemiBold" />
+                            <Image x:Name="PhotoPreviewImage" Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
+                        <Button Content="Choose Photo" Width="120" Style="{StaticResource ModernButton}" Click="ChoosePhoto_Click" />
+                        <Button Content="Remove" Width="100" Style="{StaticResource ModernButton}" Background="#64748B" Click="RemovePhoto_Click" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Margin="0,0,0,10">
+                        <TextBlock Text="Full Name" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox x:Name="FullNameTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4" Margin="0,0,0,10">
+                        <TextBlock Text="Username" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox x:Name="UsernameTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="5" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <PasswordBox x:Name="PasswordBox"
+                                         Height="38"
+                                         Padding="10,6"
+                                         BorderBrush="{StaticResource CardBorderBrush}"
+                                         BorderThickness="1" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Confirm Password" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <PasswordBox x:Name="ConfirmPasswordBox"
+                                         Height="38"
+                                         Padding="10,6"
+                                         BorderBrush="{StaticResource CardBorderBrush}"
+                                         BorderThickness="1" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Row="6" Margin="0,0,0,10">
+                        <TextBlock Text="Email" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="7" Margin="0,0,0,10">
+                        <TextBlock Text="Phone" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBox x:Name="PhoneTextBox" Style="{StaticResource ModernTextBox}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="8" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Position" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <TextBox x:Name="PositionTextBox" Style="{StaticResource ModernTextBox}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Department" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <TextBox x:Name="DepartmentTextBox" Style="{StaticResource ModernTextBox}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Row="9" Margin="0,0,0,10">
+                        <TextBlock Text="Hire Date" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <DatePicker x:Name="HireDatePicker" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="10"
+                               Text="Employee code is generated automatically during registration."
+                               Foreground="#64748B"
+                               Margin="0,0,0,8" />
+
+                    <TextBlock Grid.Row="11"
+                               x:Name="StatusTextBlock"
+                               Foreground="#B91C1C"
+                               Visibility="Collapsed"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12" />
+
+                    <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Register"
+                                Width="120"
+                                Style="{StaticResource ModernButton}"
+                                Click="Register_Click" />
+                        <Button Content="Cancel"
+                                Width="100"
+                                Style="{StaticResource ModernButton}"
+                                Background="#64748B"
+                                Click="Cancel_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</Window>

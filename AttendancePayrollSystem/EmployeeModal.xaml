@@ -20,53 +20,68 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" x:Name="TitleText" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,16" />
 
-            <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <Border Grid.Row="1"
+                    x:Name="SchoolLinkedInfoBorder"
+                    Background="#EFF6FF"
+                    BorderBrush="#BFDBFE"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="10"
+                    Margin="0,0,0,12"
+                    Visibility="Collapsed">
+                <TextBlock x:Name="SchoolLinkedInfoTextBlock"
+                           Foreground="#1E3A8A"
+                           TextWrapping="Wrap" />
+            </Border>
+
+            <StackPanel Grid.Row="2" Margin="0,0,0,10">
                 <TextBlock Text="Employee Code" />
                 <TextBox x:Name="EmployeeCodeTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <StackPanel Grid.Row="3" Margin="0,0,0,10">
                 <TextBlock Text="Full Name" />
                 <TextBox x:Name="FullNameTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="3" Margin="0,0,0,10">
+            <StackPanel Grid.Row="4" Margin="0,0,0,10">
                 <TextBlock Text="Email" />
                 <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="4" Margin="0,0,0,10">
+            <StackPanel Grid.Row="5" Margin="0,0,0,10">
                 <TextBlock Text="Phone" />
                 <TextBox x:Name="PhoneTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="5" Margin="0,0,0,10">
+            <StackPanel Grid.Row="6" Margin="0,0,0,10">
                 <TextBlock Text="Position" />
                 <TextBox x:Name="PositionTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="6" Margin="0,0,0,10">
+            <StackPanel Grid.Row="7" Margin="0,0,0,10">
                 <TextBlock Text="Department" />
                 <TextBox x:Name="DepartmentTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="7" Margin="0,0,0,10">
+            <StackPanel Grid.Row="8" Margin="0,0,0,10">
                 <TextBlock Text="Hourly Rate" />
                 <TextBox x:Name="HourlyRateTextBox" Style="{StaticResource ModernTextBox}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="8" Margin="0,0,0,10">
+            <StackPanel Grid.Row="9" Margin="0,0,0,10">
                 <TextBlock Text="Hire Date" />
                 <DatePicker x:Name="HireDatePicker" />
             </StackPanel>
 
-            <CheckBox Grid.Row="9" x:Name="IsActiveCheckBox" Content="Is Active" Margin="0,8,0,16" />
+            <CheckBox Grid.Row="10" x:Name="IsActiveCheckBox" Content="Is Active" Margin="0,8,0,16" />
 
-            <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Right">
+            <StackPanel Grid.Row="11" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Save" Width="100" Margin="0,0,8,0" Style="{StaticResource ModernButton}" Click="Save_Click" />
                 <Button Content="Cancel" Width="100" Style="{StaticResource ModernButton}" Click="Cancel_Click" />
             </StackPanel>

@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore AttendancePayrollSystem/AttendancePayrollSystem.csproj
+
+      - name: Build
+        run: dotnet build AttendancePayrollSystem/AttendancePayrollSystem.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test AttendancePayrollSystem/AttendancePayrollSystem.csproj --configuration Release --no-build

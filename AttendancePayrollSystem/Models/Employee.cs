@@ -14,6 +14,8 @@ namespace AttendancePayrollSystem.Models
         public decimal HourlyRate { get; set; }
         public DateTime HireDate { get; set; }
         public bool IsActive { get; set; }
+        public long? SourceTeacherId { get; set; }
+        public long? SourceUserId { get; set; }
         public byte[]? ProfileImage { get; set; }
         public byte[]? BiometricTemplate { get; set; }
     }

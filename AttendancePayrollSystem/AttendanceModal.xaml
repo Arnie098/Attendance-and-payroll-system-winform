@@ -75,7 +75,7 @@
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Attendance CRUD">
+                <TabItem x:Name="AttendanceCrudTab" Header="Attendance Records">
                     <Grid Margin="8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -105,6 +105,16 @@
                         </DataGrid>
 
                         <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="8" Padding="12">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSelectedAttendance}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -151,11 +161,27 @@
                                           Margin="8,0,0,4" />
 
                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                                    <Button Content="Add" Width="90" Style="{StaticResource ModernButton}" Click="AddAttendanceCrud_Click" />
-                                    <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="UpdateAttendanceCrud_Click" />
+                                    <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Click="UpdateAttendanceCrud_Click" />
                                     <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeleteAttendanceCrud_Click" />
                                 </StackPanel>
                             </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Background="#EEF2F8" CornerRadius="8" Padding="12">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSelectedAttendance}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="Select an attendance record to edit or delete it."
+                                       Foreground="#4E5968"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
                         </Border>
                     </Grid>
                 </TabItem>

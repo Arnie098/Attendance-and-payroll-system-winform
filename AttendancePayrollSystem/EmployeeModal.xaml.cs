@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows;
 using AttendancePayrollSystem.Models;
+using AttendancePayrollSystem.Services;
 
 namespace AttendancePayrollSystem
 {
@@ -17,6 +18,7 @@ namespace AttendancePayrollSystem
             _existingEmployee = employee;
             TitleText.Text = employee == null ? "Add Employee" : "Edit Employee";
             LoadEmployeeData();
+            ConfigureSchoolLinkedState();
         }
 
         private void LoadEmployeeData()
@@ -37,6 +39,22 @@ namespace AttendancePayrollSystem
             HourlyRateTextBox.Text = _existingEmployee.HourlyRate.ToString("0.##", CultureInfo.InvariantCulture);
             HireDatePicker.SelectedDate = _existingEmployee.HireDate;
             IsActiveCheckBox.IsChecked = _existingEmployee.IsActive;
+        }
+
+        private void ConfigureSchoolLinkedState()
+        {
+            var isSchoolManaged = EmployeeSourcePolicy.IsSchoolManagedEmployee(_existingEmployee);
+            SchoolLinkedInfoBorder.Visibility = isSchoolManaged ? Visibility.Visible : Visibility.Collapsed;
+            SchoolLinkedInfoTextBlock.Text = isSchoolManaged
+                ? EmployeeSourcePolicy.LinkedEmployeeEditMessage
+                : string.Empty;
+
+            EmployeeCodeTextBox.IsReadOnly = isSchoolManaged;
+            FullNameTextBox.IsReadOnly = isSchoolManaged;
+            EmailTextBox.IsReadOnly = isSchoolManaged;
+            PhoneTextBox.IsReadOnly = isSchoolManaged;
+            HireDatePicker.IsEnabled = !isSchoolManaged;
+            IsActiveCheckBox.IsEnabled = !isSchoolManaged;
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -73,6 +91,8 @@ namespace AttendancePayrollSystem
                 HourlyRate = hourlyRate,
                 HireDate = HireDatePicker.SelectedDate.Value,
                 IsActive = IsActiveCheckBox.IsChecked ?? true,
+                SourceTeacherId = _existingEmployee?.SourceTeacherId,
+                SourceUserId = _existingEmployee?.SourceUserId,
                 ProfileImage = _existingEmployee?.ProfileImage,
                 BiometricTemplate = _existingEmployee?.BiometricTemplate
             };

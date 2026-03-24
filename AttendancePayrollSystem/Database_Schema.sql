@@ -1,71 +1,72 @@
-IF DB_ID('AttendancePayrollDb') IS NULL
-BEGIN
-    CREATE DATABASE AttendancePayrollDb;
-END
-GO
+-- MySQL schema for Attendance Payroll.
+-- Import this into Hostinger phpMyAdmin for the configured database.
 
-USE AttendancePayrollDb;
-GO
-
-IF OBJECT_ID('dbo.PayrollRecords', 'U') IS NOT NULL DROP TABLE dbo.PayrollRecords;
-IF OBJECT_ID('dbo.AttendanceRecords', 'U') IS NOT NULL DROP TABLE dbo.AttendanceRecords;
-IF OBJECT_ID('dbo.Employees', 'U') IS NOT NULL DROP TABLE dbo.Employees;
-GO
-
-CREATE TABLE dbo.Employees
+CREATE TABLE IF NOT EXISTS Employees
 (
-    EmployeeId INT IDENTITY(1,1) PRIMARY KEY,
-    EmployeeCode NVARCHAR(20) NOT NULL UNIQUE,
-    FullName NVARCHAR(150) NOT NULL,
-    Email NVARCHAR(150) NULL,
-    Phone NVARCHAR(50) NULL,
-    Position NVARCHAR(100) NULL,
-    Department NVARCHAR(100) NULL,
-    HourlyRate DECIMAL(18,2) NOT NULL,
+    EmployeeId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    EmployeeCode VARCHAR(20) NOT NULL UNIQUE,
+    FullName VARCHAR(150) NOT NULL,
+    Email VARCHAR(150) NULL,
+    Phone VARCHAR(50) NULL,
+    Position VARCHAR(100) NULL,
+    Department VARCHAR(100) NULL,
+    HourlyRate DECIMAL(18, 2) NOT NULL,
     HireDate DATE NOT NULL,
-    IsActive BIT NOT NULL CONSTRAINT DF_Employees_IsActive DEFAULT 1,
-    ProfileImage VARBINARY(MAX) NULL,
-    BiometricTemplate VARBINARY(MAX) NULL
-);
-GO
+    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+    SourceTeacherId BIGINT NULL,
+    SourceUserId BIGINT NULL,
+    ProfileImage LONGBLOB NULL,
+    BiometricTemplate LONGBLOB NULL,
+    UNIQUE KEY UQ_Employees_SourceTeacherId (SourceTeacherId),
+    UNIQUE KEY UQ_Employees_SourceUserId (SourceUserId)
+) ENGINE=InnoDB;
 
-CREATE TABLE dbo.AttendanceRecords
+CREATE TABLE IF NOT EXISTS AttendanceRecords
 (
-    AttendanceId INT IDENTITY(1,1) PRIMARY KEY,
+    AttendanceId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     EmployeeId INT NOT NULL,
     AttendanceDate DATE NOT NULL,
     TimeIn DATETIME NULL,
     TimeOut DATETIME NULL,
-    Status NVARCHAR(30) NOT NULL CONSTRAINT DF_Attendance_Status DEFAULT 'Present',
-    IsBiometricVerified BIT NOT NULL CONSTRAINT DF_Attendance_Bio DEFAULT 0,
-    CONSTRAINT FK_Attendance_Employee FOREIGN KEY (EmployeeId) REFERENCES dbo.Employees(EmployeeId),
+    Status VARCHAR(30) NOT NULL DEFAULT 'Present',
+    IsBiometricVerified BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX IDX_AttendanceRecords_EmployeeId (EmployeeId),
+    CONSTRAINT FK_AttendanceRecords_Employees FOREIGN KEY (EmployeeId)
+        REFERENCES Employees(EmployeeId),
     CONSTRAINT UQ_Attendance_EmployeeDate UNIQUE (EmployeeId, AttendanceDate)
-);
-GO
+) ENGINE=InnoDB;
 
-CREATE TABLE dbo.PayrollRecords
+CREATE TABLE IF NOT EXISTS PayrollRecords
 (
-    PayrollId INT IDENTITY(1,1) PRIMARY KEY,
+    PayrollId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     EmployeeId INT NOT NULL,
     PayPeriodStart DATE NOT NULL,
     PayPeriodEnd DATE NOT NULL,
-    RegularHours DECIMAL(10,2) NOT NULL,
-    OvertimeHours DECIMAL(10,2) NOT NULL,
-    GrossPay DECIMAL(18,2) NOT NULL,
-    Deductions DECIMAL(18,2) NOT NULL,
-    NetPay DECIMAL(18,2) NOT NULL,
-    Status NVARCHAR(30) NOT NULL CONSTRAINT DF_Payroll_Status DEFAULT 'Pending',
-    CreatedAt DATETIME NOT NULL CONSTRAINT DF_Payroll_CreatedAt DEFAULT GETDATE(),
-    CONSTRAINT FK_Payroll_Employee FOREIGN KEY (EmployeeId) REFERENCES dbo.Employees(EmployeeId)
-);
-GO
+    RegularHours DECIMAL(10, 2) NOT NULL,
+    OvertimeHours DECIMAL(10, 2) NOT NULL,
+    GrossPay DECIMAL(18, 2) NOT NULL,
+    Deductions DECIMAL(18, 2) NOT NULL,
+    NetPay DECIMAL(18, 2) NOT NULL,
+    Status VARCHAR(30) NOT NULL DEFAULT 'Pending',
+    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX IDX_PayrollRecords_EmployeeId (EmployeeId),
+    CONSTRAINT FK_PayrollRecords_Employees FOREIGN KEY (EmployeeId)
+        REFERENCES Employees(EmployeeId)
+) ENGINE=InnoDB;
 
-INSERT INTO dbo.Employees
+CREATE TABLE IF NOT EXISTS UserAccounts
 (
-    EmployeeCode, FullName, Email, Phone, Position, Department, HourlyRate, HireDate, IsActive
-)
-VALUES
-('EMP-001', 'Alex Santos', 'alex.santos@company.com', '09170000001', 'Software Engineer', 'IT', 250.00, '2023-02-01', 1),
-('EMP-002', 'Bianca Reyes', 'bianca.reyes@company.com', '09170000002', 'HR Specialist', 'HR', 220.00, '2022-11-15', 1),
-('EMP-003', 'Carlo Dizon', 'carlo.dizon@company.com', '09170000003', 'Accountant', 'Finance', 230.00, '2021-08-10', 1);
-GO
+    UserAccountId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(80) NOT NULL UNIQUE,
+    PasswordHash VARCHAR(256) NOT NULL,
+    PasswordSalt VARBINARY(64) NULL,
+    HashIterations INT NOT NULL DEFAULT 210000,
+    Role VARCHAR(20) NOT NULL,
+    EmployeeId INT NULL UNIQUE,
+    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX IDX_UserAccounts_Role (Role),
+    CONSTRAINT FK_UserAccounts_Employee FOREIGN KEY (EmployeeId)
+        REFERENCES Employees(EmployeeId)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
