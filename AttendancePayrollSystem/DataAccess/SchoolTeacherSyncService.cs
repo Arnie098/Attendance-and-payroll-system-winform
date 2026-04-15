@@ -19,6 +19,11 @@ namespace AttendancePayrollSystem.DataAccess
                 return SchoolTeacherSyncResult.Skipped("School teacher sync is not supported while the app is running in Supabase API mode.");
             }
 
+            if (DatabaseRuntimeState.UseOfflineDatabase)
+            {
+                return SchoolTeacherSyncResult.Skipped("School teacher sync skipped while the app is using the local MySQL offline mirror.");
+            }
+
             if (!SchoolDatabaseHelper.IsConfigured())
             {
                 return SchoolTeacherSyncResult.Skipped("School teacher sync skipped because the school DB connection is not configured.");

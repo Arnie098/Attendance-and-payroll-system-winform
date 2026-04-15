@@ -114,7 +114,7 @@ namespace AttendancePayrollSystem
                 Database = DatabaseTextBox.Text.Trim(),
                 Username = UsernameTextBox.Text.Trim(),
                 Password = PasswordBox.Password,
-                SslMode = Convert.ToString(SslModeComboBox.SelectedItem) ?? "Preferred"
+                SslMode = Convert.ToString(SslModeComboBox.SelectedItem) ?? "None"
             };
         }
 

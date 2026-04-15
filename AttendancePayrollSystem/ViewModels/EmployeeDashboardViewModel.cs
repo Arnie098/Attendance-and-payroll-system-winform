@@ -19,9 +19,12 @@ namespace AttendancePayrollSystem.ViewModels
         private string _clockActionButtonText = "Open Attendance";
         private bool _isClockActionEnabled = true;
         private string _latestPayrollText = "No payroll records yet.";
+        private string _latestLeaveText = "No leave requests yet.";
+        private bool _canCancelSelectedLeave;
 
         public ObservableCollection<Attendance> AttendanceHistory { get; } = new();
         public ObservableCollection<Payroll> PayrollHistory { get; } = new();
+        public ObservableCollection<LeaveRequest> LeaveRequests { get; } = new();
 
         public string WelcomeText
         {
@@ -111,6 +114,18 @@ namespace AttendancePayrollSystem.ViewModels
         {
             get => _latestPayrollText;
             set => SetProperty(ref _latestPayrollText, value);
+        }
+
+        public string LatestLeaveText
+        {
+            get => _latestLeaveText;
+            set => SetProperty(ref _latestLeaveText, value);
+        }
+
+        public bool CanCancelSelectedLeave
+        {
+            get => _canCancelSelectedLeave;
+            set => SetProperty(ref _canCancelSelectedLeave, value);
         }
     }
 }

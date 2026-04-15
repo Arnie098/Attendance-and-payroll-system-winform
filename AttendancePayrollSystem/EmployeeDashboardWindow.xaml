@@ -26,6 +26,11 @@
                         Width="110"
                         Style="{StaticResource ModernButton}"
                         Click="Refresh_Click" />
+                <Button Content="File Leave"
+                        Width="120"
+                        Style="{StaticResource ModernButton}"
+                        Background="#0F766E"
+                        Click="FileLeave_Click" />
                 <Button Content="{Binding ClockActionButtonText}"
                         Width="130"
                         Style="{StaticResource ModernButton}"
@@ -38,7 +43,7 @@
             </StackPanel>
         </DockPanel>
 
-        <UniformGrid Grid.Row="1" Columns="3" Margin="8,0,8,14">
+        <UniformGrid Grid.Row="1" Columns="4" Margin="8,0,8,14">
             <Border Style="{StaticResource ModernCard}" Background="#EFF6FF" Margin="0,0,10,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -103,15 +108,26 @@
                     <TextBlock Text="{Binding LatestPayrollText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
+
+            <Border Style="{StaticResource ModernCard}" Background="#F5F3FF">
+                <StackPanel>
+                    <TextBlock Text="Latest Leave Request" Foreground="#6D28D9" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding LatestLeaveText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
         </UniformGrid>
 
         <Grid Grid.Row="2" Margin="8,0,8,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,10,0">
+            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,10,12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -135,7 +151,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Style="{StaticResource ModernCard}">
+            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -161,6 +177,48 @@
                             <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=PHP {0:N2}}" Width="120" />
                             <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=PHP {0:N2}}" Width="120" />
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="95" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource ModernCard}" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="My Leave Requests" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Cancel Selected"
+                                Width="130"
+                                Style="{StaticResource ModernButton}"
+                                Background="#7C3AED"
+                                IsEnabled="{Binding CanCancelSelectedLeave}"
+                                Click="CancelSelectedLeave_Click" />
+                    </DockPanel>
+
+                    <DataGrid x:Name="LeaveRequestsDataGrid"
+                              Grid.Row="1"
+                              ItemsSource="{Binding LeaveRequests}"
+                              Style="{StaticResource ModernDataGrid}"
+                              Margin="0,8,0,0"
+                              SelectionChanged="LeaveRequestsDataGrid_SelectionChanged"
+                              MinHeight="220"
+                              MaxHeight="320"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Type" Binding="{Binding LeaveType}" Width="150" />
+                            <DataGridTextColumn Header="Paid" Binding="{Binding PaymentLabel}" Width="90" />
+                            <DataGridTextColumn Header="Start" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                            <DataGridTextColumn Header="End" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                            <DataGridTextColumn Header="Days" Binding="{Binding ChargeableDays}" Width="80" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="110" />
+                            <DataGridTextColumn Header="Reviewed By" Binding="{Binding ReviewedBy}" Width="120" />
+                            <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

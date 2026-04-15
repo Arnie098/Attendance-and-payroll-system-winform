@@ -3,130 +3,861 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              Loaded="UserControl_Loaded">
+    <UserControl.Resources>
+        <DropShadowEffect x:Key="DashboardTileShadow"
+                          BlurRadius="18"
+                          ShadowDepth="3"
+                          Opacity="0.18"
+                          Color="#031A23" />
+
+        <Style x:Key="DashboardTileBorderStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="18" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+            <Setter Property="Effect" Value="{StaticResource DashboardTileShadow}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="DashboardActionTileStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="132" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="TileBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="18"
+                                Effect="{StaticResource DashboardTileShadow}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TileBorder" Property="Opacity" Value="0.94" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="TileBorder" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusTileStyle" TargetType="Border" BasedOn="{StaticResource DashboardTileBorderStyle}">
+            <Setter Property="Background" Value="#0F766E" />
+            <Setter Property="BorderBrush" Value="#7EE7D3" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOfflineMode}" Value="True">
+                    <Setter Property="Background" Value="#9A3412" />
+                    <Setter Property="BorderBrush" Value="#FDBA74" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasDatabaseIssue}" Value="True">
+                    <Setter Property="Background" Value="#991B1B" />
+                    <Setter Property="BorderBrush" Value="#FCA5A5" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="False">
-        <Grid Margin="8">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
-            <StackPanel DockPanel.Dock="Left">
-                <TextBlock Text="Admin Dashboard" Style="{StaticResource HeaderText}" Margin="0,0,0,4" />
-                <TextBlock Text="{Binding DashboardDateText}" Foreground="#6B7280" FontSize="13" />
-            </StackPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Content="Backup Database"
-                        Style="{StaticResource ModernButton}"
-                        Width="150"
-                        Height="36"
-                        Margin="0,0,8,0"
-                        Click="BackupDatabaseButton_Click" />
-                <Button Content="Refresh"
-                        Style="{StaticResource ModernButton}"
-                        Width="110"
-                        Height="36"
-                        Click="RefreshButton_Click" />
-            </StackPanel>
-        </DockPanel>
-
-        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,14">
-            <Border Style="{StaticResource ModernCard}" Background="#DBEAFE" Margin="0,0,8,0">
-                <StackPanel>
-                    <TextBlock Text="Total Employees" Foreground="#1E3A8A" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding TotalEmployees}" FontSize="28" FontWeight="Bold" Foreground="#1D4ED8" />
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource ModernCard}" Background="#DCFCE7" Margin="0,0,8,0">
-                <StackPanel>
-                    <TextBlock Text="Present Today" Foreground="#166534" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding PresentToday}" FontSize="28" FontWeight="Bold" Foreground="#16A34A" />
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource ModernCard}" Background="#FFEDD5" Margin="0,0,8,0">
-                <StackPanel>
-                    <TextBlock Text="Late Today" Foreground="#9A3412" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding LateToday}" FontSize="28" FontWeight="Bold" Foreground="#EA580C" />
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource ModernCard}" Background="#FEE2E2">
-                <StackPanel>
-                    <TextBlock Text="Absent Today" Foreground="#991B1B" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding AbsentToday}" FontSize="28" FontWeight="Bold" Foreground="#DC2626" />
-                </StackPanel>
-            </Border>
-        </UniformGrid>
-
-        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="0,0,0,14">
-            <StackPanel>
-                <DockPanel>
-                    <TextBlock Text="Birthday Celebrants Today" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
-                    <materialDesign:PackIcon Kind="CakeVariant" Width="20" Height="20" Foreground="#D97706" Margin="8,0,0,0" />
-                </DockPanel>
-
-                <TextBlock Text="No birthdays today."
-                           Foreground="#6B7280"
-                           Visibility="{Binding BirthdayCelebrants.Count, Converter={StaticResource ZeroToVisibility}}"
-                           Margin="0,8,0,0" />
-
-                <ItemsControl ItemsSource="{Binding BirthdayCelebrants}" Margin="0,8,0,0">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="#FFF8DB" BorderBrush="#FCD34D" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,10,10" MinWidth="190">
-                                <StackPanel Orientation="Horizontal">
-                                    <Ellipse Width="46" Height="46" Margin="0,0,10,0">
-                                        <Ellipse.Fill>
-                                            <ImageBrush ImageSource="{Binding ProfileImage, Converter={StaticResource ByteToImage}}" Stretch="UniformToFill" />
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding EmployeeCode}" Foreground="#6B7280" FontSize="12" />
-                                        <TextBlock Text="{Binding Label}" Foreground="#92400E" FontSize="11" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
-
-            <Border Grid.Row="3" Style="{StaticResource ModernCard}">
+                  CanContentScroll="False"
+                  Background="Transparent">
+        <Grid Margin="10">
+            <Border Background="#0D3446"
+                    BorderBrush="#1C5568"
+                    BorderThickness="1"
+                    CornerRadius="26"
+                    Padding="18">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Latest Attendance Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
+                    <Border Grid.Row="0"
+                            Background="#154C78"
+                            BorderBrush="#2B6C97"
+                            BorderThickness="1"
+                            CornerRadius="18"
+                            Padding="24"
+                            Margin="0,0,0,14">
+                        <Grid>
+                            <Canvas IsHitTestVisible="False">
+                                <Polygon Points="0,0 300,0 120,120"
+                                         Fill="#FFFFFF"
+                                         Opacity="0.05" />
+                                <Polygon Points="240,0 520,0 420,120"
+                                         Fill="#FFFFFF"
+                                         Opacity="0.05" />
+                                <Polygon Points="860,0 1080,0 1080,120"
+                                         Fill="#7DD3FC"
+                                         Opacity="0.08" />
+                            </Canvas>
 
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding LatestAttendances}"
-                              Style="{StaticResource ModernDataGrid}"
-                              Margin="0,8,0,0"
-                              MinHeight="220"
-                              MaxHeight="360"
-                              ScrollViewer.VerticalScrollBarVisibility="Auto"
-                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
-                            <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="220" />
-                            <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
-                            <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm}" Width="90" />
-                            <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="90" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2.1*" MinWidth="380" />
+                                    <ColumnDefinition Width="2.5*" MinWidth="520" />
+                                    <ColumnDefinition Width="1.4*" MinWidth="220" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,28,0">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <Border Width="78"
+                                                Height="78"
+                                                Background="#0E2F45"
+                                                BorderBrush="#7DD3FC"
+                                                BorderThickness="1"
+                                                CornerRadius="18"
+                                                Margin="0,0,16,0">
+                                            <Grid>
+                                                <materialDesign:PackIcon Kind="ShieldAccount"
+                                                                         Width="42"
+                                                                         Height="42"
+                                                                         Foreground="#F8FAFC"
+                                                                         HorizontalAlignment="Center"
+                                                                         VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="SIR DVO PROJECT"
+                                                       Foreground="#CBE6F1"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Workforce Operations Profile"
+                                                       Foreground="White"
+                                                       FontSize="24"
+                                                       FontWeight="Bold"
+                                                       MaxWidth="320"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock Text="Manage employee records, attendance activity, payroll actions, and database operations from a single admin board."
+                                               Foreground="#E0F2FE"
+                                               FontSize="14"
+                                               MaxWidth="500"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            Margin="16,0,16,0">
+                                    <TextBlock Text="Attendance Payroll System"
+                                               Foreground="White"
+                                               FontSize="36"
+                                               FontWeight="Bold"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="620" />
+                                    <TextBlock Text="ADMIN COMMAND CENTER"
+                                               Foreground="#BCE4F4"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Margin="0,10,0,8"
+                                               TextAlignment="Center" />
+                                    <TextBlock Text="Software identity, dashboard control, and operational monitoring"
+                                               Foreground="#D5EDF7"
+                                               FontSize="14"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="620" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Right"
+                                            Margin="16,0,0,0">
+                                    <Border Width="118"
+                                            Height="118"
+                                            Background="#0E2F45"
+                                            BorderBrush="#F8B84E"
+                                            BorderThickness="2"
+                                            CornerRadius="59"
+                                            HorizontalAlignment="Right">
+                                        <Grid>
+                                            <Ellipse Width="82"
+                                                     Height="82"
+                                                     Fill="#F59E0B"
+                                                     Opacity="0.18"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center" />
+                                            <StackPanel HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="APS"
+                                                           Foreground="White"
+                                                           FontSize="28"
+                                                           FontWeight="Bold"
+                                                           HorizontalAlignment="Center" />
+                                                <TextBlock Text="TM"
+                                                           Foreground="#FDE68A"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Text="Trademark Mark"
+                                               Foreground="#CBE6F1"
+                                               FontSize="13"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.1*" />
+                            <ColumnDefinition Width="1.6*" />
+                            <ColumnDefinition Width="1.2*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#114B52"
+                                BorderBrush="#2DD4BF">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="CalendarToday"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#9FEDE0"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="TODAY'S DASHBOARD"
+                                               Foreground="#9FEDE0"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding DashboardDateText}"
+                                           Foreground="White"
+                                           FontSize="34"
+                                           FontWeight="Light"
+                                           TextWrapping="Wrap"
+                                           Margin="0,10,0,10" />
+                                <TextBlock Text="Live attendance and payroll overview for the current operating day."
+                                           Foreground="#C9F8F2"
+                                           FontSize="14"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1"
+                                Style="{StaticResource StatusTileStyle}">
+                            <StackPanel>
+                                <Border HorizontalAlignment="Left"
+                                        Background="#0A2534"
+                                        CornerRadius="999"
+                                        Padding="10,4"
+                                        Margin="0,0,0,10">
+                                    <TextBlock Text="{Binding DatabaseStatusBadgeText}"
+                                               Foreground="White"
+                                               FontSize="11"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="DatabaseCheck"
+                                                             Width="22"
+                                                             Height="22"
+                                                             Foreground="White"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding DatabaseStatusTitle}"
+                                               Foreground="White"
+                                               FontSize="22"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding DatabaseStatusDetail}"
+                                           Foreground="#F8FAFC"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#2D8F90"
+                                BorderBrush="#93F5E5">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="CakeVariant"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#D8FFFB"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="BIRTHDAY BOARD"
+                                               Foreground="#D8FFFB"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding BirthdaySummaryText}"
+                                           Foreground="White"
+                                           FontSize="24"
+                                           FontWeight="Bold"
+                                           Margin="0,10,0,10"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="Quick access to today's celebrants and milestone cards."
+                                           Foreground="#E6FFFB"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <UniformGrid Grid.Row="2"
+                                 Columns="6"
+                                 Margin="0,0,0,2">
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#145A63"
+                                BorderBrush="#53D3C7"
+                                Click="OpenEmployeeManagementTile_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#0A2534"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="AccountGroup"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="EMPLOYEE FILES"
+                                           Foreground="White"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Open the employee management workspace."
+                                           Foreground="#D6F8F3"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#1E7A84"
+                                BorderBrush="#76E0D8"
+                                Click="BirthdayBoardTile_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#0A2534"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="CakeVariant"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="BIRTHDAY BOARD"
+                                           Foreground="White"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Jump to today's celebrants and anniversaries."
+                                           Foreground="#D8FCF7"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#2399A0"
+                                BorderBrush="#8EF4F3"
+                                Click="LatestRecordsTile_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#0A2534"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="ClipboardTextClock"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="ATTENDANCE LOGS"
+                                           Foreground="White"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Review the newest time-in and time-out activity."
+                                           Foreground="#E6FFFE"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#0F766E"
+                                BorderBrush="#5EEAD4"
+                                Click="RefreshButton_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#0A2534"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="Refresh"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="REFRESH BOARD"
+                                           Foreground="White"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Synchronize runtime data and reload dashboard values."
+                                           Foreground="#DCFDF7"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#D97706"
+                                BorderBrush="#FCD34D"
+                                Click="BackupDatabaseButton_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#7C2D12"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="DatabaseExport"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="BACKUP CENTER"
+                                           Foreground="White"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Create SQL backup files and keep the manifest pair."
+                                           Foreground="#FFF4D8"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+
+                        <Button Style="{StaticResource DashboardActionTileStyle}"
+                                Background="#C2410C"
+                                BorderBrush="#FDBA74"
+                                Click="LogoutTile_Click">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="46"
+                                        Height="46"
+                                        Background="#7C2D12"
+                                        CornerRadius="10"
+                                        HorizontalAlignment="Left">
+                                    <Grid>
+                                        <materialDesign:PackIcon Kind="LogoutVariant"
+                                                                 Width="24"
+                                                                 Height="24"
+                                                                 Foreground="White"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <TextBlock Grid.Row="1"
+                                           Text="EXIT SYSTEM"
+                                           Foreground="White"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="0,12,0,0" />
+                                <TextBlock Grid.Row="2"
+                                           Text="Sign out of the admin dashboard and return to login."
+                                           Foreground="#FFF0E1"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
+
+                    <UniformGrid Grid.Row="3"
+                                 Columns="4"
+                                 Margin="0,0,0,2">
+                        <Border Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#8D4A1B"
+                                BorderBrush="#F5B15F">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AccountMultiple"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#FFE8C6"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="TOTAL EMPLOYEES"
+                                               Foreground="#FFE8C6"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding TotalEmployees}"
+                                           Foreground="White"
+                                           FontSize="42"
+                                           FontWeight="Bold"
+                                           Margin="0,10,0,8" />
+                                <TextBlock Text="Active workforce records available in the system."
+                                           Foreground="#FFF0D9"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#D97706"
+                                BorderBrush="#FCD34D">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AccountCheck"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#FFF2CC"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="PRESENT TODAY"
+                                               Foreground="#FFF2CC"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding PresentToday}"
+                                           Foreground="White"
+                                           FontSize="42"
+                                           FontWeight="Bold"
+                                           Margin="0,10,0,8" />
+                                <TextBlock Text="Employees with a recorded time-in for the day."
+                                           Foreground="#FFF7E1"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#CA8A04"
+                                BorderBrush="#FDE047">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AlertCircle"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#FFF7C2"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="LATE TODAY"
+                                               Foreground="#FFF7C2"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding LateToday}"
+                                           Foreground="White"
+                                           FontSize="42"
+                                           FontWeight="Bold"
+                                           Margin="0,10,0,8" />
+                                <TextBlock Text="Employees flagged with a late attendance status."
+                                           Foreground="#FFFBE0"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#B45309"
+                                BorderBrush="#FDBA74"
+                                Margin="0,0,0,12">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AccountCancel"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#FFE2B8"
+                                                             Margin="0,0,8,0"
+                                                             VerticalAlignment="Center" />
+                                    <TextBlock Text="ABSENT TODAY"
+                                               Foreground="#FFE2B8"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding AbsentToday}"
+                                           Foreground="White"
+                                           FontSize="42"
+                                           FontWeight="Bold"
+                                           Margin="0,10,0,8" />
+                                <TextBlock Text="Active employees without a recorded presence today."
+                                           Foreground="#FFF1E0"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid Grid.Row="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.2*" />
+                            <ColumnDefinition Width="1.8*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border x:Name="BirthdayPanel"
+                                Grid.Column="0"
+                                Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#123C47"
+                                BorderBrush="#2D7082">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                                    <StackPanel DockPanel.Dock="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="CakeVariant"
+                                                                     Width="24"
+                                                                     Height="24"
+                                                                     Foreground="White"
+                                                                     Margin="0,0,8,0"
+                                                                     VerticalAlignment="Center" />
+                                            <TextBlock Text="Birthday Board"
+                                                       Foreground="White"
+                                                       FontSize="24"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="Today's employees with birthdays or hire-date milestones"
+                                                   Foreground="#B7D7E2"
+                                                   FontSize="13"
+                                                   Margin="0,4,0,0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Border DockPanel.Dock="Right"
+                                            Background="#0A2534"
+                                            CornerRadius="999"
+                                            Padding="10,4"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding BirthdaySummaryText}"
+                                                   Foreground="#D4FBF8"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold" />
+                                    </Border>
+                                </DockPanel>
+
+                                <Grid Grid.Row="1">
+                                    <TextBlock Text="No birthdays today."
+                                               Foreground="#B7D7E2"
+                                               Visibility="{Binding BirthdayCelebrants.Count, Converter={StaticResource ZeroToVisibility}}"
+                                               Margin="0,8,0,0" />
+
+                                    <ItemsControl ItemsSource="{Binding BirthdayCelebrants}"
+                                                  Margin="0,8,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F2FFFC"
+                                                        BorderBrush="#A6EADF"
+                                                        BorderThickness="1"
+                                                        CornerRadius="12"
+                                                        Padding="12"
+                                                        Margin="0,0,10,10"
+                                                        MinWidth="220">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="52"
+                                                                Height="52"
+                                                                CornerRadius="26"
+                                                                Background="#DDF8F2"
+                                                                Margin="0,0,12,0">
+                                                            <Ellipse Width="52" Height="52">
+                                                                <Ellipse.Fill>
+                                                                    <ImageBrush ImageSource="{Binding ProfileImage, Converter={StaticResource ByteToImage}}"
+                                                                                Stretch="UniformToFill" />
+                                                                </Ellipse.Fill>
+                                                            </Ellipse>
+                                                        </Border>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding FullName}"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="#083344" />
+                                                            <TextBlock Text="{Binding EmployeeCode}"
+                                                                       Foreground="#4B5563"
+                                                                       FontSize="12"
+                                                                       Margin="0,2,0,2" />
+                                                            <TextBlock Text="{Binding Label}"
+                                                                       Foreground="#0F766E"
+                                                                       FontSize="11"
+                                                                       FontWeight="SemiBold" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="LatestAttendancePanel"
+                                Grid.Column="1"
+                                Style="{StaticResource DashboardTileBorderStyle}"
+                                Background="#123C47"
+                                BorderBrush="#2D7082"
+                                Margin="0,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                                    <StackPanel DockPanel.Dock="Left">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="ClipboardTextClock"
+                                                                     Width="24"
+                                                                     Height="24"
+                                                                     Foreground="White"
+                                                                     Margin="0,0,8,0"
+                                                                     VerticalAlignment="Center" />
+                                            <TextBlock Text="Latest Attendance Records"
+                                                       Foreground="White"
+                                                       FontSize="24"
+                                                       FontWeight="Bold"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="Recent employee time entries from the attendance database"
+                                                   Foreground="#B7D7E2"
+                                                   FontSize="13"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <Border DockPanel.Dock="Right"
+                                            Background="#0A2534"
+                                            CornerRadius="999"
+                                            Padding="10,4"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding LatestAttendances.Count, StringFormat={}{0} recent logs}"
+                                                   Foreground="#D4FBF8"
+                                                   FontSize="11"
+                                                   FontWeight="SemiBold" />
+                                    </Border>
+                                </DockPanel>
+
+                                <Border Grid.Row="1"
+                                        Background="#F8FAFC"
+                                        CornerRadius="14"
+                                        Padding="0">
+                                    <DataGrid ItemsSource="{Binding LatestAttendances}"
+                                              Style="{StaticResource ModernDataGrid}"
+                                              Margin="0"
+                                              MinHeight="280"
+                                              MaxHeight="420"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
+                                            <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="220" />
+                                            <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                                            <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm}" Width="90" />
+                                            <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="90" />
+                                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

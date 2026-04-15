@@ -14,8 +14,10 @@ namespace AttendancePayrollSystem
         private readonly AttendanceRepository _attendanceRepository = new();
         private readonly PayrollRepository _payrollRepository = new();
         private readonly EmployeeRepository _employeeRepository = new();
+        private readonly LeaveRequestRepository _leaveRequestRepository = new();
         private readonly EmployeeDashboardViewModel _viewModel = new();
         private Employee _employee;
+        private LeaveRequest? _selectedLeaveRequest;
 
         public EmployeeDashboardWindow(Employee employee, string username)
         {
@@ -93,6 +95,17 @@ namespace AttendancePayrollSystem
         {
             try
             {
+                var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+                if (todayAttendance != null && LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+                {
+                    MessageBox.Show(
+                        "Approved leave is already recorded for today. Attendance terminal is unavailable while leave is active.",
+                        "Leave Scheduled",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
                 var modal = new AttendanceModal(_employee, allowCrud: false)
                 {
                     Owner = this
@@ -125,6 +138,7 @@ namespace AttendancePayrollSystem
             LoadTodayAttendanceState();
             LoadAttendanceHistory();
             LoadPayrollHistory();
+            LoadLeaveRequests();
         }
 
         private void LoadEmployeeProfile()
@@ -153,6 +167,16 @@ namespace AttendancePayrollSystem
                 _viewModel.TimeOutText = "-";
                 _viewModel.ClockActionButtonText = "Open Attendance";
                 _viewModel.IsClockActionEnabled = true;
+                return;
+            }
+
+            if (LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+            {
+                _viewModel.AttendanceStatusText = todayAttendance.Status;
+                _viewModel.TimeInText = "-";
+                _viewModel.TimeOutText = "-";
+                _viewModel.ClockActionButtonText = "Leave Scheduled";
+                _viewModel.IsClockActionEnabled = false;
                 return;
             }
 
@@ -200,6 +224,114 @@ namespace AttendancePayrollSystem
             _viewModel.LatestPayrollText = latest == null
                 ? "No payroll records yet."
                 : $"{latest.PayPeriodStart:yyyy-MM-dd} to {latest.PayPeriodEnd:yyyy-MM-dd} | Net Pay: PHP {latest.NetPay:N2} ({latest.Status})";
+        }
+
+        private void LoadLeaveRequests()
+        {
+            _viewModel.LeaveRequests.Clear();
+            var records = _leaveRequestRepository.GetLeaveRequestsByEmployee(_employee.EmployeeId);
+            foreach (var leaveRequest in records)
+            {
+                _viewModel.LeaveRequests.Add(leaveRequest);
+            }
+
+            var latest = records.FirstOrDefault();
+            _viewModel.LatestLeaveText = latest == null
+                ? "No leave requests yet."
+                : $"{latest.LeaveType} | {latest.StartDate:yyyy-MM-dd} to {latest.EndDate:yyyy-MM-dd} ({latest.Status})";
+
+            _selectedLeaveRequest = null;
+            _viewModel.CanCancelSelectedLeave = false;
+            if (LeaveRequestsDataGrid.SelectedItem != null)
+            {
+                LeaveRequestsDataGrid.SelectedItem = null;
+            }
+        }
+
+        private void FileLeave_Click(object sender, RoutedEventArgs e)
+        {
+            var modal = new LeaveRequestModal(_employee)
+            {
+                Owner = this
+            };
+
+            if (modal.ShowDialog() != true || modal.ResultLeaveRequest == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _leaveRequestRepository.SubmitLeaveRequest(modal.ResultLeaveRequest);
+                LoadLeaveRequests();
+                MessageBox.Show(
+                    "Leave request filed successfully. It is now waiting for admin approval.",
+                    "Leave Request",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to file leave request.\n{ex.Message}",
+                    "Leave Request Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void LeaveRequestsDataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            _selectedLeaveRequest = LeaveRequestsDataGrid.SelectedItem as LeaveRequest;
+            _viewModel.CanCancelSelectedLeave = _selectedLeaveRequest?.CanEmployeeCancel == true;
+        }
+
+        private void CancelSelectedLeave_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedLeaveRequest == null)
+            {
+                MessageBox.Show(
+                    "Select a leave request to cancel.",
+                    "Leave Request",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!_selectedLeaveRequest.CanEmployeeCancel)
+            {
+                MessageBox.Show(
+                    "Only pending leave requests can be cancelled.",
+                    "Leave Request",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"Cancel leave request for {_selectedLeaveRequest.StartDate:yyyy-MM-dd} to {_selectedLeaveRequest.EndDate:yyyy-MM-dd}?",
+                "Cancel Leave Request",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                _leaveRequestRepository.CancelLeaveRequest(_selectedLeaveRequest.LeaveRequestId);
+                LoadLeaveRequests();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to cancel leave request.\n{ex.Message}",
+                    "Leave Request Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
     }
 }

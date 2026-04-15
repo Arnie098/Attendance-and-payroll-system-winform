@@ -54,6 +54,29 @@ CREATE TABLE IF NOT EXISTS PayrollRecords
         REFERENCES Employees(EmployeeId)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS LeaveRequests
+(
+    LeaveRequestId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    EmployeeId INT NOT NULL,
+    LeaveType VARCHAR(40) NOT NULL,
+    IsPaid BOOLEAN NOT NULL DEFAULT FALSE,
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    Reason TEXT NOT NULL,
+    Status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+    ReviewerNotes TEXT NULL,
+    ReviewedBy VARCHAR(80) NULL,
+    ReviewedAt DATETIME NULL,
+    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX IDX_LeaveRequests_EmployeeId (EmployeeId),
+    INDEX IDX_LeaveRequests_Status (Status),
+    INDEX IDX_LeaveRequests_DateRange (StartDate, EndDate),
+    CONSTRAINT FK_LeaveRequests_Employees FOREIGN KEY (EmployeeId)
+        REFERENCES Employees(EmployeeId)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS UserAccounts
 (
     UserAccountId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,

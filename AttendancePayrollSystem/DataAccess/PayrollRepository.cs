@@ -35,6 +35,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueuePayrollUpsert(Convert.ToInt32(command.LastInsertedId), payroll.EmployeeId);
         }
 
         public List<Payroll> GetPayrollByEmployee(int employeeId)
@@ -136,6 +137,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueuePayrollUpsert(payroll.PayrollId, payroll.EmployeeId);
         }
 
         public void DeletePayroll(int payrollId)
@@ -154,10 +156,17 @@ namespace AttendancePayrollSystem.DataAccess
             const string sql = "DELETE FROM PayrollRecords WHERE PayrollId = @PayrollId";
 
             using var connection = DatabaseHelper.GetConnection();
+            connection.Open();
+            var employeeId = GetEmployeeId(connection, payrollId);
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@PayrollId", payrollId);
-            connection.Open();
             command.ExecuteNonQuery();
+
+            if (employeeId.HasValue)
+            {
+                MySqlOfflineSyncService.QueuePayrollDelete(payrollId, employeeId.Value);
+            }
         }
 
         private static List<Payroll> GetPayrollByEmployeeViaApi(int employeeId)
@@ -238,6 +247,16 @@ namespace AttendancePayrollSystem.DataAccess
                 EmployeeName = Convert.ToString(reader["FullName"]) ?? string.Empty,
                 EmployeeCode = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty
             };
+        }
+
+        private static int? GetEmployeeId(MySqlConnection connection, int payrollId)
+        {
+            using var command = new MySqlCommand(
+                "SELECT EmployeeId FROM PayrollRecords WHERE PayrollId = @PayrollId LIMIT 1",
+                connection);
+            command.Parameters.AddWithValue("@PayrollId", payrollId);
+            var result = command.ExecuteScalar();
+            return result == null || result is DBNull ? null : Convert.ToInt32(result);
         }
     }
 }

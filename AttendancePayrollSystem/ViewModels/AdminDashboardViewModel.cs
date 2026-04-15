@@ -16,6 +16,13 @@ namespace AttendancePayrollSystem.ViewModels
         private int _lateToday;
         private int _absentToday;
         private string _dashboardDateText = string.Empty;
+        private string _birthdaySummaryText = string.Empty;
+        private string _databaseStatusTitle = string.Empty;
+        private string _databaseStatusDetail = string.Empty;
+        private string _databaseStatusBadgeText = string.Empty;
+        private bool _isOnlineMode;
+        private bool _isOfflineMode;
+        private bool _hasDatabaseIssue;
 
         public ObservableCollection<BirthdayEmployeeItem> BirthdayCelebrants { get; } = new();
         public ObservableCollection<LatestAttendanceItem> LatestAttendances { get; } = new();
@@ -50,12 +57,96 @@ namespace AttendancePayrollSystem.ViewModels
             set => SetProperty(ref _dashboardDateText, value);
         }
 
+        public string BirthdaySummaryText
+        {
+            get => _birthdaySummaryText;
+            set => SetProperty(ref _birthdaySummaryText, value);
+        }
+
+        public string DatabaseStatusTitle
+        {
+            get => _databaseStatusTitle;
+            set => SetProperty(ref _databaseStatusTitle, value);
+        }
+
+        public string DatabaseStatusDetail
+        {
+            get => _databaseStatusDetail;
+            set => SetProperty(ref _databaseStatusDetail, value);
+        }
+
+        public string DatabaseStatusBadgeText
+        {
+            get => _databaseStatusBadgeText;
+            set => SetProperty(ref _databaseStatusBadgeText, value);
+        }
+
+        public bool IsOnlineMode
+        {
+            get => _isOnlineMode;
+            set => SetProperty(ref _isOnlineMode, value);
+        }
+
+        public bool IsOfflineMode
+        {
+            get => _isOfflineMode;
+            set => SetProperty(ref _isOfflineMode, value);
+        }
+
+        public bool HasDatabaseIssue
+        {
+            get => _hasDatabaseIssue;
+            set => SetProperty(ref _hasDatabaseIssue, value);
+        }
+
         public void RefreshDashboard()
         {
-            DashboardDateText = DateTime.Now.ToString("MMMM dd, yyyy");
+            DashboardDateText = DateTime.Now.ToString("dddd, dd MMMM yyyy");
+            LoadRuntimeStatus();
             LoadStatistics();
             LoadBirthdayCelebrants();
             LoadLatestAttendances();
+            UpdateBirthdaySummary();
+        }
+
+        private void LoadRuntimeStatus()
+        {
+            var pendingSyncOperations = DatabaseRuntimeState.IsOfflineDatabaseAvailable
+                ? MySqlOfflineSyncService.GetPendingOperationCount()
+                : 0;
+
+            IsOnlineMode = false;
+            IsOfflineMode = false;
+            HasDatabaseIssue = false;
+
+            if (DatabaseRuntimeState.UseOfflineDatabase)
+            {
+                IsOfflineMode = true;
+                DatabaseStatusTitle = "OFFLINE MIRROR ACTIVE";
+                DatabaseStatusBadgeText = "LOCAL MODE";
+                DatabaseStatusDetail = $"{DatabaseHelper.GetActiveConnectionSummary()}\nPending sync operations: {pendingSyncOperations}";
+                return;
+            }
+
+            if (DatabaseRuntimeState.IsOnlineAvailable)
+            {
+                IsOnlineMode = true;
+                DatabaseStatusTitle = "DATABASE CONNECTED";
+                DatabaseStatusBadgeText = "ONLINE MODE";
+                DatabaseStatusDetail = DatabaseHelper.GetActiveConnectionSummary();
+
+                if (DatabaseRuntimeState.IsOfflineDatabaseAvailable)
+                {
+                    DatabaseStatusDetail = $"{DatabaseStatusDetail}\nPending sync operations: {pendingSyncOperations}";
+                }
+
+                return;
+            }
+
+            HasDatabaseIssue = true;
+            DatabaseStatusTitle = "DATABASE ATTENTION";
+            DatabaseStatusBadgeText = "CHECK SETTINGS";
+            DatabaseStatusDetail = BuildCompactStatusMessage(DatabaseRuntimeState.StatusMessage);
         }
 
         private void LoadStatistics()
@@ -124,6 +215,7 @@ namespace AttendancePayrollSystem.ViewModels
                     });
                 }
 
+                UpdateBirthdaySummary();
                 return;
             }
 
@@ -158,6 +250,8 @@ namespace AttendancePayrollSystem.ViewModels
                     Label = label
                 });
             }
+
+            UpdateBirthdaySummary();
         }
 
         private void LoadLatestAttendances()
@@ -227,6 +321,33 @@ namespace AttendancePayrollSystem.ViewModels
             }
 
             return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        private void UpdateBirthdaySummary()
+        {
+            BirthdaySummaryText = BirthdayCelebrants.Count switch
+            {
+                0 => "No celebrants today",
+                1 => "1 celebrant today",
+                _ => $"{BirthdayCelebrants.Count} celebrants today"
+            };
+        }
+
+        private static string BuildCompactStatusMessage(string statusMessage)
+        {
+            if (string.IsNullOrWhiteSpace(statusMessage))
+            {
+                return "Database status is unavailable.";
+            }
+
+            var lines = statusMessage
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Take(3)
+                .ToArray();
+
+            return lines.Length == 0
+                ? "Database status is unavailable."
+                : string.Join("\n", lines);
         }
 
         private static bool ColumnExists(string tableName, string columnName)

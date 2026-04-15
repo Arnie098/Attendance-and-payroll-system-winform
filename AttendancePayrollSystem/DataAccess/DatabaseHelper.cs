@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using AttendancePayrollSystem.Services;
 using MySqlConnector;
 
 namespace AttendancePayrollSystem.DataAccess
@@ -7,6 +8,9 @@ namespace AttendancePayrollSystem.DataAccess
     public static class DatabaseHelper
     {
         private const string DbConnectionEnvVar = "ATTENDANCE_DB_CONNECTION";
+        private const string OfflineDbConnectionEnvVar = "ATTENDANCE_OFFLINE_DB_CONNECTION";
+        private const string OnlineConnectionStringName = "AttendanceDb";
+        private const string OfflineConnectionStringName = "OfflineAttendanceDb";
         private const string SupabaseUrlSetting = "SupabaseUrl";
         private const string SupabasePublishableKeySetting = "SupabasePublishableKey";
         private static readonly string[] _coreSchemaStatements =
@@ -61,12 +65,35 @@ namespace AttendancePayrollSystem.DataAccess
                     CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     CONSTRAINT FK_PayrollRecords_Employees FOREIGN KEY (EmployeeId)
                         REFERENCES Employees(EmployeeId)
+                ) ENGINE=InnoDB;",
+            @"
+                CREATE TABLE IF NOT EXISTS LeaveRequests
+                (
+                    LeaveRequestId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    EmployeeId INT NOT NULL,
+                    LeaveType VARCHAR(40) NOT NULL,
+                    IsPaid BOOLEAN NOT NULL DEFAULT FALSE,
+                    StartDate DATE NOT NULL,
+                    EndDate DATE NOT NULL,
+                    Reason TEXT NOT NULL,
+                    Status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+                    ReviewerNotes TEXT NULL,
+                    ReviewedBy VARCHAR(80) NULL,
+                    ReviewedAt DATETIME NULL,
+                    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UpdatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX IDX_LeaveRequests_EmployeeId (EmployeeId),
+                    INDEX IDX_LeaveRequests_Status (Status),
+                    INDEX IDX_LeaveRequests_DateRange (StartDate, EndDate),
+                    CONSTRAINT FK_LeaveRequests_Employees FOREIGN KEY (EmployeeId)
+                        REFERENCES Employees(EmployeeId)
+                        ON DELETE CASCADE
                 ) ENGINE=InnoDB;"
         ];
 
-        public static MySqlConnection GetConnection()
+        public static MySqlConnection GetConnection(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
         {
-            return new MySqlConnection(BuildConnectionString());
+            return new MySqlConnection(BuildConnectionString(target));
         }
 
         public static void EnsureCoreSchema(MySqlConnection connection, MySqlTransaction transaction)
@@ -86,6 +113,34 @@ namespace AttendancePayrollSystem.DataAccess
             connection.Open();
         }
 
+        public static bool CanConnect(DatabaseConnectionTarget target, out string message)
+        {
+            var rawConnectionString = ResolveRawConnectionString(target);
+            if (string.IsNullOrWhiteSpace(rawConnectionString))
+            {
+                message = "Not configured";
+                return false;
+            }
+
+            try
+            {
+                var builder = new MySqlConnectionStringBuilder(NormalizeConnectionString(rawConnectionString))
+                {
+                    ConnectionTimeout = 2
+                };
+
+                using var connection = new MySqlConnection(builder.ConnectionString);
+                connection.Open();
+                message = GetConnectionSummary(builder.ConnectionString);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                message = ex.Message;
+                return false;
+            }
+        }
+
         public static string NormalizeConnectionString(string rawConnectionString)
         {
             if (string.IsNullOrWhiteSpace(rawConnectionString))
@@ -95,7 +150,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
 
             var builder = new MySqlConnectionStringBuilder(rawConnectionString);
-            ValidateConnectionString(builder);
+            ValidateConnectionString(builder, rawConnectionString);
             return builder.ConnectionString;
         }
 
@@ -103,7 +158,7 @@ namespace AttendancePayrollSystem.DataAccess
         {
             if (string.IsNullOrWhiteSpace(rawConnectionString))
             {
-                rawConnectionString = ResolveRawConnectionString();
+                rawConnectionString = ResolveRawConnectionString(DatabaseConnectionTarget.Active);
             }
 
             if (string.IsNullOrWhiteSpace(rawConnectionString))
@@ -125,19 +180,64 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        private static string BuildConnectionString()
+        public static string GetConnectionSummary(DatabaseConnectionTarget target)
         {
-            return NormalizeConnectionString(ResolveRawConnectionString() ?? string.Empty);
+            return GetConnectionSummary(ResolveRawConnectionString(target));
         }
 
-        private static string? ResolveRawConnectionString()
+        public static string GetActiveConnectionSummary()
         {
-            var fromEnv = Environment.GetEnvironmentVariable(DbConnectionEnvVar);
-            var fromConfig = ConfigurationManager.ConnectionStrings["AttendanceDb"]?.ConnectionString;
-            return !string.IsNullOrWhiteSpace(fromEnv) ? fromEnv : fromConfig;
+            return GetConnectionSummary(GetActiveTarget());
         }
 
-        private static void ValidateConnectionString(MySqlConnectionStringBuilder builder)
+        public static bool IsOnlineConfigured()
+        {
+            return !string.IsNullOrWhiteSpace(ResolveRawConnectionString(DatabaseConnectionTarget.Online));
+        }
+
+        public static bool IsOfflineConfigured()
+        {
+            return !string.IsNullOrWhiteSpace(ResolveRawConnectionString(DatabaseConnectionTarget.Offline));
+        }
+
+        public static DatabaseConnectionTarget GetActiveTarget()
+        {
+            return DatabaseRuntimeState.UseOfflineDatabase
+                ? DatabaseConnectionTarget.Offline
+                : DatabaseConnectionTarget.Online;
+        }
+
+        private static string BuildConnectionString(DatabaseConnectionTarget target)
+        {
+            return NormalizeConnectionString(ResolveRawConnectionString(target) ?? string.Empty);
+        }
+
+        private static string? ResolveRawConnectionString(DatabaseConnectionTarget target)
+        {
+            var effectiveTarget = target == DatabaseConnectionTarget.Active
+                ? GetActiveTarget()
+                : target;
+
+            return effectiveTarget switch
+            {
+                DatabaseConnectionTarget.Online => ResolveConnectionString(DbConnectionEnvVar, OnlineConnectionStringName),
+                DatabaseConnectionTarget.Offline => ResolveConnectionString(OfflineDbConnectionEnvVar, OfflineConnectionStringName),
+                _ => ResolveConnectionString(DbConnectionEnvVar, OnlineConnectionStringName)
+            };
+        }
+
+        private static string? ResolveConnectionString(string envVar, string connectionStringName)
+        {
+            var fromEnv = Environment.GetEnvironmentVariable(envVar);
+            if (!string.IsNullOrWhiteSpace(fromEnv))
+            {
+                return fromEnv;
+            }
+
+            return ConfigurationManager.ConnectionStrings[connectionStringName]?.ConnectionString;
+        }
+
+        private static void ValidateConnectionString(MySqlConnectionStringBuilder builder, string rawConnectionString)
         {
             if (string.IsNullOrWhiteSpace(builder.Server))
             {
@@ -172,7 +272,11 @@ namespace AttendancePayrollSystem.DataAccess
                 builder.Port = 3306;
             }
 
-            if (builder.SslMode == MySqlSslMode.None)
+            var sslModeWasSpecified =
+                rawConnectionString.Contains("SslMode", StringComparison.OrdinalIgnoreCase) ||
+                rawConnectionString.Contains("Ssl Mode", StringComparison.OrdinalIgnoreCase);
+
+            if (!sslModeWasSpecified && builder.SslMode == MySqlSslMode.None)
             {
                 builder.SslMode = MySqlSslMode.Preferred;
             }

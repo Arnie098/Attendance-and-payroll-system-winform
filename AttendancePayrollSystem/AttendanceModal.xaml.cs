@@ -47,6 +47,20 @@ namespace AttendancePayrollSystem
 
         private async void BiometricSimulation_Click(object sender, RoutedEventArgs e)
         {
+            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            if (todayAttendance != null && LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+            {
+                _viewModel.IsScanButtonEnabled = false;
+                _viewModel.ScanStateText = "Attendance locked";
+                _viewModel.StatusText = $"Approved leave is already recorded for today as {todayAttendance.Status}.";
+                MessageBox.Show(
+                    "Approved leave is already recorded for today. Biometric attendance is disabled while leave is active.",
+                    "Leave Scheduled",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
             _viewModel.IsScanning = true;
             _viewModel.IsScanButtonEnabled = false;
             _viewModel.ScanStateText = "Scanning fingerprint...";
@@ -66,7 +80,7 @@ namespace AttendancePayrollSystem
             }
 
             _viewModel.ScanStateText = "Verification successful";
-            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
 
             if (todayAttendance == null)
             {
@@ -101,11 +115,23 @@ namespace AttendancePayrollSystem
                 _viewModel.TimeInText = "-";
                 _viewModel.TimeOutText = "-";
                 _viewModel.NextActionText = "Time In";
+                _viewModel.IsScanButtonEnabled = true;
                 if (string.IsNullOrWhiteSpace(_viewModel.StatusText))
                 {
                     _viewModel.StatusText = "No attendance record yet for today.";
                 }
 
+                return;
+            }
+
+            if (LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+            {
+                _viewModel.TimeInText = "-";
+                _viewModel.TimeOutText = "-";
+                _viewModel.NextActionText = "No pending action";
+                _viewModel.StatusText = $"Approved leave recorded for today as {todayAttendance.Status}.";
+                _viewModel.ScanStateText = "Attendance locked";
+                _viewModel.IsScanButtonEnabled = false;
                 return;
             }
 
@@ -115,6 +141,8 @@ namespace AttendancePayrollSystem
             _viewModel.StatusText = todayAttendance.TimeOut.HasValue
                 ? "Attendance completed."
                 : "Employee is currently clocked in.";
+            _viewModel.ScanStateText = "Ready for fingerprint verification";
+            _viewModel.IsScanButtonEnabled = true;
         }
 
         private void LoadAttendanceRecords()
@@ -252,11 +280,19 @@ namespace AttendancePayrollSystem
                 return false;
             }
 
+            if (LeavePolicies.IsLeaveAttendanceStatus(status) && (timeIn.HasValue || timeOut.HasValue))
+            {
+                MessageBox.Show("Leave records cannot store Time In or Time Out values.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
             attendance.AttendanceDate = CrudDatePicker.SelectedDate.Value.Date;
             attendance.TimeIn = timeIn;
             attendance.TimeOut = timeOut;
             attendance.Status = status;
-            attendance.IsBiometricVerified = CrudBiometricVerifiedCheckBox.IsChecked == true;
+            attendance.IsBiometricVerified = LeavePolicies.IsLeaveAttendanceStatus(status)
+                ? false
+                : CrudBiometricVerifiedCheckBox.IsChecked == true;
             return true;
         }
 

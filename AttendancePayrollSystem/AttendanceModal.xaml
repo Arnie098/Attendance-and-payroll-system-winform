@@ -150,6 +150,7 @@
                                         <ComboBoxItem Content="Late" />
                                         <ComboBoxItem Content="Absent" />
                                         <ComboBoxItem Content="On Leave" />
+                                        <ComboBoxItem Content="Leave Without Pay" />
                                     </ComboBox>
                                 </StackPanel>
 

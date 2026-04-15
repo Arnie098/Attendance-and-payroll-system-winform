@@ -81,7 +81,9 @@ namespace AttendancePayrollSystem.DataAccess
             AddEmployeeParameters(command, employee);
             connection.Open();
             command.ExecuteNonQuery();
-            return Convert.ToInt32(command.LastInsertedId);
+            var employeeId = Convert.ToInt32(command.LastInsertedId);
+            MySqlOfflineSyncService.QueueEmployeeUpsert(employeeId);
+            return employeeId;
         }
 
         public void UpdateEmployee(Employee employee)
@@ -117,6 +119,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueEmployeeUpsert(employee.EmployeeId);
         }
 
         public void UpdateProfileImage(int employeeId, byte[]? profileImage)
@@ -138,6 +141,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@ProfileImage", profileImage is null ? DBNull.Value : profileImage);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueEmployeeUpsert(employeeId);
         }
 
         public void DeleteEmployee(int employeeId)
@@ -156,6 +160,10 @@ namespace AttendancePayrollSystem.DataAccess
 
             try
             {
+                using var deleteLeaveRequests = new MySqlCommand("DELETE FROM LeaveRequests WHERE EmployeeId = @EmployeeId", connection, transaction);
+                deleteLeaveRequests.Parameters.AddWithValue("@EmployeeId", employeeId);
+                deleteLeaveRequests.ExecuteNonQuery();
+
                 using var deletePayroll = new MySqlCommand("DELETE FROM PayrollRecords WHERE EmployeeId = @EmployeeId", connection, transaction);
                 deletePayroll.Parameters.AddWithValue("@EmployeeId", employeeId);
                 deletePayroll.ExecuteNonQuery();
@@ -169,6 +177,7 @@ namespace AttendancePayrollSystem.DataAccess
                 deleteEmployee.ExecuteNonQuery();
 
                 transaction.Commit();
+                MySqlOfflineSyncService.QueueEmployeeDelete(employeeId);
             }
             catch
             {
@@ -240,6 +249,7 @@ namespace AttendancePayrollSystem.DataAccess
                 ["employeeid"] = $"eq.{employeeId}"
             };
 
+            SupabaseRestClient.Delete("leaverequests", filter);
             SupabaseRestClient.Delete("payrollrecords", filter);
             SupabaseRestClient.Delete("attendancerecords", filter);
             SupabaseRestClient.Delete("useraccounts", filter);

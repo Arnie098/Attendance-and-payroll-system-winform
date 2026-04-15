@@ -15,24 +15,172 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <DockPanel Grid.Row="0" LastChildFill="False" Margin="8,8,8,14">
-            <TextBlock DockPanel.Dock="Left"
-                       Text="Admin Dashboard"
-                       Style="{StaticResource HeaderText}"
-                       VerticalAlignment="Center" />
-            <Button DockPanel.Dock="Right"
-                    Content="Logout"
-                    Width="100"
-                    Style="{StaticResource ModernButton}"
-                    Click="Logout_Click" />
-        </DockPanel>
+        <Border Grid.Row="0"
+                Background="#103B53"
+                BorderBrush="#1F5B73"
+                BorderThickness="1"
+                CornerRadius="22"
+                Margin="8,8,8,14"
+                Padding="22,18">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Attendance Payroll System"
+                               Foreground="White"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="Admin command center for attendance, payroll, and workforce records"
+                               Foreground="#C6E4EE"
+                               FontSize="13" />
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="Logout"
+                        Width="110"
+                        Style="{StaticResource ModernButton}"
+                        Background="#D97706"
+                        Click="Logout_Click" />
+            </DockPanel>
+        </Border>
 
         <TabControl x:Name="MainTabControl" Grid.Row="1">
-            <TabItem Header="Dashboard">
+            <TabItem x:Name="DashboardTabItem" Header="Dashboard">
                 <views:AdminDashboardView x:Name="AdminDashboardTab" />
             </TabItem>
 
-            <TabItem Header="Employee Management">
+            <TabItem x:Name="LeaveRequestsTabItem" Header="Leave Requests">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,12" LastChildFill="False">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Leave Requests" Style="{StaticResource HeaderText}" />
+                            <TextBlock Text="Review employee leave filings and publish approved leave to attendance records."
+                                       Foreground="#64748B"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="Refresh"
+                                    Width="100"
+                                    Style="{StaticResource ModernButton}"
+                                    Click="RefreshLeaveRequests_Click" />
+                            <Button x:Name="ApproveLeaveRequestButton"
+                                    Content="Approve"
+                                    Width="100"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#0F766E"
+                                    IsEnabled="False"
+                                    Click="ApproveLeaveRequest_Click" />
+                            <Button x:Name="RejectLeaveRequestButton"
+                                    Content="Reject"
+                                    Width="100"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#B91C1C"
+                                    IsEnabled="False"
+                                    Click="RejectLeaveRequest_Click" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.45*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,12,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0"
+                                           Text="Submitted Requests"
+                                           Style="{StaticResource SectionTitle}"
+                                           FontWeight="Bold" />
+
+                                <DataGrid x:Name="LeaveRequestsDataGrid"
+                                          Grid.Row="1"
+                                          Style="{StaticResource ModernDataGrid}"
+                                          Margin="0,8,0,0"
+                                          SelectionChanged="LeaveRequestsDataGrid_SelectionChanged"
+                                          MinHeight="340"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="90" />
+                                        <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="170" />
+                                        <DataGridTextColumn Header="Type" Binding="{Binding LeaveType}" Width="145" />
+                                        <DataGridTextColumn Header="Paid" Binding="{Binding PaymentLabel}" Width="90" />
+                                        <DataGridTextColumn Header="Start" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="115" />
+                                        <DataGridTextColumn Header="End" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="115" />
+                                        <DataGridTextColumn Header="Days" Binding="{Binding ChargeableDays}" Width="70" />
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+                                        <DataGridTextColumn Header="Submitted" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="145" />
+                                        <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource ModernCard}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Review Details" Style="{StaticResource HeaderText}" Margin="0,0,0,10" />
+
+                                    <TextBlock Text="Employee" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveEmployeeTextBlock"
+                                               Margin="0,4,0,12"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Leave Type" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveTypeTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Date Range" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveDatesTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveStatusTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Payment Rule" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeavePaymentTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Chargeable Days" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveChargeableDaysTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Reviewed By" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="SelectedLeaveReviewedByTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+
+                                    <TextBlock Text="Reason" Style="{StaticResource SectionTitle}" />
+                                    <Border Background="#F8FAFC" CornerRadius="8" Padding="10" Margin="0,4,0,12">
+                                        <TextBlock x:Name="SelectedLeaveReasonTextBlock" TextWrapping="Wrap" />
+                                    </Border>
+
+                                    <TextBlock Text="Review History" Style="{StaticResource SectionTitle}" />
+                                    <Border Background="#F8FAFC" CornerRadius="8" Padding="10" Margin="0,4,0,12">
+                                        <TextBlock x:Name="SelectedLeaveReviewHistoryTextBlock" TextWrapping="Wrap" />
+                                    </Border>
+
+                                    <TextBlock Text="Reviewer Notes" Style="{StaticResource SectionTitle}" />
+                                    <TextBox x:Name="LeaveReviewNotesTextBox"
+                                             Style="{StaticResource ModernTextBox}"
+                                             Height="140"
+                                             IsEnabled="False"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="EmployeeManagementTabItem" Header="Employee Management">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               CanContentScroll="False">

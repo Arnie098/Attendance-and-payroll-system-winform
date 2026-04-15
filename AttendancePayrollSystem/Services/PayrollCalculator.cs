@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
@@ -8,18 +9,22 @@ namespace AttendancePayrollSystem.Services
     public class PayrollCalculator
     {
         private readonly AttendanceRepository _attendanceRepo = new();
+        private readonly LeaveRequestRepository _leaveRequestRepository = new();
 
         public Payroll CalculatePayroll(Employee employee, DateTime periodStart, DateTime periodEnd)
         {
             var attendances = _attendanceRepo.GetAttendanceByEmployee(employee.EmployeeId, periodStart, periodEnd);
+            var approvedPaidLeaveDates = _leaveRequestRepository.GetApprovedPaidLeaveDates(employee.EmployeeId, periodStart, periodEnd);
 
             decimal regularHours = 0;
             decimal overtimeHours = 0;
+            var attendanceDatesWithWorkedHours = new HashSet<DateTime>();
 
             foreach (var attendance in attendances.Where(a => a.TimeIn.HasValue && a.TimeOut.HasValue))
             {
                 var totalHours = (decimal)attendance.TotalHours;
                 var regularDaily = DatabaseConfig.RegularHoursPerDay;
+                attendanceDatesWithWorkedHours.Add(attendance.AttendanceDate.Date);
 
                 if (totalHours <= regularDaily)
                 {
@@ -30,6 +35,16 @@ namespace AttendancePayrollSystem.Services
                     regularHours += regularDaily;
                     overtimeHours += totalHours - regularDaily;
                 }
+            }
+
+            foreach (var leaveDate in approvedPaidLeaveDates)
+            {
+                if (attendanceDatesWithWorkedHours.Contains(leaveDate))
+                {
+                    continue;
+                }
+
+                regularHours += DatabaseConfig.RegularHoursPerDay;
             }
 
             regularHours = RoundHours(regularHours);

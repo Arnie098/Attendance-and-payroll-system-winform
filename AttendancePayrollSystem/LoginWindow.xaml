@@ -3,103 +3,256 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Login"
-        Height="700"
-        MinHeight="700"
-        Width="460"
+        Height="640"
+        MinHeight="640"
+        Width="960"
+        MinWidth="960"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="{StaticResource AppBackgroundBrush}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="22">
-            <Border Style="{StaticResource ModernCard}" Padding="22">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+    <Grid Margin="24">
+        <Border Style="{StaticResource ModernCard}" Padding="0" CornerRadius="24">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.12*" />
+                    <ColumnDefinition Width="0.88*" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,18">
-                        <materialDesign:PackIcon Kind="ShieldAccount" Width="48" Height="48" Foreground="#1D4ED8" />
-                        <TextBlock Text="Attendance Payroll System" FontSize="26" FontWeight="SemiBold" TextAlignment="Center" Margin="0,10,0,4" />
-                        <TextBlock Text="Sign in as Admin or Employee" Foreground="#6B7280" FontSize="14" />
-                    </StackPanel>
+                <Border Grid.Column="0" CornerRadius="24,0,0,24">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#0F172A" Offset="0" />
+                            <GradientStop Color="#1E3A8A" Offset="0.55" />
+                            <GradientStop Color="#0F766E" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
 
-                    <Border Grid.Row="1"
-                            Background="#EFF6FF"
-                            BorderBrush="#BFDBFE"
-                            BorderThickness="1"
-                            CornerRadius="10"
-                            Padding="12"
-                            Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="Current Database Target" FontWeight="SemiBold" Foreground="#1E3A8A" />
-                            <TextBlock x:Name="DatabaseTargetTextBlock"
-                                       Foreground="#1F2937"
-                                       Margin="0,4,0,0"
+                    <Grid Margin="38">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Width="74"
+                                Height="74"
+                                HorizontalAlignment="Left"
+                                Background="#1FFFFFFF"
+                                CornerRadius="22"
+                                Padding="16">
+                            <materialDesign:PackIcon Kind="ShieldAccountVariant"
+                                                     Width="42"
+                                                     Height="42"
+                                                     Foreground="White" />
+                        </Border>
+
+                        <StackPanel Grid.Row="1" Margin="0,26,0,0">
+                            <TextBlock Text="Attendance Payroll System"
+                                       Foreground="White"
+                                       FontSize="34"
+                                       FontWeight="Bold"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="A split sign-in workspace for administrators and employees."
+                                       Margin="0,12,0,0"
+                                       Foreground="#DBEAFE"
+                                       FontSize="15"
                                        TextWrapping="Wrap" />
                         </StackPanel>
-                    </Border>
 
-                    <TextBlock Grid.Row="2" Text="Username" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <TextBox Grid.Row="3"
-                             x:Name="UsernameTextBox"
-                             Style="{StaticResource ModernTextBox}"
-                             Margin="0,0,0,12" />
+                        <StackPanel Grid.Row="2" Margin="0,30,0,0">
+                            <Border Margin="0,0,0,12"
+                                    Padding="14"
+                                    Background="#14000000"
+                                    BorderBrush="#24FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <DockPanel LastChildFill="True">
+                                    <materialDesign:PackIcon Kind="AccountTie"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Foreground="#BFDBFE"
+                                                             Margin="0,2,12,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="Shared access flow"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="Admin and employee accounts use the same entry point."
+                                                   Margin="0,4,0,0"
+                                                   Foreground="#DBEAFE"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
 
-                    <TextBlock Grid.Row="4" Text="Password" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <PasswordBox Grid.Row="5"
-                                 x:Name="PasswordBox"
-                                 Height="38"
-                                 Padding="10,6"
-                                 BorderBrush="{StaticResource CardBorderBrush}"
-                                 BorderThickness="1"
-                                 Margin="0,0,0,12"
-                                 KeyDown="PasswordBox_KeyDown" />
+                            <Border Margin="0,0,0,12"
+                                    Padding="14"
+                                    Background="#14000000"
+                                    BorderBrush="#24FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <DockPanel LastChildFill="True">
+                                    <materialDesign:PackIcon Kind="DatabaseCheckOutline"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Foreground="#99F6E4"
+                                                             Margin="0,2,12,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="Runtime awareness"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="Connection details stay visible before anyone signs in."
+                                                   Margin="0,4,0,0"
+                                                   Foreground="#DBEAFE"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
 
-                    <TextBlock Grid.Row="6"
-                               x:Name="DatabaseStatusTextBlock"
-                               Foreground="#B91C1C"
-                               Visibility="Collapsed"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,8" />
+                            <Border Padding="14"
+                                    Background="#14000000"
+                                    BorderBrush="#24FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <DockPanel LastChildFill="True">
+                                    <materialDesign:PackIcon Kind="TuneVariant"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Foreground="#FDE68A"
+                                                             Margin="0,2,12,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="Quick recovery path"
+                                                   Foreground="White"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="Database settings remain one click away if the target needs to change."
+                                                   Margin="0,4,0,0"
+                                                   Foreground="#DBEAFE"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
 
-                    <TextBlock Grid.Row="7"
-                               x:Name="StatusTextBlock"
-                               Foreground="#B91C1C"
-                               Visibility="Collapsed"
-                               Margin="0,0,0,8" />
+                        <Border Grid.Row="4"
+                                Background="#F8FBFF"
+                                BorderBrush="#D7E1EF"
+                                BorderThickness="1"
+                                CornerRadius="18"
+                                Padding="18">
+                            <StackPanel>
+                                <TextBlock Text="Current Database Target"
+                                           FontWeight="SemiBold"
+                                           Foreground="#1E3A8A" />
+                                <TextBlock x:Name="DatabaseTargetTextBlock"
+                                           Margin="0,8,0,0"
+                                           Foreground="#1F2937"
+                                           TextWrapping="Wrap" />
+                                <TextBlock x:Name="DatabaseStatusTextBlock"
+                                           Margin="0,12,0,0"
+                                           Visibility="Collapsed"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
 
-                    <Button Grid.Row="8"
-                            x:Name="LoginButton"
-                            Content="Sign In"
-                            Height="40"
-                            Style="{StaticResource ModernButton}"
-                            Click="LoginButton_Click" />
+                <Border Grid.Column="1"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        CornerRadius="0,24,24,0">
+                    <Grid Margin="38">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                    <Button Grid.Row="9"
-                            x:Name="DatabaseSettingsButton"
-                            Content="Database Settings"
-                            Height="40"
-                            Style="{StaticResource ModernButton}"
-                            Background="#0F766E"
-                            Margin="0,10,0,0"
-                            Click="DatabaseSettingsButton_Click" />
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Sign In"
+                                       FontSize="30"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource HeaderBrush}" />
+                            <TextBlock Text="Use your admin or employee credentials to continue."
+                                       Margin="0,10,0,0"
+                                       Foreground="{StaticResource SubHeaderBrush}"
+                                       FontSize="14"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
 
-                </Grid>
-            </Border>
-        </Grid>
-    </ScrollViewer>
+                        <Border Grid.Row="1"
+                                Margin="0,24,0,20"
+                                Background="#F8FAFC"
+                                BorderBrush="#D7E1EF"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="14">
+                            <DockPanel LastChildFill="True">
+                                <materialDesign:PackIcon Kind="InformationOutline"
+                                                         Width="18"
+                                                         Height="18"
+                                                         Foreground="#1D4ED8"
+                                                         Margin="0,1,10,0" />
+                                <TextBlock Text="Confirm the database target on the left before signing in."
+                                           Foreground="{StaticResource BodyBrush}"
+                                           TextWrapping="Wrap" />
+                            </DockPanel>
+                        </Border>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="Username"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,6" />
+                        <TextBox Grid.Row="3"
+                                 x:Name="UsernameTextBox"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Height="44"
+                                 Margin="0,0,0,16" />
+
+                        <TextBlock Grid.Row="4"
+                                   Text="Password"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,6" />
+                        <PasswordBox Grid.Row="5"
+                                     x:Name="PasswordBox"
+                                     Height="44"
+                                     Padding="12,8"
+                                     BorderBrush="{StaticResource CardBorderBrush}"
+                                     BorderThickness="1"
+                                     Margin="0,0,0,14"
+                                     KeyDown="PasswordBox_KeyDown" />
+
+                        <TextBlock Grid.Row="6"
+                                   x:Name="StatusTextBlock"
+                                   Foreground="#B91C1C"
+                                   Visibility="Collapsed"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap" />
+
+                        <StackPanel Grid.Row="8">
+                            <Button x:Name="LoginButton"
+                                    Content="Sign In"
+                                    Height="44"
+                                    Style="{StaticResource ModernButton}"
+                                    Margin="0,0,0,10"
+                                    Click="LoginButton_Click" />
+
+                            <Button x:Name="DatabaseSettingsButton"
+                                    Content="Database Settings"
+                                    Height="44"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#0F766E"
+                                    Margin="0"
+                                    Click="DatabaseSettingsButton_Click" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

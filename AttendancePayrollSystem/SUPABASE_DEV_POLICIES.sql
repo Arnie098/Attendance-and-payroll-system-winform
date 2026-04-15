@@ -18,6 +18,11 @@ drop policy if exists dev_anon_insert_payroll on public.payrollrecords;
 drop policy if exists dev_anon_update_payroll on public.payrollrecords;
 drop policy if exists dev_anon_delete_payroll on public.payrollrecords;
 
+drop policy if exists dev_anon_select_leave_requests on public.leaverequests;
+drop policy if exists dev_anon_insert_leave_requests on public.leaverequests;
+drop policy if exists dev_anon_update_leave_requests on public.leaverequests;
+drop policy if exists dev_anon_delete_leave_requests on public.leaverequests;
+
 drop policy if exists dev_anon_select_useraccounts on public.useraccounts;
 drop policy if exists dev_anon_insert_useraccounts on public.useraccounts;
 drop policy if exists dev_anon_update_useraccounts on public.useraccounts;
@@ -37,6 +42,11 @@ create policy dev_anon_select_payroll on public.payrollrecords for select to ano
 create policy dev_anon_insert_payroll on public.payrollrecords for insert to anon with check (true);
 create policy dev_anon_update_payroll on public.payrollrecords for update to anon using (true) with check (true);
 create policy dev_anon_delete_payroll on public.payrollrecords for delete to anon using (true);
+
+create policy dev_anon_select_leave_requests on public.leaverequests for select to anon using (true);
+create policy dev_anon_insert_leave_requests on public.leaverequests for insert to anon with check (true);
+create policy dev_anon_update_leave_requests on public.leaverequests for update to anon using (true) with check (true);
+create policy dev_anon_delete_leave_requests on public.leaverequests for delete to anon using (true);
 
 create policy dev_anon_select_useraccounts on public.useraccounts for select to anon using (true);
 create policy dev_anon_insert_useraccounts on public.useraccounts for insert to anon with check (true);

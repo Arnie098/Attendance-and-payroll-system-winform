@@ -26,7 +26,7 @@ namespace AttendancePayrollSystem.DataAccess
         private const string KnownLegacyAdminDefaultHash = "240BE518FABD2724DDB6F04EEB1DA5967448D7E831C08C8FA822809F74C720A9";
         private const string KnownLegacyEmployeeDefaultHash = "5B2F8E27E2E5B4081C03CE70B288C87BD1263140CBD1BD9AE078123509B7CAFF";
 
-        public void EnsureAuthSchemaAndSeedDefaults()
+        public void EnsureAuthSchemaAndSeedDefaults(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
         {
             if (SupabaseConfig.UseApi)
             {
@@ -34,7 +34,7 @@ namespace AttendancePayrollSystem.DataAccess
                 return;
             }
 
-            using var connection = DatabaseHelper.GetConnection();
+            using var connection = DatabaseHelper.GetConnection(target);
             connection.Open();
             using var transaction = connection.BeginTransaction();
 
@@ -55,14 +55,14 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        public void EnsureLocalAuthSchema()
+        public void EnsureLocalAuthSchema(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
         {
             if (SupabaseConfig.UseApi)
             {
                 return;
             }
 
-            using var connection = DatabaseHelper.GetConnection();
+            using var connection = DatabaseHelper.GetConnection(target);
             connection.Open();
             using var transaction = connection.BeginTransaction();
 
@@ -80,7 +80,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        public void EnsureEmployeeAccounts()
+        public void EnsureEmployeeAccounts(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
         {
             if (SupabaseConfig.UseApi)
             {
@@ -88,7 +88,7 @@ namespace AttendancePayrollSystem.DataAccess
                 return;
             }
 
-            using var connection = DatabaseHelper.GetConnection();
+            using var connection = DatabaseHelper.GetConnection(target);
             connection.Open();
             using var transaction = connection.BeginTransaction();
 

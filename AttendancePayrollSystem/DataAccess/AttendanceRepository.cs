@@ -177,6 +177,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@IsBiometricVerified", biometricVerified);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueAttendanceUpsert(Convert.ToInt32(command.LastInsertedId), employeeId);
         }
 
         public void RecordTimeOut(int attendanceId)
@@ -199,11 +200,18 @@ namespace AttendancePayrollSystem.DataAccess
                 WHERE AttendanceId = @AttendanceId";
 
             using var connection = DatabaseHelper.GetConnection();
+            connection.Open();
+            var employeeId = GetEmployeeId(connection, attendanceId);
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@TimeOut", DateTime.Now);
             command.Parameters.AddWithValue("@AttendanceId", attendanceId);
-            connection.Open();
             command.ExecuteNonQuery();
+
+            if (employeeId.HasValue)
+            {
+                MySqlOfflineSyncService.QueueAttendanceUpsert(attendanceId, employeeId.Value);
+            }
         }
 
         public void AddAttendance(Attendance attendance)
@@ -228,6 +236,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@IsBiometricVerified", attendance.IsBiometricVerified);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueAttendanceUpsert(Convert.ToInt32(command.LastInsertedId), attendance.EmployeeId);
         }
 
         public void UpdateAttendance(Attendance attendance)
@@ -263,6 +272,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@IsBiometricVerified", attendance.IsBiometricVerified);
             connection.Open();
             command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueAttendanceUpsert(attendance.AttendanceId, attendance.EmployeeId);
         }
 
         public void DeleteAttendance(int attendanceId)
@@ -281,10 +291,17 @@ namespace AttendancePayrollSystem.DataAccess
             const string sql = "DELETE FROM AttendanceRecords WHERE AttendanceId = @AttendanceId";
 
             using var connection = DatabaseHelper.GetConnection();
+            connection.Open();
+            var employeeId = GetEmployeeId(connection, attendanceId);
+
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@AttendanceId", attendanceId);
-            connection.Open();
             command.ExecuteNonQuery();
+
+            if (employeeId.HasValue)
+            {
+                MySqlOfflineSyncService.QueueAttendanceDelete(attendanceId, employeeId.Value);
+            }
         }
 
         private static List<Attendance> GetAttendanceByEmployeeViaApi(int employeeId, DateTime startDate, DateTime endDate)
@@ -325,6 +342,16 @@ namespace AttendancePayrollSystem.DataAccess
                 Status = Convert.ToString(reader["Status"]) ?? string.Empty,
                 IsBiometricVerified = Convert.ToBoolean(reader["IsBiometricVerified"])
             };
+        }
+
+        private static int? GetEmployeeId(MySqlConnection connection, int attendanceId)
+        {
+            using var command = new MySqlCommand(
+                "SELECT EmployeeId FROM AttendanceRecords WHERE AttendanceId = @AttendanceId LIMIT 1",
+                connection);
+            command.Parameters.AddWithValue("@AttendanceId", attendanceId);
+            var result = command.ExecuteScalar();
+            return result == null || result is DBNull ? null : Convert.ToInt32(result);
         }
     }
 }

@@ -96,7 +96,7 @@ namespace AttendancePayrollSystem
 
             if (string.Equals(account.Role, UserRoles.Admin, StringComparison.OrdinalIgnoreCase))
             {
-                OpenTargetWindow(new MainWindow());
+                OpenTargetWindow(new MainWindow(account.Username));
                 return;
             }
 
@@ -164,17 +164,12 @@ namespace AttendancePayrollSystem
 
             try
             {
-                _authRepository.EnsureAuthSchemaAndSeedDefaults();
-                var schoolSyncStatus = TrySynchronizeSchoolTeachers(false);
-                _authRepository.EnsureEmployeeAccounts();
-                SetDatabaseReady(true);
-                SetDatabaseStatus(
-                    string.IsNullOrWhiteSpace(schoolSyncStatus)
-                        ? $"Connection ready. {DatabaseHelper.GetConnectionSummary()}"
-                        : $"Connection ready. {DatabaseHelper.GetConnectionSummary()}\n{schoolSyncStatus}",
-                    isError: false);
+                var result = MySqlOfflineSyncService.InitializeRuntime();
+                SetDatabaseReady(result.IsReady);
+                SetDatabaseStatus(result.Message, isError: !result.IsReady);
+                UpdateDatabaseTarget();
 
-                if (showSuccessMessage)
+                if (showSuccessMessage && result.IsReady)
                 {
                     MessageBox.Show(
                         "Database configuration saved successfully.",
@@ -221,7 +216,8 @@ namespace AttendancePayrollSystem
             var sourceLabel = DatabaseConnectionSettingsStore.HasSavedOverride()
                 ? "Local laptop setting"
                 : "App default setting";
-            DatabaseTargetTextBlock.Text = $"{DatabaseHelper.GetConnectionSummary()} ({sourceLabel})";
+            var modeLabel = DatabaseRuntimeState.UseOfflineDatabase ? "Local MySQL mirror" : "Online MySQL";
+            DatabaseTargetTextBlock.Text = $"{DatabaseHelper.GetActiveConnectionSummary()} ({modeLabel}, {sourceLabel})";
         }
 
         private void SetDatabaseReady(bool isReady)

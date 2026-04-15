@@ -10,7 +10,7 @@ namespace AttendancePayrollSystem.Services
     {
         private const string DbConnectionEnvVar = "ATTENDANCE_DB_CONNECTION";
         private const string ConnectionStringName = "AttendanceDb";
-        private const string DefaultSslMode = "Preferred";
+        private const string DefaultSslMode = "None";
         private const string SettingsFileName = "database.override.env";
 
         public static string SettingsFilePath =>
@@ -62,7 +62,7 @@ namespace AttendancePayrollSystem.Services
 
             var sslMode = Enum.TryParse(settings.SslMode, true, out MySqlSslMode parsedSslMode)
                 ? parsedSslMode
-                : MySqlSslMode.Preferred;
+                : MySqlSslMode.None;
 
             var builder = new MySqlConnectionStringBuilder
             {
@@ -109,8 +109,8 @@ namespace AttendancePayrollSystem.Services
             return
             [
                 DefaultSslMode,
+                "Preferred",
                 "Required",
-                "None"
             ];
         }
     }
