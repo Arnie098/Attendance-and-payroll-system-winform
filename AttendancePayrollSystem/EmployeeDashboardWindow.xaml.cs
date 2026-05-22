@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
@@ -11,6 +14,7 @@ namespace AttendancePayrollSystem
     public partial class EmployeeDashboardWindow : Window
     {
         private readonly string _username;
+        private readonly AppBrandingRepository _appBrandingRepository = new();
         private readonly AttendanceRepository _attendanceRepository = new();
         private readonly PayrollRepository _payrollRepository = new();
         private readonly EmployeeRepository _employeeRepository = new();
@@ -18,6 +22,7 @@ namespace AttendancePayrollSystem
         private readonly EmployeeDashboardViewModel _viewModel = new();
         private Employee _employee;
         private LeaveRequest? _selectedLeaveRequest;
+        private bool _isLoadingDashboard;
 
         public EmployeeDashboardWindow(Employee employee, string username)
         {
@@ -25,27 +30,21 @@ namespace AttendancePayrollSystem
             _employee = employee;
             _username = username;
             DataContext = _viewModel;
-
-            LoadDashboardData();
+            Loaded += EmployeeDashboardWindow_Loaded;
         }
 
-        private void Refresh_Click(object sender, RoutedEventArgs e)
+        private async void EmployeeDashboardWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                LoadDashboardData();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Failed to refresh dashboard.\n{ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-            }
+            Loaded -= EmployeeDashboardWindow_Loaded;
+            await LoadDashboardDataAsync();
         }
 
-        private void ChangePhoto_Click(object sender, RoutedEventArgs e)
+        private async void Refresh_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadDashboardDataAsync();
+        }
+
+        private async void ChangePhoto_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -54,7 +53,8 @@ namespace AttendancePayrollSystem
                     return;
                 }
 
-                _employeeRepository.UpdateProfileImage(_employee.EmployeeId, imageBytes);
+                Mouse.OverrideCursor = Cursors.Wait;
+                await Task.Run(() => _employeeRepository.UpdateProfileImage(_employee.EmployeeId, imageBytes));
                 _employee.ProfileImage = imageBytes;
                 _viewModel.ProfileImage = imageBytes;
             }
@@ -66,9 +66,13 @@ namespace AttendancePayrollSystem
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
-        private void RemovePhoto_Click(object sender, RoutedEventArgs e)
+        private async void RemovePhoto_Click(object sender, RoutedEventArgs e)
         {
             if (_employee.ProfileImage == null || _employee.ProfileImage.Length == 0)
             {
@@ -77,7 +81,8 @@ namespace AttendancePayrollSystem
 
             try
             {
-                _employeeRepository.UpdateProfileImage(_employee.EmployeeId, null);
+                Mouse.OverrideCursor = Cursors.Wait;
+                await Task.Run(() => _employeeRepository.UpdateProfileImage(_employee.EmployeeId, null));
                 _employee.ProfileImage = null;
                 _viewModel.ProfileImage = null;
             }
@@ -89,13 +94,19 @@ namespace AttendancePayrollSystem
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
-        private void ClockAction_Click(object sender, RoutedEventArgs e)
+        private async void ClockAction_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+                Mouse.OverrideCursor = Cursors.Wait;
+                var todayAttendance = await Task.Run(() => _attendanceRepository.GetTodayAttendance(_employee.EmployeeId));
+                Mouse.OverrideCursor = null;
                 if (todayAttendance != null && LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
                 {
                     MessageBox.Show(
@@ -111,7 +122,7 @@ namespace AttendancePayrollSystem
                     Owner = this
                 };
                 modal.ShowDialog();
-                LoadDashboardData();
+                await LoadDashboardDataAsync();
             }
             catch (Exception ex)
             {
@@ -120,6 +131,10 @@ namespace AttendancePayrollSystem
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
             }
         }
 
@@ -131,35 +146,87 @@ namespace AttendancePayrollSystem
             Close();
         }
 
-        private void LoadDashboardData()
+        private async Task LoadDashboardDataAsync()
         {
-            LoadEmployeeProfile();
-            _viewModel.TodayText = DateTime.Now.ToString("MMMM dd, yyyy");
-            LoadTodayAttendanceState();
-            LoadAttendanceHistory();
-            LoadPayrollHistory();
-            LoadLeaveRequests();
-        }
-
-        private void LoadEmployeeProfile()
-        {
-            var latestEmployee = _employeeRepository.GetEmployeeById(_employee.EmployeeId);
-            if (latestEmployee != null)
+            if (_isLoadingDashboard)
             {
-                _employee = latestEmployee;
+                return;
             }
 
+            try
+            {
+                _isLoadingDashboard = true;
+                Mouse.OverrideCursor = Cursors.Wait;
+                var employeeId = _employee.EmployeeId;
+                var currentEmployee = _employee;
+                var snapshot = await Task.Run(() =>
+                {
+                    var latestEmployee = _employeeRepository.GetEmployeeById(employeeId) ?? currentEmployee;
+                    return new EmployeeDashboardSnapshot
+                    {
+                        LogoImage = TryLoadLogoImage(),
+                        Employee = latestEmployee,
+                        TodayText = DateTime.Now.ToString("MMMM dd, yyyy"),
+                        TodayAttendance = _attendanceRepository.GetTodayAttendance(employeeId),
+                        AttendanceHistory = _attendanceRepository.GetAttendanceByEmployee(
+                            employeeId,
+                            DateTime.Today.AddMonths(-3),
+                            DateTime.Today),
+                        PayrollHistory = _payrollRepository.GetPayrollByEmployee(employeeId),
+                        LeaveRequests = _leaveRequestRepository.GetLeaveRequestsByEmployee(employeeId)
+                    };
+                });
+
+                ApplyDashboardSnapshot(snapshot);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to refresh dashboard.\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+                _isLoadingDashboard = false;
+            }
+        }
+
+        private byte[]? TryLoadLogoImage()
+        {
+            try
+            {
+                return _appBrandingRepository.GetBranding().LogoImage;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void ApplyDashboardSnapshot(EmployeeDashboardSnapshot snapshot)
+        {
+            BrandingVisualHelper.ApplyLogo(EmployeeBrandLogoImage, EmployeeBrandLogoFallbackPanel, snapshot.LogoImage);
+            _employee = snapshot.Employee;
+
+            _viewModel.TodayText = snapshot.TodayText;
             _viewModel.WelcomeText = $"Welcome, {_employee.FullName} ({_username})";
             _viewModel.EmployeeCodeText = $"Code: {_employee.EmployeeCode}";
             _viewModel.PositionText = $"Position: {_employee.Position}";
             _viewModel.DepartmentText = $"Department: {_employee.Department}";
             _viewModel.HourlyRateText = $"Hourly Rate: PHP {_employee.HourlyRate:N2}";
             _viewModel.ProfileImage = _employee.ProfileImage;
+
+            ApplyTodayAttendanceState(snapshot.TodayAttendance);
+            ApplyAttendanceHistory(snapshot.AttendanceHistory);
+            ApplyPayrollHistory(snapshot.PayrollHistory);
+            ApplyLeaveRequests(snapshot.LeaveRequests);
         }
 
-        private void LoadTodayAttendanceState()
+        private void ApplyTodayAttendanceState(Attendance? todayAttendance)
         {
-            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
             if (todayAttendance == null)
             {
                 _viewModel.AttendanceStatusText = "No attendance yet.";
@@ -180,41 +247,42 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            _viewModel.TimeInText = todayAttendance.TimeIn?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
-            _viewModel.TimeOutText = todayAttendance.TimeOut?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+            // Show AM and PM session times
+            var amIn = todayAttendance.TimeInAM?.ToString("hh:mm tt") ?? "-";
+            var amOut = todayAttendance.TimeOutAM?.ToString("hh:mm tt") ?? "-";
+            var pmIn = todayAttendance.TimeInPM?.ToString("hh:mm tt") ?? "-";
+            var pmOut = todayAttendance.TimeOutPM?.ToString("hh:mm tt") ?? "-";
 
-            if (!todayAttendance.TimeOut.HasValue)
-            {
-                _viewModel.AttendanceStatusText = "Clocked in.";
-                _viewModel.ClockActionButtonText = "Open Attendance";
-                _viewModel.IsClockActionEnabled = true;
-            }
-            else
+            _viewModel.TimeInText = $"AM: {amIn} | PM: {pmIn}";
+            _viewModel.TimeOutText = $"AM: {amOut} | PM: {pmOut}";
+
+            var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
+            if (sessionState == AttendanceSessionState.AllComplete)
             {
                 _viewModel.AttendanceStatusText = "Attendance complete.";
                 _viewModel.ClockActionButtonText = "Open Attendance";
                 _viewModel.IsClockActionEnabled = true;
             }
+            else
+            {
+                _viewModel.AttendanceStatusText = "In progress.";
+                _viewModel.ClockActionButtonText = "Open Attendance";
+                _viewModel.IsClockActionEnabled = true;
+            }
         }
 
-        private void LoadAttendanceHistory()
+        private void ApplyAttendanceHistory(IEnumerable<Attendance> records)
         {
             _viewModel.AttendanceHistory.Clear();
-            var records = _attendanceRepository.GetAttendanceByEmployee(
-                _employee.EmployeeId,
-                DateTime.Today.AddMonths(-3),
-                DateTime.Today);
-
             foreach (var record in records)
             {
                 _viewModel.AttendanceHistory.Add(record);
             }
         }
 
-        private void LoadPayrollHistory()
+        private void ApplyPayrollHistory(IReadOnlyList<Payroll> records)
         {
             _viewModel.PayrollHistory.Clear();
-            var records = _payrollRepository.GetPayrollByEmployee(_employee.EmployeeId);
             foreach (var payroll in records)
             {
                 _viewModel.PayrollHistory.Add(payroll);
@@ -226,10 +294,9 @@ namespace AttendancePayrollSystem
                 : $"{latest.PayPeriodStart:yyyy-MM-dd} to {latest.PayPeriodEnd:yyyy-MM-dd} | Net Pay: PHP {latest.NetPay:N2} ({latest.Status})";
         }
 
-        private void LoadLeaveRequests()
+        private void ApplyLeaveRequests(IReadOnlyList<LeaveRequest> records)
         {
             _viewModel.LeaveRequests.Clear();
-            var records = _leaveRequestRepository.GetLeaveRequestsByEmployee(_employee.EmployeeId);
             foreach (var leaveRequest in records)
             {
                 _viewModel.LeaveRequests.Add(leaveRequest);
@@ -248,7 +315,7 @@ namespace AttendancePayrollSystem
             }
         }
 
-        private void FileLeave_Click(object sender, RoutedEventArgs e)
+        private async void FileLeave_Click(object sender, RoutedEventArgs e)
         {
             var modal = new LeaveRequestModal(_employee)
             {
@@ -262,8 +329,10 @@ namespace AttendancePayrollSystem
 
             try
             {
-                _leaveRequestRepository.SubmitLeaveRequest(modal.ResultLeaveRequest);
-                LoadLeaveRequests();
+                Mouse.OverrideCursor = Cursors.Wait;
+                var leaveRequest = modal.ResultLeaveRequest;
+                await Task.Run(() => _leaveRequestRepository.SubmitLeaveRequest(leaveRequest));
+                await LoadDashboardDataAsync();
                 MessageBox.Show(
                     "Leave request filed successfully. It is now waiting for admin approval.",
                     "Leave Request",
@@ -278,6 +347,10 @@ namespace AttendancePayrollSystem
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
         private void LeaveRequestsDataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -286,7 +359,7 @@ namespace AttendancePayrollSystem
             _viewModel.CanCancelSelectedLeave = _selectedLeaveRequest?.CanEmployeeCancel == true;
         }
 
-        private void CancelSelectedLeave_Click(object sender, RoutedEventArgs e)
+        private async void CancelSelectedLeave_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedLeaveRequest == null)
             {
@@ -321,8 +394,10 @@ namespace AttendancePayrollSystem
 
             try
             {
-                _leaveRequestRepository.CancelLeaveRequest(_selectedLeaveRequest.LeaveRequestId);
-                LoadLeaveRequests();
+                Mouse.OverrideCursor = Cursors.Wait;
+                var leaveRequestId = _selectedLeaveRequest.LeaveRequestId;
+                await Task.Run(() => _leaveRequestRepository.CancelLeaveRequest(leaveRequestId));
+                await LoadDashboardDataAsync();
             }
             catch (Exception ex)
             {
@@ -332,6 +407,21 @@ namespace AttendancePayrollSystem
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private sealed class EmployeeDashboardSnapshot
+        {
+            public byte[]? LogoImage { get; init; }
+            public Employee Employee { get; init; } = new();
+            public string TodayText { get; init; } = string.Empty;
+            public Attendance? TodayAttendance { get; init; }
+            public List<Attendance> AttendanceHistory { get; init; } = new();
+            public List<Payroll> PayrollHistory { get; init; } = new();
+            public List<LeaveRequest> LeaveRequests { get; init; } = new();
         }
     }
 }

@@ -5,7 +5,7 @@
         Width="520"
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        MinWidth="400"
         Background="#F8FAFC">
     <Border Padding="24">
         <StackPanel>

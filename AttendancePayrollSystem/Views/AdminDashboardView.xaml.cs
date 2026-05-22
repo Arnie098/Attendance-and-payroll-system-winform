@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using AttendancePayrollSystem.DataAccess;
+using AttendancePayrollSystem.Services;
 using AttendancePayrollSystem.ViewModels;
 using Microsoft.Win32;
 
@@ -12,49 +13,90 @@ namespace AttendancePayrollSystem.Views
 {
     public partial class AdminDashboardView : UserControl
     {
+        private readonly AppBrandingRepository _appBrandingRepository = new();
+        private bool _hasLoaded;
+        private bool _isRefreshing;
+
         public AdminDashboardView()
         {
             InitializeComponent();
         }
 
-        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        public void RefreshBrandingVisuals()
         {
-            if (DataContext is AdminDashboardViewModel viewModel)
-            {
-                viewModel.RefreshDashboard();
-            }
+            _ = LoadBrandingAsync();
         }
 
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            if (Window.GetWindow(this) is MainWindow owner)
+            if (_hasLoaded)
             {
-                owner.RefreshRuntimeData();
                 return;
             }
 
-            if (DataContext is AdminDashboardViewModel viewModel)
+            _hasLoaded = true;
+
+            if (Window.GetWindow(this) is not MainWindow)
             {
-                viewModel.RefreshDashboard();
+                await RefreshDashboardAsync();
             }
+
+            await LoadBrandingAsync();
         }
 
-        private void OpenEmployeeManagementTile_Click(object sender, RoutedEventArgs e)
+        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             if (Window.GetWindow(this) is MainWindow owner)
             {
-                owner.NavigateToEmployeeManagement();
+                await owner.RefreshRuntimeDataAsync();
+                return;
+            }
+
+            await RefreshDashboardAsync();
+        }
+
+        private async void OpenEmployeeManagementTile_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is MainWindow owner)
+            {
+                await owner.OpenEmployeeManagementAsync();
+            }
+        }
+
+        private async void OpenLeaveRequestsTile_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is MainWindow owner)
+            {
+                await owner.OpenLeaveRequestsAsync();
+            }
+        }
+
+        private async void OpenPayrollTile_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is MainWindow owner)
+            {
+                await owner.OpenPayrollLauncherAsync();
             }
         }
 
         private void BirthdayBoardTile_Click(object sender, RoutedEventArgs e)
         {
-            BirthdayPanel.BringIntoView();
+            var window = new BirthdayBoardWindow
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            window.ShowDialog();
         }
 
         private void LatestRecordsTile_Click(object sender, RoutedEventArgs e)
         {
-            LatestAttendancePanel.BringIntoView();
+            var window = new LatestAttendanceWindow
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            window.ShowDialog();
         }
 
         private void LogoutTile_Click(object sender, RoutedEventArgs e)
@@ -126,6 +168,135 @@ namespace AttendancePayrollSystem.Views
             {
                 Mouse.OverrideCursor = null;
             }
+        }
+
+        private void UpdateBrandLogoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = Window.GetWindow(this);
+            if (owner == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!ProfileImageFilePicker.TryPick(owner, out var imageBytes, title: "Choose Logo Image", imageLabel: "Logo image"))
+                {
+                    return;
+                }
+
+                _appBrandingRepository.UpdateLogoImage(imageBytes);
+                ApplyBranding(imageBytes);
+
+                if (owner is MainWindow mainWindow)
+                {
+                    mainWindow.RefreshBranding();
+                }
+
+                MessageBox.Show(
+                    owner,
+                    "Logo updated successfully.",
+                    "Branding",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    owner,
+                    $"Failed to update the logo.\n{ex.Message}",
+                    "Branding Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void ClearBrandLogoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = Window.GetWindow(this);
+            if (owner == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _appBrandingRepository.UpdateLogoImage(null);
+                ApplyBranding(null);
+
+                if (owner is MainWindow mainWindow)
+                {
+                    mainWindow.RefreshBranding();
+                }
+
+                MessageBox.Show(
+                    owner,
+                    "Logo cleared successfully.",
+                    "Branding",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    owner,
+                    $"Failed to clear the logo.\n{ex.Message}",
+                    "Branding Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task LoadBrandingAsync()
+        {
+            try
+            {
+                var branding = await Task.Run(() => _appBrandingRepository.GetBranding());
+                ApplyBranding(branding.LogoImage);
+            }
+            catch
+            {
+                ApplyBranding(null);
+            }
+        }
+
+        private async Task RefreshDashboardAsync()
+        {
+            if (_isRefreshing)
+            {
+                return;
+            }
+
+            try
+            {
+                _isRefreshing = true;
+                Mouse.OverrideCursor = Cursors.Wait;
+                if (DataContext is AdminDashboardViewModel viewModel)
+                {
+                    await viewModel.RefreshDashboardAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    Window.GetWindow(this),
+                    $"Failed to refresh dashboard.\n{ex.Message}",
+                    "Dashboard",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+                _isRefreshing = false;
+            }
+        }
+
+        private void ApplyBranding(byte[]? logoImage)
+        {
+            BrandingVisualHelper.ApplyLogo(DashboardBrandLogoImage, DashboardBrandLogoFallbackPanel, logoImage);
+            BrandingVisualHelper.ApplyLogo(DashboardBrandLogoPreviewImage, DashboardBrandLogoPreviewFallbackPanel, logoImage);
+            ClearBrandLogoButton.IsEnabled = logoImage != null && logoImage.Length > 0;
         }
     }
 }

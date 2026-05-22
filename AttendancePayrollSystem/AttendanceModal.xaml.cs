@@ -82,22 +82,43 @@ namespace AttendancePayrollSystem
             _viewModel.ScanStateText = "Verification successful";
             todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
 
-            if (todayAttendance == null)
+            var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
+
+            switch (sessionState)
             {
-                _attendanceRepository.RecordTimeIn(_employee.EmployeeId, true);
-                _viewModel.StatusText = "Time In recorded.";
-                MessageBox.Show("Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else if (!todayAttendance.TimeOut.HasValue)
-            {
-                _attendanceRepository.RecordTimeOut(todayAttendance.AttendanceId);
-                _viewModel.StatusText = "Time Out recorded.";
-                MessageBox.Show("Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                _viewModel.StatusText = "Attendance is already complete for today.";
-                MessageBox.Show("Attendance already completed for today.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                case AttendanceSessionState.NeedsMorningTimeIn:
+                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, true);
+                    _viewModel.StatusText = "Morning Time In recorded (8:30 AM session).";
+                    MessageBox.Show("Morning Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case AttendanceSessionState.NeedsMorningTimeOut:
+                    _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
+                    _viewModel.StatusText = "Morning Time Out recorded (12:00 PM session).";
+                    MessageBox.Show("Morning Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case AttendanceSessionState.MorningComplete:
+                    _viewModel.StatusText = "Morning session complete. Afternoon session starts at 1:00 PM.";
+                    MessageBox.Show("Morning session is complete. Please return at 1:00 PM for the afternoon session.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case AttendanceSessionState.NeedsAfternoonTimeIn:
+                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, true);
+                    _viewModel.StatusText = "Afternoon Time In recorded (1:00 PM session).";
+                    MessageBox.Show("Afternoon Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case AttendanceSessionState.NeedsAfternoonTimeOut:
+                    _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
+                    _viewModel.StatusText = "Afternoon Time Out recorded (4:30 PM session).";
+                    MessageBox.Show("Afternoon Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
+
+                case AttendanceSessionState.AllComplete:
+                    _viewModel.StatusText = "Both sessions are complete for today.";
+                    MessageBox.Show("Attendance already completed for today (both AM and PM sessions).", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    break;
             }
 
             LoadTodayAttendance();
@@ -112,9 +133,11 @@ namespace AttendancePayrollSystem
             var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
             if (todayAttendance == null)
             {
-                _viewModel.TimeInText = "-";
-                _viewModel.TimeOutText = "-";
-                _viewModel.NextActionText = "Time In";
+                _viewModel.TimeInAMText = "-";
+                _viewModel.TimeOutAMText = "-";
+                _viewModel.TimeInPMText = "-";
+                _viewModel.TimeOutPMText = "-";
+                _viewModel.NextActionText = "Morning Time In (8:30 AM)";
                 _viewModel.IsScanButtonEnabled = true;
                 if (string.IsNullOrWhiteSpace(_viewModel.StatusText))
                 {
@@ -126,8 +149,10 @@ namespace AttendancePayrollSystem
 
             if (LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
             {
-                _viewModel.TimeInText = "-";
-                _viewModel.TimeOutText = "-";
+                _viewModel.TimeInAMText = "-";
+                _viewModel.TimeOutAMText = "-";
+                _viewModel.TimeInPMText = "-";
+                _viewModel.TimeOutPMText = "-";
                 _viewModel.NextActionText = "No pending action";
                 _viewModel.StatusText = $"Approved leave recorded for today as {todayAttendance.Status}.";
                 _viewModel.ScanStateText = "Attendance locked";
@@ -135,14 +160,42 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            _viewModel.TimeInText = todayAttendance.TimeIn?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
-            _viewModel.TimeOutText = todayAttendance.TimeOut?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
-            _viewModel.NextActionText = todayAttendance.TimeOut.HasValue ? "No pending action" : "Time Out";
-            _viewModel.StatusText = todayAttendance.TimeOut.HasValue
-                ? "Attendance completed."
-                : "Employee is currently clocked in.";
+            _viewModel.TimeInAMText = todayAttendance.TimeInAM?.ToString("hh:mm tt") ?? "-";
+            _viewModel.TimeOutAMText = todayAttendance.TimeOutAM?.ToString("hh:mm tt") ?? "-";
+            _viewModel.TimeInPMText = todayAttendance.TimeInPM?.ToString("hh:mm tt") ?? "-";
+            _viewModel.TimeOutPMText = todayAttendance.TimeOutPM?.ToString("hh:mm tt") ?? "-";
+
+            var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
+            switch (sessionState)
+            {
+                case AttendanceSessionState.NeedsMorningTimeIn:
+                    _viewModel.NextActionText = "Morning Time In (8:30 AM)";
+                    _viewModel.StatusText = "Waiting for morning time in.";
+                    break;
+                case AttendanceSessionState.NeedsMorningTimeOut:
+                    _viewModel.NextActionText = "Morning Time Out (12:00 PM)";
+                    _viewModel.StatusText = "Employee clocked in for morning session.";
+                    break;
+                case AttendanceSessionState.MorningComplete:
+                    _viewModel.NextActionText = "Afternoon Time In (1:00 PM)";
+                    _viewModel.StatusText = "Morning session complete. Afternoon starts at 1:00 PM.";
+                    break;
+                case AttendanceSessionState.NeedsAfternoonTimeIn:
+                    _viewModel.NextActionText = "Afternoon Time In (1:00 PM)";
+                    _viewModel.StatusText = "Waiting for afternoon time in.";
+                    break;
+                case AttendanceSessionState.NeedsAfternoonTimeOut:
+                    _viewModel.NextActionText = "Afternoon Time Out (4:30 PM)";
+                    _viewModel.StatusText = "Employee clocked in for afternoon session.";
+                    break;
+                case AttendanceSessionState.AllComplete:
+                    _viewModel.NextActionText = "No pending action";
+                    _viewModel.StatusText = "Attendance completed (both AM and PM sessions).";
+                    break;
+            }
+
             _viewModel.ScanStateText = "Ready for fingerprint verification";
-            _viewModel.IsScanButtonEnabled = true;
+            _viewModel.IsScanButtonEnabled = sessionState != AttendanceSessionState.AllComplete;
         }
 
         private void LoadAttendanceRecords()
@@ -168,8 +221,10 @@ namespace AttendancePayrollSystem
             _selectedAttendance = selected;
             _viewModel.HasSelectedAttendance = true;
             CrudDatePicker.SelectedDate = selected.AttendanceDate.Date;
-            CrudTimeInTextBox.Text = selected.TimeIn?.ToString("HH:mm") ?? string.Empty;
-            CrudTimeOutTextBox.Text = selected.TimeOut?.ToString("HH:mm") ?? string.Empty;
+            CrudTimeInAMTextBox.Text = selected.TimeInAM?.ToString("HH:mm") ?? string.Empty;
+            CrudTimeOutAMTextBox.Text = selected.TimeOutAM?.ToString("HH:mm") ?? string.Empty;
+            CrudTimeInPMTextBox.Text = selected.TimeInPM?.ToString("HH:mm") ?? string.Empty;
+            CrudTimeOutPMTextBox.Text = selected.TimeOutPM?.ToString("HH:mm") ?? string.Empty;
             SelectCrudStatus(selected.Status);
             CrudBiometricVerifiedCheckBox.IsChecked = selected.IsBiometricVerified;
         }
@@ -255,21 +310,41 @@ namespace AttendancePayrollSystem
                 return false;
             }
 
-            if (!TryParseTime(CrudDatePicker.SelectedDate.Value, CrudTimeInTextBox.Text, out var timeIn))
+            var baseDate = CrudDatePicker.SelectedDate.Value;
+
+            if (!TryParseTime(baseDate, CrudTimeInAMTextBox.Text, out var timeInAM))
             {
-                MessageBox.Show("Time In format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Time In AM format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
-            if (!TryParseTime(CrudDatePicker.SelectedDate.Value, CrudTimeOutTextBox.Text, out var timeOut))
+            if (!TryParseTime(baseDate, CrudTimeOutAMTextBox.Text, out var timeOutAM))
             {
-                MessageBox.Show("Time Out format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Time Out AM format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
-            if (timeIn.HasValue && timeOut.HasValue && timeOut.Value < timeIn.Value)
+            if (!TryParseTime(baseDate, CrudTimeInPMTextBox.Text, out var timeInPM))
             {
-                MessageBox.Show("Time Out cannot be earlier than Time In.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Time In PM format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (!TryParseTime(baseDate, CrudTimeOutPMTextBox.Text, out var timeOutPM))
+            {
+                MessageBox.Show("Time Out PM format is invalid. Use HH:mm.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (timeInAM.HasValue && timeOutAM.HasValue && timeOutAM.Value < timeInAM.Value)
+            {
+                MessageBox.Show("Morning Time Out cannot be earlier than Morning Time In.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (timeInPM.HasValue && timeOutPM.HasValue && timeOutPM.Value < timeInPM.Value)
+            {
+                MessageBox.Show("Afternoon Time Out cannot be earlier than Afternoon Time In.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -280,15 +355,17 @@ namespace AttendancePayrollSystem
                 return false;
             }
 
-            if (LeavePolicies.IsLeaveAttendanceStatus(status) && (timeIn.HasValue || timeOut.HasValue))
+            if (LeavePolicies.IsLeaveAttendanceStatus(status) && (timeInAM.HasValue || timeOutAM.HasValue || timeInPM.HasValue || timeOutPM.HasValue))
             {
                 MessageBox.Show("Leave records cannot store Time In or Time Out values.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
-            attendance.AttendanceDate = CrudDatePicker.SelectedDate.Value.Date;
-            attendance.TimeIn = timeIn;
-            attendance.TimeOut = timeOut;
+            attendance.AttendanceDate = baseDate.Date;
+            attendance.TimeInAM = timeInAM;
+            attendance.TimeOutAM = timeOutAM;
+            attendance.TimeInPM = timeInPM;
+            attendance.TimeOutPM = timeOutPM;
             attendance.Status = status;
             attendance.IsBiometricVerified = LeavePolicies.IsLeaveAttendanceStatus(status)
                 ? false
@@ -342,8 +419,10 @@ namespace AttendancePayrollSystem
         private void ResetCrudForm()
         {
             CrudDatePicker.SelectedDate = DateTime.Today;
-            CrudTimeInTextBox.Text = string.Empty;
-            CrudTimeOutTextBox.Text = string.Empty;
+            CrudTimeInAMTextBox.Text = string.Empty;
+            CrudTimeOutAMTextBox.Text = string.Empty;
+            CrudTimeInPMTextBox.Text = string.Empty;
+            CrudTimeOutPMTextBox.Text = string.Empty;
             CrudStatusComboBox.SelectedIndex = 0;
             CrudBiometricVerifiedCheckBox.IsChecked = false;
         }
@@ -371,8 +450,10 @@ namespace AttendancePayrollSystem
     {
         private string _headerText = string.Empty;
         private string _employeeNameText = string.Empty;
-        private string _timeInText = string.Empty;
-        private string _timeOutText = string.Empty;
+        private string _timeInAMText = string.Empty;
+        private string _timeOutAMText = string.Empty;
+        private string _timeInPMText = string.Empty;
+        private string _timeOutPMText = string.Empty;
         private string _nextActionText = string.Empty;
         private string _statusText = string.Empty;
         private string _scanStateText = string.Empty;
@@ -393,16 +474,28 @@ namespace AttendancePayrollSystem
             set => SetProperty(ref _employeeNameText, value);
         }
 
-        public string TimeInText
+        public string TimeInAMText
         {
-            get => _timeInText;
-            set => SetProperty(ref _timeInText, value);
+            get => _timeInAMText;
+            set => SetProperty(ref _timeInAMText, value);
         }
 
-        public string TimeOutText
+        public string TimeOutAMText
         {
-            get => _timeOutText;
-            set => SetProperty(ref _timeOutText, value);
+            get => _timeOutAMText;
+            set => SetProperty(ref _timeOutAMText, value);
+        }
+
+        public string TimeInPMText
+        {
+            get => _timeInPMText;
+            set => SetProperty(ref _timeInPMText, value);
+        }
+
+        public string TimeOutPMText
+        {
+            get => _timeOutPMText;
+            set => SetProperty(ref _timeOutPMText, value);
         }
 
         public string NextActionText

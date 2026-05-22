@@ -26,8 +26,10 @@ CREATE TABLE IF NOT EXISTS AttendanceRecords
     AttendanceId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     EmployeeId INT NOT NULL,
     AttendanceDate DATE NOT NULL,
-    TimeIn DATETIME NULL,
-    TimeOut DATETIME NULL,
+    TimeInAM DATETIME NULL,
+    TimeOutAM DATETIME NULL,
+    TimeInPM DATETIME NULL,
+    TimeOutPM DATETIME NULL,
     Status VARCHAR(30) NOT NULL DEFAULT 'Present',
     IsBiometricVerified BOOLEAN NOT NULL DEFAULT FALSE,
     INDEX IDX_AttendanceRecords_EmployeeId (EmployeeId),
@@ -93,3 +95,13 @@ CREATE TABLE IF NOT EXISTS UserAccounts
         REFERENCES Employees(EmployeeId)
         ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS AppBrandingSettings
+(
+    BrandingSettingsId INT NOT NULL PRIMARY KEY,
+    LogoImage LONGBLOB NULL
+) ENGINE=InnoDB;
+
+INSERT INTO AppBrandingSettings (BrandingSettingsId, LogoImage)
+VALUES (1, NULL)
+ON DUPLICATE KEY UPDATE BrandingSettingsId = VALUES(BrandingSettingsId);

@@ -4,8 +4,8 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Biometric Attendance"
         Height="760" Width="980"
+        MinHeight="550" MinWidth="750"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="18">
         <Grid.RowDefinitions>
@@ -60,11 +60,21 @@
                     <StackPanel Margin="8">
                         <TextBlock Text="Attendance Summary" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12" />
 
-                        <TextBlock Text="Today Time In" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeInText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                        <TextBlock Text="Morning Session (8:30 AM - 12:00 PM)" FontWeight="SemiBold" FontSize="14" Foreground="#2B6CB0" Margin="0,0,0,6" />
 
-                        <TextBlock Text="Today Time Out" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeOutText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                        <TextBlock Text="Time In (AM)" FontWeight="SemiBold" />
+                        <TextBox Text="{Binding TimeInAMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+
+                        <TextBlock Text="Time Out (AM)" FontWeight="SemiBold" />
+                        <TextBox Text="{Binding TimeOutAMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+
+                        <TextBlock Text="Afternoon Session (1:00 PM - 4:30 PM)" FontWeight="SemiBold" FontSize="14" Foreground="#2B6CB0" Margin="0,8,0,6" />
+
+                        <TextBlock Text="Time In (PM)" FontWeight="SemiBold" />
+                        <TextBox Text="{Binding TimeInPMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+
+                        <TextBlock Text="Time Out (PM)" FontWeight="SemiBold" />
+                        <TextBox Text="{Binding TimeOutPMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
 
                         <TextBlock Text="Next Action" FontWeight="SemiBold" />
                         <TextBox Text="{Binding NextActionText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
@@ -95,12 +105,15 @@
                                   SelectionChanged="AttendanceCrudDataGrid_SelectionChanged"
                                   Margin="0,0,0,10">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="130" />
-                                <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm:ss}" Width="110" />
-                                <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm:ss}" Width="110" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
-                                <DataGridCheckBoxColumn Header="Biometric" Binding="{Binding IsBiometricVerified}" Width="90" />
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="90" />
+                                <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
+                                <DataGridTextColumn Header="In AM" Binding="{Binding TimeInAM, StringFormat=HH:mm}" Width="70" />
+                                <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="70" />
+                                <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="70" />
+                                <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="70" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" />
+                                <DataGridCheckBoxColumn Header="Bio" Binding="{Binding IsBiometricVerified}" Width="50" />
+                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="60" />
+                                <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="80" />
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -119,31 +132,50 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="1.1*" />
                                     <ColumnDefinition Width="1*" />
                                     <ColumnDefinition Width="1*" />
                                     <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="1*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Attendance Date" Style="{StaticResource SectionTitle}" />
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,6,0">
+                                    <TextBlock Text="Date" Style="{StaticResource SectionTitle}" />
                                     <DatePicker x:Name="CrudDatePicker" />
                                 </StackPanel>
 
-                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,10,0">
-                                    <TextBlock Text="Time In (HH:mm)" Style="{StaticResource SectionTitle}" />
-                                    <TextBox x:Name="CrudTimeInTextBox" Style="{StaticResource ModernTextBox}" />
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,6,0">
+                                    <TextBlock Text="In AM (HH:mm)" Style="{StaticResource SectionTitle}" />
+                                    <TextBox x:Name="CrudTimeInAMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
 
-                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,10,0">
-                                    <TextBlock Text="Time Out (HH:mm)" Style="{StaticResource SectionTitle}" />
-                                    <TextBox x:Name="CrudTimeOutTextBox" Style="{StaticResource ModernTextBox}" />
+                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,6,0">
+                                    <TextBlock Text="Out AM (HH:mm)" Style="{StaticResource SectionTitle}" />
+                                    <TextBox x:Name="CrudTimeOutAMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
 
-                                <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,10,0">
+                                <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,6,0">
+                                    <TextBlock Text="In PM (HH:mm)" Style="{StaticResource SectionTitle}" />
+                                    <TextBox x:Name="CrudTimeInPMTextBox" Style="{StaticResource ModernTextBox}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="0" Grid.Column="4" Margin="0,0,6,0">
+                                    <TextBlock Text="Out PM (HH:mm)" Style="{StaticResource SectionTitle}" />
+                                    <TextBox x:Name="CrudTimeOutPMTextBox" Style="{StaticResource ModernTextBox}" />
+                                </StackPanel>
+
+                                <CheckBox x:Name="CrudBiometricVerifiedCheckBox"
+                                          Grid.Row="0"
+                                          Grid.Column="5"
+                                          Content="Biometric"
+                                          VerticalAlignment="Bottom"
+                                          Margin="4,0,0,4" />
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,6,0">
                                     <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
                                     <ComboBox x:Name="CrudStatusComboBox">
                                         <ComboBoxItem Content="Present" />
@@ -154,14 +186,7 @@
                                     </ComboBox>
                                 </StackPanel>
 
-                                <CheckBox x:Name="CrudBiometricVerifiedCheckBox"
-                                          Grid.Row="0"
-                                          Grid.Column="4"
-                                          Content="Biometric Verified"
-                                          VerticalAlignment="Bottom"
-                                          Margin="8,0,0,4" />
-
-                                <StackPanel Grid.Row="1" Grid.ColumnSpan="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,8,0,0">
                                     <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Click="UpdateAttendanceCrud_Click" />
                                     <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeleteAttendanceCrud_Click" />
                                 </StackPanel>

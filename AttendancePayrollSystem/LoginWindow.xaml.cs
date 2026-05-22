@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using AttendancePayrollSystem.DataAccess;
@@ -11,8 +12,12 @@ namespace AttendancePayrollSystem
     public partial class LoginWindow : Window
     {
         private readonly AuthRepository _authRepository = new();
+        private readonly AppBrandingRepository _appBrandingRepository = new();
         private readonly EmployeeRepository _employeeRepository = new();
         private readonly SchoolTeacherSyncService _schoolTeacherSyncService = new();
+        private bool _isDatabaseReady;
+        private bool _isInitializingDatabase;
+        private bool _isAuthenticating;
 
         public LoginWindow()
         {
@@ -20,18 +25,24 @@ namespace AttendancePayrollSystem
             Loaded += LoginWindow_Loaded;
         }
 
-        private void LoginWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void LoginWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            InitializeDatabase();
+            await InitializeDatabaseAsync();
+            SyncToggleToCurrentState();
         }
 
-        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            TryLogin();
+            await TryLoginAsync();
         }
 
-        private void DatabaseSettingsButton_Click(object sender, RoutedEventArgs e)
+        private async void DatabaseSettingsButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_isInitializingDatabase || _isAuthenticating)
+            {
+                return;
+            }
+
             var settingsWindow = new DatabaseSettingsWindow
             {
                 Owner = this
@@ -39,23 +50,29 @@ namespace AttendancePayrollSystem
 
             if (settingsWindow.ShowDialog() == true)
             {
-                InitializeDatabase(showSuccessMessage: true);
+                await InitializeDatabaseAsync(showSuccessMessage: true);
                 return;
             }
 
             UpdateDatabaseTarget();
         }
 
-        private void PasswordBox_KeyDown(object sender, KeyEventArgs e)
+        private async void PasswordBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                TryLogin();
+                e.Handled = true;
+                await TryLoginAsync();
             }
         }
 
-        private void TryLogin()
+        private async Task TryLoginAsync()
         {
+            if (_isInitializingDatabase || _isAuthenticating)
+            {
+                return;
+            }
+
             SetStatus(string.Empty);
 
             var username = UsernameTextBox.Text.Trim();
@@ -66,80 +83,177 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            UserAccount? account;
+            _isAuthenticating = true;
+            UpdateInteractiveState();
+
             try
             {
-                account = _authRepository.Authenticate(username, password);
+                var account = await Task.Run(() => _authRepository.Authenticate(username, password));
+
+                if (account == null)
+                {
+                    AppLogger.Auth($"Failed login attempt for username '{username}'.");
+                    SetStatus("Invalid username or password.");
+                    PasswordBox.Clear();
+                    return;
+                }
+
+                if (!account.IsActive)
+                {
+                    AppLogger.Auth($"Inactive account login attempt: '{username}'.");
+                    SetStatus("This account is inactive. Contact your administrator.");
+                    return;
+                }
+
+                if (string.Equals(account.Role, UserRoles.Admin, StringComparison.OrdinalIgnoreCase))
+                {
+                    AppLogger.Auth($"Admin login successful: '{account.Username}'.");
+                    SetStatus("Opening admin dashboard...");
+                    await Task.Yield();
+                    OpenTargetWindow(new MainWindow(account.Username));
+                    return;
+                }
+
+                if (!string.Equals(account.Role, UserRoles.Employee, StringComparison.OrdinalIgnoreCase))
+                {
+                    SetStatus("Unsupported account role.");
+                    return;
+                }
+
+                if (!account.EmployeeId.HasValue)
+                {
+                    SetStatus("Employee account is not linked to a profile.");
+                    return;
+                }
+
+                var employee = await Task.Run(() => _employeeRepository.GetEmployeeById(account.EmployeeId.Value));
+
+                if (employee == null || !employee.IsActive)
+                {
+                    SetStatus("Employee profile is inactive or missing.");
+                    return;
+                }
+
+                if (EmployeeSourcePolicy.UseSchoolAsExclusiveSource && !employee.SourceTeacherId.HasValue)
+                {
+                    SetStatus("This employee is not managed by the school management database.");
+                    return;
+                }
+
+                SetStatus("Opening employee dashboard...");
+                await Task.Yield();
+                AppLogger.Auth($"Employee login successful: '{account.Username}' (EmployeeId={employee.EmployeeId}).");
+                OpenTargetWindow(new EmployeeDashboardWindow(employee, account.Username));
             }
             catch (Exception ex)
             {
+                AppLogger.Error(ex, "Login failed");
                 MessageBox.Show(
-                    $"Failed to authenticate user.\n{ex.Message}",
+                    $"Failed to sign in.\n{ex.Message}",
                     "Database Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isAuthenticating = false;
+                UpdateInteractiveState();
+            }
+        }
+
+        private async void DatabaseModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializingDatabase || _isAuthenticating)
+            {
+                // Revert the toggle without re-triggering the event
+                DatabaseModeToggle.Checked -= DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked -= DatabaseModeToggle_Changed;
+                SyncToggleToCurrentState();
+                DatabaseModeToggle.Checked += DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked += DatabaseModeToggle_Changed;
                 return;
             }
 
-            if (account == null)
-            {
-                SetStatus("Invalid username or password.");
-                PasswordBox.Clear();
-                return;
-            }
+            var useOffline = DatabaseModeToggle.IsChecked == true;
 
-            if (!account.IsActive)
-            {
-                SetStatus("This account is inactive. Contact your administrator.");
-                return;
-            }
-
-            if (string.Equals(account.Role, UserRoles.Admin, StringComparison.OrdinalIgnoreCase))
-            {
-                OpenTargetWindow(new MainWindow(account.Username));
-                return;
-            }
-
-            if (!string.Equals(account.Role, UserRoles.Employee, StringComparison.OrdinalIgnoreCase))
-            {
-                SetStatus("Unsupported account role.");
-                return;
-            }
-
-            if (!account.EmployeeId.HasValue)
-            {
-                SetStatus("Employee account is not linked to a profile.");
-                return;
-            }
-
-            Employee? employee;
-            try
-            {
-                employee = _employeeRepository.GetEmployeeById(account.EmployeeId.Value);
-            }
-            catch (Exception ex)
+            if (useOffline && !DatabaseRuntimeState.IsOfflineDatabaseAvailable)
             {
                 MessageBox.Show(
-                    $"Failed to load employee profile.\n{ex.Message}",
-                    "Database Error",
+                    "The offline database is not available. Please configure ATTENDANCE_OFFLINE_DB_CONNECTION in your .env file and ensure the local MySQL server is running.",
+                    "Offline Database Unavailable",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    MessageBoxImage.Warning);
+
+                // Revert toggle
+                DatabaseModeToggle.Checked -= DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked -= DatabaseModeToggle_Changed;
+                DatabaseModeToggle.IsChecked = false;
+                DatabaseModeToggle.Checked += DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked += DatabaseModeToggle_Changed;
+                UpdateToggleLabels();
                 return;
             }
 
-            if (employee == null || !employee.IsActive)
+            if (!useOffline && !DatabaseRuntimeState.IsOnlineAvailable)
             {
-                SetStatus("Employee profile is inactive or missing.");
+                MessageBox.Show(
+                    "The online database is not reachable. Please check your internet connection or database settings.",
+                    "Online Database Unavailable",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                // Revert toggle
+                DatabaseModeToggle.Checked -= DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked -= DatabaseModeToggle_Changed;
+                DatabaseModeToggle.IsChecked = true;
+                DatabaseModeToggle.Checked += DatabaseModeToggle_Changed;
+                DatabaseModeToggle.Unchecked += DatabaseModeToggle_Changed;
+                UpdateToggleLabels();
                 return;
             }
 
-            if (EmployeeSourcePolicy.UseSchoolAsExclusiveSource && !employee.SourceTeacherId.HasValue)
+            // Apply the mode change
+            DatabaseRuntimeState.SetRuntimeState(
+                useOfflineDatabase: useOffline,
+                isOnlineAvailable: DatabaseRuntimeState.IsOnlineAvailable,
+                isOfflineDatabaseAvailable: DatabaseRuntimeState.IsOfflineDatabaseAvailable,
+                statusMessage: DatabaseRuntimeState.StatusMessage);
+
+            UpdateToggleLabels();
+            UpdateDatabaseTarget();
+            await InitializeDatabaseAsync();
+        }
+
+        private void SyncToggleToCurrentState()
+        {
+            DatabaseModeToggle.Checked -= DatabaseModeToggle_Changed;
+            DatabaseModeToggle.Unchecked -= DatabaseModeToggle_Changed;
+            DatabaseModeToggle.IsChecked = DatabaseRuntimeState.UseOfflineDatabase;
+            DatabaseModeToggle.Checked += DatabaseModeToggle_Changed;
+            DatabaseModeToggle.Unchecked += DatabaseModeToggle_Changed;
+
+            UpdateToggleLabels();
+            UpdateToggleAvailability();
+        }
+
+        private void UpdateToggleLabels()
+        {
+            if (DatabaseModeToggle.IsChecked == true)
             {
-                SetStatus("This employee is not managed by the school management database.");
-                return;
+                DatabaseModeLabel.Text = "Offline Database";
+                DatabaseModeDescription.Text = "Using local MySQL mirror";
             }
+            else
+            {
+                DatabaseModeLabel.Text = "Online Database";
+                DatabaseModeDescription.Text = "Using Hostinger MySQL (remote)";
+            }
+        }
 
-            OpenTargetWindow(new EmployeeDashboardWindow(employee, account.Username));
+        private void UpdateToggleAvailability()
+        {
+            // Disable the toggle if offline DB is not configured at all
+            DatabaseModeToggle.IsEnabled = DatabaseHelper.IsOfflineConfigured();
         }
 
         private void OpenTargetWindow(Window window)
@@ -157,17 +271,28 @@ namespace AttendancePayrollSystem
                 : Visibility.Visible;
         }
 
-        private void InitializeDatabase(bool showSuccessMessage = false)
+        private async Task InitializeDatabaseAsync(bool showSuccessMessage = false)
         {
+            if (_isInitializingDatabase)
+            {
+                return;
+            }
+
+            _isInitializingDatabase = true;
+            UpdateInteractiveState();
             UpdateDatabaseTarget();
             SetStatus(string.Empty);
+            SetDatabaseStatus("Connecting to the database...", isError: false);
 
             try
             {
-                var result = MySqlOfflineSyncService.InitializeRuntime();
+                var initializationState = await Task.Run(() => LoadInitializationState());
+                var result = initializationState.Result;
+
                 SetDatabaseReady(result.IsReady);
                 SetDatabaseStatus(result.Message, isError: !result.IsReady);
                 UpdateDatabaseTarget();
+                BrandingVisualHelper.ApplyLogo(BrandLogoImage, BrandLogoFallbackPanel, initializationState.LogoImage);
 
                 if (showSuccessMessage && result.IsReady)
                 {
@@ -178,6 +303,7 @@ namespace AttendancePayrollSystem
                         MessageBoxImage.Information);
                 }
 
+                SyncToggleToCurrentState();
                 UsernameTextBox.Focus();
             }
             catch (Exception ex)
@@ -186,6 +312,13 @@ namespace AttendancePayrollSystem
                 SetDatabaseStatus(
                     $"Cannot connect to the database.\nOpen Database Settings and update the server details.\n\n{ex.Message}",
                     isError: true);
+                BrandingVisualHelper.ApplyLogo(BrandLogoImage, BrandLogoFallbackPanel, null);
+                SyncToggleToCurrentState();
+            }
+            finally
+            {
+                _isInitializingDatabase = false;
+                UpdateInteractiveState();
             }
         }
 
@@ -222,9 +355,8 @@ namespace AttendancePayrollSystem
 
         private void SetDatabaseReady(bool isReady)
         {
-            UsernameTextBox.IsEnabled = isReady;
-            PasswordBox.IsEnabled = isReady;
-            LoginButton.IsEnabled = isReady;
+            _isDatabaseReady = isReady;
+            UpdateInteractiveState();
         }
 
         private void SetDatabaseStatus(string message, bool isError)
@@ -237,5 +369,35 @@ namespace AttendancePayrollSystem
                 ? Visibility.Collapsed
                 : Visibility.Visible;
         }
+
+        private void UpdateInteractiveState()
+        {
+            var isBusy = _isInitializingDatabase || _isAuthenticating;
+            UsernameTextBox.IsEnabled = _isDatabaseReady && !isBusy;
+            PasswordBox.IsEnabled = _isDatabaseReady && !isBusy;
+            LoginButton.IsEnabled = _isDatabaseReady && !isBusy;
+            DatabaseSettingsButton.IsEnabled = !isBusy;
+            LoginButton.Content = _isAuthenticating ? "Signing In..." : "Sign In";
+            DatabaseSettingsButton.Content = _isInitializingDatabase ? "Checking Database..." : "Database Settings";
+        }
+
+        private InitializationState LoadInitializationState()
+        {
+            var result = MySqlOfflineSyncService.InitializeRuntime();
+            byte[]? logoImage = null;
+
+            try
+            {
+                logoImage = _appBrandingRepository.GetBranding().LogoImage;
+            }
+            catch
+            {
+                // Leave the fallback logo visible if branding cannot be loaded.
+            }
+
+            return new InitializationState(result, logoImage);
+        }
+
+        private sealed record InitializationState(OfflineSyncInitializationResult Result, byte[]? LogoImage);
     }
 }

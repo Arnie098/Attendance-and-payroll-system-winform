@@ -203,25 +203,29 @@ static void SeedFakeAttendances(string connectionString, Faker faker, IReadOnlyC
                 continue;
             }
 
-            var timeIn = attendanceDate
+            var timeInAM = attendanceDate
                 .AddHours(8)
                 .AddMinutes(faker.Random.Int(-10, 35));
+            var timeOutAM = attendanceDate.AddHours(12).AddMinutes(faker.Random.Int(0, 5));
+            var timeInPM = attendanceDate.AddHours(13).AddMinutes(faker.Random.Int(0, 10));
             var overtimeHours = faker.Random.Bool(0.35f)
                 ? faker.Random.Decimal(0.5m, 2.5m)
                 : 0m;
-            var timeOut = timeIn.AddHours(8).AddHours((double)overtimeHours).AddMinutes(faker.Random.Int(0, 12));
-            var status = timeIn.TimeOfDay > new TimeSpan(8, 10, 0) ? "Late" : "Present";
+            var timeOutPM = attendanceDate.AddHours(16).AddMinutes(30).AddHours((double)overtimeHours).AddMinutes(faker.Random.Int(0, 12));
+            var status = timeInAM.TimeOfDay > new TimeSpan(8, 10, 0) ? "Late" : "Present";
 
             using var command = new MySqlCommand(@"
                 INSERT INTO AttendanceRecords
-                (EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified)
+                (EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified)
                 VALUES
-                (@EmployeeId, @AttendanceDate, @TimeIn, @TimeOut, @Status, @IsBiometricVerified)", connection);
+                (@EmployeeId, @AttendanceDate, @TimeInAM, @TimeOutAM, @TimeInPM, @TimeOutPM, @Status, @IsBiometricVerified)", connection);
 
             command.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
             command.Parameters.AddWithValue("@AttendanceDate", attendanceDate);
-            command.Parameters.AddWithValue("@TimeIn", timeIn);
-            command.Parameters.AddWithValue("@TimeOut", timeOut);
+            command.Parameters.AddWithValue("@TimeInAM", timeInAM);
+            command.Parameters.AddWithValue("@TimeOutAM", timeOutAM);
+            command.Parameters.AddWithValue("@TimeInPM", timeInPM);
+            command.Parameters.AddWithValue("@TimeOutPM", timeOutPM);
             command.Parameters.AddWithValue("@Status", status);
             command.Parameters.AddWithValue("@IsBiometricVerified", faker.Random.Bool(0.92f));
             command.ExecuteNonQuery();

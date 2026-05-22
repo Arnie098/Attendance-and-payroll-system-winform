@@ -2,6 +2,7 @@ param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
     [string]$OutputDir = "",
+    [string]$ProductVersion = "2.0.0",
     [switch]$IncludeEnvFile
 )
 
@@ -105,7 +106,14 @@ if (-not (Test-Path $publishedExe))
 }
 
 $versionInfo = (Get-Item $publishedExe).VersionInfo
-$productVersion = if ([string]::IsNullOrWhiteSpace($versionInfo.ProductVersion)) { "1.0.0" } else { $versionInfo.ProductVersion }
+if (-not [string]::IsNullOrWhiteSpace($ProductVersion))
+{
+    $productVersion = $ProductVersion
+}
+else
+{
+    $productVersion = if ([string]::IsNullOrWhiteSpace($versionInfo.ProductVersion)) { "2.0.0" } else { $versionInfo.ProductVersion }
+}
 $productVersion = ($productVersion -split '[^0-9\.]')[0]
 $versionParts = $productVersion -split '\.' | Where-Object { $_ -ne "" }
 if ($versionParts.Count -ge 3)
@@ -115,7 +123,7 @@ if ($versionParts.Count -ge 3)
 
 if ($productVersion -notmatch '^\d+\.\d+\.\d+$')
 {
-    $productVersion = "1.0.0"
+    $productVersion = "2.0.0"
 }
 
 Get-ChildItem -LiteralPath $publishDir -File |

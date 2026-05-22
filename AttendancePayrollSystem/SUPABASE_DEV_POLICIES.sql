@@ -28,6 +28,11 @@ drop policy if exists dev_anon_insert_useraccounts on public.useraccounts;
 drop policy if exists dev_anon_update_useraccounts on public.useraccounts;
 drop policy if exists dev_anon_delete_useraccounts on public.useraccounts;
 
+drop policy if exists dev_anon_select_appbranding on public.appbrandingsettings;
+drop policy if exists dev_anon_insert_appbranding on public.appbrandingsettings;
+drop policy if exists dev_anon_update_appbranding on public.appbrandingsettings;
+drop policy if exists dev_anon_delete_appbranding on public.appbrandingsettings;
+
 create policy dev_anon_select_employees on public.employees for select to anon using (true);
 create policy dev_anon_insert_employees on public.employees for insert to anon with check (true);
 create policy dev_anon_update_employees on public.employees for update to anon using (true) with check (true);
@@ -52,3 +57,8 @@ create policy dev_anon_select_useraccounts on public.useraccounts for select to 
 create policy dev_anon_insert_useraccounts on public.useraccounts for insert to anon with check (true);
 create policy dev_anon_update_useraccounts on public.useraccounts for update to anon using (true) with check (true);
 create policy dev_anon_delete_useraccounts on public.useraccounts for delete to anon using (true);
+
+create policy dev_anon_select_appbranding on public.appbrandingsettings for select to anon using (true);
+create policy dev_anon_insert_appbranding on public.appbrandingsettings for insert to anon with check (true);
+create policy dev_anon_update_appbranding on public.appbrandingsettings for update to anon using (true) with check (true);
+create policy dev_anon_delete_appbranding on public.appbrandingsettings for delete to anon using (true);

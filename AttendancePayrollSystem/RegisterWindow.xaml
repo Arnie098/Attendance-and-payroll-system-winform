@@ -5,7 +5,7 @@
         Height="820"
         Width="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        MinHeight="400" MinWidth="420"
         Background="{StaticResource AppBackgroundBrush}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="22">

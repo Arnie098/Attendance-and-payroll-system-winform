@@ -1,0 +1,295 @@
+<Window x:Class="AttendancePayrollSystem.EmployeeManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Employee Management"
+        Height="860"
+        Width="1380"
+        MinHeight="600"
+        MinWidth="900"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        Background="{StaticResource AppBackgroundBrush}">
+    <Grid Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Background="#103B53"
+                    BorderBrush="#1F5B73"
+                    BorderThickness="1"
+                    CornerRadius="22"
+                    Margin="0,0,0,16"
+                    Padding="22,18">
+                <DockPanel LastChildFill="False">
+                    <StackPanel DockPanel.Dock="Left"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Border Width="58"
+                                Height="58"
+                                Background="#0D2F42"
+                                BorderBrush="#2E6A83"
+                                BorderThickness="1"
+                                CornerRadius="16">
+                            <materialDesign:PackIcon Kind="AccountGroup"
+                                                     Width="30"
+                                                     Height="30"
+                                                     Foreground="White"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel Margin="14,0,0,0">
+                            <TextBlock Text="Employee Management"
+                                       Foreground="White"
+                                       FontSize="28"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,4" />
+                            <TextBlock Text="Manage workforce records and open attendance or payroll tools."
+                                       Foreground="#C6E4EE"
+                                       FontSize="13" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Button Content="Refresh"
+                                Style="{StaticResource ModernButton}"
+                                Width="110"
+                                Click="RefreshEmployees_Click" />
+                        <Button Content="Close"
+                                Style="{StaticResource ModernButton}"
+                                Background="#475569"
+                                Width="110"
+                                Click="Close_Click" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource ModernCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AccountGroup" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Employee List" Style="{StaticResource HeaderText}" />
+                            <Button x:Name="AddEmployeeButton"
+                                    Content="Add"
+                                    Style="{StaticResource ModernButton}"
+                                    Width="90"
+                                    Click="AddEmployee_Click"
+                                    Margin="16,0,0,0" />
+                            <Button Content="Refresh"
+                                    Style="{StaticResource ModernButton}"
+                                    Width="100"
+                                    Click="RefreshEmployees_Click"
+                                    Margin="16,0,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1"
+                                Background="#F8FAFC"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="8,6"
+                                Margin="0,10,0,4">
+                            <DockPanel>
+                                <materialDesign:PackIcon Kind="Magnify"
+                                                         Width="20" Height="20"
+                                                         Foreground="#94A3B8"
+                                                         VerticalAlignment="Center"
+                                                         Margin="4,0,8,0" />
+                                <TextBox x:Name="EmployeeSearchBox"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         FontSize="14"
+                                         VerticalAlignment="Center"
+                                         TextChanged="EmployeeSearchBox_TextChanged"
+                                         Tag="Search by name, code, position, or department..." />
+                                <TextBlock Text="Search by name, code, position, or department..."
+                                           Foreground="#94A3B8"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=EmployeeSearchBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DockPanel>
+                        </Border>
+
+                        <DataGrid x:Name="EmployeeDataGrid"
+                                  Grid.Row="2"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  SelectionChanged="EmployeeDataGrid_SelectionChanged"
+                                  Margin="0,8,0,0"
+                                  MinHeight="120"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
+                                <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="200" />
+                                <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="150" />
+                                <DataGridTextColumn Header="Department" Binding="{Binding Department}" Width="150" />
+                                <DataGridTextColumn Header="Hourly Rate" Binding="{Binding HourlyRate, StringFormat=PHP {0:N2}}" Width="120" />
+                                <DataGridTextColumn Header="Hire Date" Binding="{Binding HireDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                                <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="80" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1" Visibility="{Binding IsEmployeeSelected, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource ModernCard}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Employee Details" Style="{StaticResource HeaderText}" />
+
+                                <Ellipse Width="120" Height="120" HorizontalAlignment="Center" Margin="0,0,0,16">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{Binding SelectedEmployee.ProfileImage, Converter={StaticResource ByteToImage}}" Stretch="UniformToFill" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
+
+                                <TextBlock Text="Basic Information" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding SelectedEmployee.EmployeeCode, StringFormat='Code: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.FullName, StringFormat='Name: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.Email, StringFormat='Email: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.Phone, StringFormat='Phone: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.Position, StringFormat='Position: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.Department, StringFormat='Department: {0}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.HourlyRate, StringFormat='Hourly Rate: PHP {0:N2}'}" Margin="0,4" />
+                                <TextBlock Text="{Binding SelectedEmployee.HireDate, StringFormat='Hire Date: {0:yyyy-MM-dd}'}" Margin="0,4" />
+
+                                <TextBlock Text="Employee Actions" Style="{StaticResource SectionTitle}" Margin="0,16,0,8" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="EditEmployeeButton" Content="Edit" Style="{StaticResource ModernButton}" Width="90" Click="EditEmployee_Click" />
+                                    <Button x:Name="DeleteEmployeeButton" Content="Delete" Style="{StaticResource ModernButton}" Width="90" Click="DeleteEmployee_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="EmployeeSourceInfoTextBlock"
+                                           Foreground="#64748B"
+                                           TextWrapping="Wrap"
+                                           Visibility="Collapsed"
+                                           Margin="0,8,0,0" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource ModernCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Attendance Records" Style="{StaticResource HeaderText}" Margin="0,0,8,12" />
+                                <Button Content="Open Attendance"
+                                        Style="{StaticResource ModernButton}"
+                                        Click="OpenAttendanceModal_Click"
+                                        HorizontalAlignment="Left" />
+                            </StackPanel>
+
+                            <Border Grid.Row="1"
+                                    Background="#F8FAFC"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="8,6"
+                                    Margin="0,0,0,4">
+                                <DockPanel>
+                                    <materialDesign:PackIcon Kind="Magnify"
+                                                             Width="20" Height="20"
+                                                             Foreground="#94A3B8"
+                                                             VerticalAlignment="Center"
+                                                             Margin="4,0,8,0" />
+                                    <TextBox x:Name="AttendanceSearchBox"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             FontSize="14"
+                                             VerticalAlignment="Center"
+                                             TextChanged="AttendanceSearchBox_TextChanged" />
+                                    <TextBlock Text="Search by date or status..."
+                                               Foreground="#94A3B8"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=AttendanceSearchBox}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DockPanel>
+                            </Border>
+
+                            <DataGrid x:Name="AttendanceDataGrid"
+                                      Grid.Row="2"
+                                      Style="{StaticResource ModernDataGrid}"
+                                      Margin="0,8,0,0"
+                                      MinHeight="120"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
+                                    <DataGridTextColumn Header="In AM" Binding="{Binding TimeInAM, StringFormat=HH:mm}" Width="70" />
+                                    <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="70" />
+                                    <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="70" />
+                                    <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="70" />
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" />
+                                    <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="60" />
+                                    <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="80" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource ModernCard}">
+                        <StackPanel>
+                            <TextBlock Text="Payroll" Style="{StaticResource HeaderText}" />
+                            <TextBlock Text="Manage payroll calculation and employee payroll records in the popup modal."
+                                       Foreground="#6B7280"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,12" />
+                            <Button Content="Open Payroll Modal"
+                                    Style="{StaticResource ModernButton}"
+                                    Width="160"
+                                    Click="OpenPayrollModal_Click" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+</Window>

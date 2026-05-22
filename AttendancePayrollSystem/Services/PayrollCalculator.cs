@@ -18,9 +18,10 @@ namespace AttendancePayrollSystem.Services
 
             decimal regularHours = 0;
             decimal overtimeHours = 0;
+            int totalTardinessMinutes = 0;
             var attendanceDatesWithWorkedHours = new HashSet<DateTime>();
 
-            foreach (var attendance in attendances.Where(a => a.TimeIn.HasValue && a.TimeOut.HasValue))
+            foreach (var attendance in attendances.Where(a => (a.TimeInAM.HasValue && a.TimeOutAM.HasValue) || (a.TimeInPM.HasValue && a.TimeOutPM.HasValue)))
             {
                 var totalHours = (decimal)attendance.TotalHours;
                 var regularDaily = DatabaseConfig.RegularHoursPerDay;
@@ -35,6 +36,9 @@ namespace AttendancePayrollSystem.Services
                     regularHours += regularDaily;
                     overtimeHours += totalHours - regularDaily;
                 }
+
+                // Accumulate tardiness minutes
+                totalTardinessMinutes += attendance.TardinessMinutes;
             }
 
             foreach (var leaveDate in approvedPaidLeaveDates)
@@ -54,8 +58,14 @@ namespace AttendancePayrollSystem.Services
             var overtimePay = RoundCurrency(overtimeHours * employee.HourlyRate * (decimal)DatabaseConfig.OvertimeMultiplier);
             var grossPay = RoundCurrency(regularPay + overtimePay);
 
-            var deductions = RoundCurrency(Math.Min(grossPay, CalculateDeductions(grossPay)));
-            var netPay = RoundCurrency(Math.Max(0m, grossPay - deductions));
+            // Calculate tardiness deduction: employee's per-minute rate * total tardiness minutes
+            var minuteRate = employee.HourlyRate / 60m;
+            var tardinessDeduction = RoundCurrency(totalTardinessMinutes * minuteRate);
+
+            // Total deductions = statutory + tardiness
+            var statutoryDeductions = RoundCurrency(Math.Min(grossPay, CalculateDeductions(grossPay)));
+            var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction);
+            var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
 
             return new Payroll
             {
@@ -65,32 +75,24 @@ namespace AttendancePayrollSystem.Services
                 RegularHours = regularHours,
                 OvertimeHours = overtimeHours,
                 GrossPay = grossPay,
-                Deductions = deductions,
+                Deductions = totalDeductions,
                 NetPay = netPay,
                 Status = "Pending",
                 EmployeeName = employee.FullName,
-                EmployeeCode = employee.EmployeeCode
+                EmployeeCode = employee.EmployeeCode,
+                TotalTardinessMinutes = totalTardinessMinutes,
+                TardinessDeduction = tardinessDeduction
             };
         }
 
         private decimal CalculateDeductions(decimal grossPay)
         {
-            var sssContribution = grossPay * 0.045m;
-            var philHealthContribution = grossPay * 0.02m;
-            var pagIbigContribution = Math.Min(grossPay * 0.02m, 100m);
-            var withholdingTax = CalculateWithholdingTax(grossPay);
-
-            return sssContribution + philHealthContribution + pagIbigContribution + withholdingTax;
+            return PayrollDeductionConfig.Current.CalculateDeductions(grossPay);
         }
 
         private decimal CalculateWithholdingTax(decimal grossPay)
         {
-            if (grossPay <= 10417) return 0;
-            if (grossPay <= 16666) return (grossPay - 10417) * 0.15m;
-            if (grossPay <= 33332) return 937.50m + (grossPay - 16666) * 0.20m;
-            if (grossPay <= 83332) return 4270.70m + (grossPay - 33332) * 0.25m;
-            if (grossPay <= 333332) return 16770.70m + (grossPay - 83332) * 0.30m;
-            return 91770.70m + (grossPay - 333332) * 0.35m;
+            return PayrollDeductionConfig.Current.CalculateWithholdingTax(grossPay);
         }
 
         private static decimal RoundHours(decimal hours)

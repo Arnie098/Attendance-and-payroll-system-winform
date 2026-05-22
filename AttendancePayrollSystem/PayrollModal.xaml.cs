@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using AttendancePayrollSystem.DataAccess;
@@ -17,6 +19,7 @@ namespace AttendancePayrollSystem
         private readonly PayrollCalculator _payrollCalculator = new();
         private readonly PayrollModalViewModel _viewModel = new();
         private Payroll? _selectedPayroll;
+        private System.Collections.Generic.List<Payroll> _allPayrolls = new();
 
         public PayrollModal(Employee employee)
         {
@@ -167,8 +170,8 @@ namespace AttendancePayrollSystem
         private void LoadPayrolls()
         {
             _viewModel.Payrolls.Clear();
-            var payrolls = _payrollRepository.GetPayrollByEmployee(_employee.EmployeeId);
-            foreach (var payroll in payrolls)
+            _allPayrolls = _payrollRepository.GetPayrollByEmployee(_employee.EmployeeId);
+            foreach (var payroll in _allPayrolls)
             {
                 _viewModel.Payrolls.Add(payroll);
             }
@@ -285,6 +288,26 @@ namespace AttendancePayrollSystem
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void PayrollSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var searchText = PayrollSearchBox.Text.Trim();
+            _viewModel.Payrolls.Clear();
+
+            var source = string.IsNullOrEmpty(searchText)
+                ? _allPayrolls
+                : _allPayrolls.FindAll(p =>
+                    p.PayPeriodStart.ToString("yyyy-MM-dd").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.PayPeriodEnd.ToString("yyyy-MM-dd").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.Status.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.GrossPay.ToString("N2").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.NetPay.ToString("N2").Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var payroll in source)
+            {
+                _viewModel.Payrolls.Add(payroll);
+            }
         }
     }
 

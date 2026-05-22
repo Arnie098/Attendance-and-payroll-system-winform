@@ -8,7 +8,7 @@
         Width="960"
         MinWidth="960"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="24">
         <Border Style="{StaticResource ModernCard}" Padding="0" CornerRadius="24">
@@ -41,11 +41,20 @@
                                 HorizontalAlignment="Left"
                                 Background="#1FFFFFFF"
                                 CornerRadius="22"
-                                Padding="16">
-                            <materialDesign:PackIcon Kind="ShieldAccountVariant"
-                                                     Width="42"
-                                                     Height="42"
-                                                     Foreground="White" />
+                                Padding="8">
+                            <Grid>
+                                <Grid x:Name="BrandLogoFallbackPanel">
+                                    <materialDesign:PackIcon Kind="ShieldAccountVariant"
+                                                             Width="42"
+                                                             Height="42"
+                                                             Foreground="White"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center" />
+                                </Grid>
+                                <Image x:Name="BrandLogoImage"
+                                       Stretch="Uniform"
+                                       Visibility="Collapsed" />
+                            </Grid>
                         </Border>
 
                         <StackPanel Grid.Row="1" Margin="0,26,0,0">
@@ -235,6 +244,42 @@
                                    TextWrapping="Wrap" />
 
                         <StackPanel Grid.Row="8">
+                            <!-- Database Mode Toggle -->
+                            <Border Margin="0,0,0,14"
+                                    Padding="12"
+                                    Background="#F1F5F9"
+                                    BorderBrush="#CBD5E1"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <DockPanel>
+                                    <materialDesign:PackIcon Kind="DatabaseSyncOutline"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Foreground="#1E3A8A"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,10,0" />
+                                    <ToggleButton x:Name="DatabaseModeToggle"
+                                                  DockPanel.Dock="Right"
+                                                  Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                                  IsChecked="False"
+                                                  VerticalAlignment="Center"
+                                                  Checked="DatabaseModeToggle_Changed"
+                                                  Unchecked="DatabaseModeToggle_Changed" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="DatabaseModeLabel"
+                                                   Text="Online Database"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="13"
+                                                   Foreground="#1E293B" />
+                                        <TextBlock x:Name="DatabaseModeDescription"
+                                                   Text="Using Hostinger MySQL (remote)"
+                                                   FontSize="11"
+                                                   Foreground="#64748B"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
                             <Button x:Name="LoginButton"
                                     Content="Sign In"
                                     Height="44"

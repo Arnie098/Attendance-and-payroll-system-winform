@@ -25,5 +25,11 @@ jobs:
       - name: Build
         run: dotnet build AttendancePayrollSystem/AttendancePayrollSystem.csproj --configuration Release --no-restore
 
+      - name: Restore Tests
+        run: dotnet restore AttendancePayrollSystem.Tests/AttendancePayrollSystem.Tests.csproj
+
+      - name: Build Tests
+        run: dotnet build AttendancePayrollSystem.Tests/AttendancePayrollSystem.Tests.csproj --configuration Release --no-restore
+
       - name: Test
-        run: dotnet test AttendancePayrollSystem/AttendancePayrollSystem.csproj --configuration Release --no-build
+        run: dotnet test AttendancePayrollSystem.Tests/AttendancePayrollSystem.Tests.csproj --configuration Release --no-build --verbosity normal

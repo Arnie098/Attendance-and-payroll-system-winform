@@ -5,7 +5,7 @@
         Height="640"
         Width="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        MinHeight="400" MinWidth="420"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="22">
         <Border Style="{StaticResource ModernCard}" Padding="22">

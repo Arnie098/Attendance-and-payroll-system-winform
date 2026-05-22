@@ -122,6 +122,35 @@ namespace AttendancePayrollSystem.Services
                 return new OfflineSyncInitializationResult(true, true, pendingCount, statusMessage);
             }
 
+            if (offlineAvailable && !HasOfflineLoginData())
+            {
+                // Offline DB exists but has no login data — seed the bootstrap admin so the user can sign in.
+                try
+                {
+                    var authRepository = new AuthRepository();
+                    authRepository.EnsureAuthSchemaAndSeedDefaults(DatabaseConnectionTarget.Offline);
+
+                    if (HasOfflineLoginData())
+                    {
+                        var pendingCount = GetPendingOperationCount();
+                        var statusMessage =
+                            $"Offline mode active. Bootstrap admin seeded into the local MySQL mirror.\nLocal target: {offlineMessage}\nPending sync operations: {pendingCount}";
+
+                        DatabaseRuntimeState.SetRuntimeState(
+                            useOfflineDatabase: true,
+                            isOnlineAvailable: false,
+                            isOfflineDatabaseAvailable: true,
+                            statusMessage: statusMessage);
+
+                        return new OfflineSyncInitializationResult(true, true, pendingCount, statusMessage);
+                    }
+                }
+                catch
+                {
+                    // Fall through to the unavailable message below.
+                }
+            }
+
             var unavailableMessage = offlineAvailable
                 ? $"Cannot reach the online database, and the local MySQL mirror does not have cached login data.\nOnline target error: {onlineMessage}"
                 : DatabaseHelper.IsOfflineConfigured()
@@ -291,6 +320,9 @@ namespace AttendancePayrollSystem.Services
         public static void QueueLeaveRequestDelete(int leaveRequestId, int employeeId) =>
             QueueChange("LeaveRequest", leaveRequestId, BuildScopeKey(employeeId), deleteExistingScopeOperations: false, operationType: "Delete");
 
+        public static void QueueBrandingUpsert() =>
+            QueueChange("Branding", AppBranding.DefaultBrandingSettingsId, "branding", deleteExistingScopeOperations: false, operationType: "Upsert");
+
         public static int GetPendingOperationCount()
         {
             if (!DatabaseHelper.IsOfflineConfigured() || !DatabaseHelper.CanConnect(DatabaseConnectionTarget.Offline, out _))
@@ -432,6 +464,8 @@ namespace AttendancePayrollSystem.Services
                 return;
             }
 
+            AppLogger.Sync($"Synchronizing {operations.Count} pending operations to online database.");
+
             using var localConnection = DatabaseHelper.GetConnection(DatabaseConnectionTarget.Offline);
             using var onlineConnection = DatabaseHelper.GetConnection(DatabaseConnectionTarget.Online);
             localConnection.Open();
@@ -444,6 +478,9 @@ namespace AttendancePayrollSystem.Services
                 {
                     switch (operation.EntityType)
                     {
+                        case "Branding":
+                            ApplyBrandingOperation(localConnection, onlineConnection, onlineTransaction, operation);
+                            break;
                         case "Employee":
                             ApplyEmployeeOperation(localConnection, onlineConnection, onlineTransaction, operation);
                             break;
@@ -461,6 +498,7 @@ namespace AttendancePayrollSystem.Services
 
                 onlineTransaction.Commit();
                 ClearPendingOperations();
+                AppLogger.Sync($"Successfully synchronized {operations.Count} operations.");
                 new AuthRepository().EnsureEmployeeAccounts(DatabaseConnectionTarget.Online);
             }
             catch
@@ -472,6 +510,7 @@ namespace AttendancePayrollSystem.Services
 
         private static void RefreshOfflineMirrorFromOnline()
         {
+            AppLogger.Sync("Refreshing offline mirror from online database.");
             using var onlineConnection = DatabaseHelper.GetConnection(DatabaseConnectionTarget.Online);
             using var offlineConnection = DatabaseHelper.GetConnection(DatabaseConnectionTarget.Offline);
             onlineConnection.Open();
@@ -487,12 +526,13 @@ namespace AttendancePayrollSystem.Services
                     disableForeignKeys.ExecuteNonQuery();
                 }
 
-                foreach (var table in new[] { "UserAccounts", "LeaveRequests", "AttendanceRecords", "PayrollRecords", "Employees" })
+                foreach (var table in new[] { "UserAccounts", "LeaveRequests", "AttendanceRecords", "PayrollRecords", "Employees", "AppBrandingSettings" })
                 {
                     using var clearTable = new MySqlCommand($"DELETE FROM {table};", offlineConnection, transaction);
                     clearTable.ExecuteNonQuery();
                 }
 
+                CopyBrandingSettings(onlineConnection, offlineConnection, transaction);
                 CopyEmployees(onlineConnection, offlineConnection, transaction);
                 CopyLeaveRequests(onlineConnection, offlineConnection, transaction);
                 CopyAttendanceRecords(onlineConnection, offlineConnection, transaction);
@@ -517,6 +557,30 @@ namespace AttendancePayrollSystem.Services
             {
                 transaction.Rollback();
                 throw;
+            }
+        }
+
+        private static void CopyBrandingSettings(MySqlConnection onlineConnection, MySqlConnection offlineConnection, MySqlTransaction transaction)
+        {
+            using var selectCommand = new MySqlCommand(@"
+                SELECT BrandingSettingsId, LogoImage
+                FROM AppBrandingSettings
+                ORDER BY BrandingSettingsId", onlineConnection);
+
+            using var reader = selectCommand.ExecuteReader();
+            while (reader.Read())
+            {
+                using var insertCommand = new MySqlCommand(@"
+                    INSERT INTO AppBrandingSettings
+                    (BrandingSettingsId, LogoImage)
+                    VALUES
+                    (@BrandingSettingsId, @LogoImage)",
+                    offlineConnection,
+                    transaction);
+
+                insertCommand.Parameters.AddWithValue("@BrandingSettingsId", Convert.ToInt32(reader["BrandingSettingsId"]));
+                insertCommand.Parameters.AddWithValue("@LogoImage", reader["LogoImage"] is DBNull ? DBNull.Value : reader["LogoImage"]);
+                insertCommand.ExecuteNonQuery();
             }
         }
 
@@ -596,7 +660,7 @@ namespace AttendancePayrollSystem.Services
         private static void CopyAttendanceRecords(MySqlConnection onlineConnection, MySqlConnection offlineConnection, MySqlTransaction transaction)
         {
             using var selectCommand = new MySqlCommand(@"
-                SELECT AttendanceId, EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified
+                SELECT AttendanceId, EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified
                 FROM AttendanceRecords
                 ORDER BY AttendanceId", onlineConnection);
 
@@ -605,17 +669,19 @@ namespace AttendancePayrollSystem.Services
             {
                 using var insertCommand = new MySqlCommand(@"
                     INSERT INTO AttendanceRecords
-                    (AttendanceId, EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified)
+                    (AttendanceId, EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified)
                     VALUES
-                    (@AttendanceId, @EmployeeId, @AttendanceDate, @TimeIn, @TimeOut, @Status, @IsBiometricVerified)",
+                    (@AttendanceId, @EmployeeId, @AttendanceDate, @TimeInAM, @TimeOutAM, @TimeInPM, @TimeOutPM, @Status, @IsBiometricVerified)",
                     offlineConnection,
                     transaction);
 
                 insertCommand.Parameters.AddWithValue("@AttendanceId", Convert.ToInt32(reader["AttendanceId"]));
                 insertCommand.Parameters.AddWithValue("@EmployeeId", Convert.ToInt32(reader["EmployeeId"]));
                 insertCommand.Parameters.AddWithValue("@AttendanceDate", Convert.ToDateTime(reader["AttendanceDate"]).Date);
-                insertCommand.Parameters.AddWithValue("@TimeIn", reader["TimeIn"] is DBNull ? DBNull.Value : reader["TimeIn"]);
-                insertCommand.Parameters.AddWithValue("@TimeOut", reader["TimeOut"] is DBNull ? DBNull.Value : reader["TimeOut"]);
+                insertCommand.Parameters.AddWithValue("@TimeInAM", reader["TimeInAM"] is DBNull ? DBNull.Value : reader["TimeInAM"]);
+                insertCommand.Parameters.AddWithValue("@TimeOutAM", reader["TimeOutAM"] is DBNull ? DBNull.Value : reader["TimeOutAM"]);
+                insertCommand.Parameters.AddWithValue("@TimeInPM", reader["TimeInPM"] is DBNull ? DBNull.Value : reader["TimeInPM"]);
+                insertCommand.Parameters.AddWithValue("@TimeOutPM", reader["TimeOutPM"] is DBNull ? DBNull.Value : reader["TimeOutPM"]);
                 insertCommand.Parameters.AddWithValue("@Status", Convert.ToString(reader["Status"]) ?? string.Empty);
                 insertCommand.Parameters.AddWithValue("@IsBiometricVerified", Convert.ToBoolean(reader["IsBiometricVerified"]));
                 insertCommand.ExecuteNonQuery();
@@ -746,6 +812,33 @@ namespace AttendancePayrollSystem.Services
             command.ExecuteNonQuery();
         }
 
+        private static void ApplyBrandingOperation(
+            MySqlConnection localConnection,
+            MySqlConnection onlineConnection,
+            MySqlTransaction onlineTransaction,
+            PendingSyncOperation operation)
+        {
+            var branding = LoadLocalBranding(localConnection, operation.RecordId);
+            if (branding == null)
+            {
+                return;
+            }
+
+            using var command = new MySqlCommand(@"
+                INSERT INTO AppBrandingSettings
+                (BrandingSettingsId, LogoImage)
+                VALUES
+                (@BrandingSettingsId, @LogoImage)
+                ON DUPLICATE KEY UPDATE
+                    LogoImage = VALUES(LogoImage)",
+                onlineConnection,
+                onlineTransaction);
+
+            command.Parameters.AddWithValue("@BrandingSettingsId", branding.BrandingSettingsId);
+            command.Parameters.AddWithValue("@LogoImage", branding.LogoImage is null ? DBNull.Value : branding.LogoImage);
+            command.ExecuteNonQuery();
+        }
+
         private static void ApplyLeaveRequestOperation(
             MySqlConnection localConnection,
             MySqlConnection onlineConnection,
@@ -839,14 +932,16 @@ namespace AttendancePayrollSystem.Services
 
             using var command = new MySqlCommand(@"
                 INSERT INTO AttendanceRecords
-                (AttendanceId, EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified)
+                (AttendanceId, EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified)
                 VALUES
-                (@AttendanceId, @EmployeeId, @AttendanceDate, @TimeIn, @TimeOut, @Status, @IsBiometricVerified)
+                (@AttendanceId, @EmployeeId, @AttendanceDate, @TimeInAM, @TimeOutAM, @TimeInPM, @TimeOutPM, @Status, @IsBiometricVerified)
                 ON DUPLICATE KEY UPDATE
                     EmployeeId = VALUES(EmployeeId),
                     AttendanceDate = VALUES(AttendanceDate),
-                    TimeIn = VALUES(TimeIn),
-                    TimeOut = VALUES(TimeOut),
+                    TimeInAM = VALUES(TimeInAM),
+                    TimeOutAM = VALUES(TimeOutAM),
+                    TimeInPM = VALUES(TimeInPM),
+                    TimeOutPM = VALUES(TimeOutPM),
                     Status = VALUES(Status),
                     IsBiometricVerified = VALUES(IsBiometricVerified)",
                 onlineConnection,
@@ -855,8 +950,10 @@ namespace AttendancePayrollSystem.Services
             command.Parameters.AddWithValue("@AttendanceId", attendance.AttendanceId);
             command.Parameters.AddWithValue("@EmployeeId", attendance.EmployeeId);
             command.Parameters.AddWithValue("@AttendanceDate", attendance.AttendanceDate.Date);
-            command.Parameters.AddWithValue("@TimeIn", attendance.TimeIn.HasValue ? attendance.TimeIn.Value : DBNull.Value);
-            command.Parameters.AddWithValue("@TimeOut", attendance.TimeOut.HasValue ? attendance.TimeOut.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@TimeInAM", attendance.TimeInAM.HasValue ? attendance.TimeInAM.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@TimeOutAM", attendance.TimeOutAM.HasValue ? attendance.TimeOutAM.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@TimeInPM", attendance.TimeInPM.HasValue ? attendance.TimeInPM.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@TimeOutPM", attendance.TimeOutPM.HasValue ? attendance.TimeOutPM.Value : DBNull.Value);
             command.Parameters.AddWithValue("@Status", attendance.Status);
             command.Parameters.AddWithValue("@IsBiometricVerified", attendance.IsBiometricVerified);
             command.ExecuteNonQuery();
@@ -953,10 +1050,32 @@ namespace AttendancePayrollSystem.Services
             };
         }
 
+        private static AppBranding? LoadLocalBranding(MySqlConnection connection, int brandingSettingsId)
+        {
+            using var command = new MySqlCommand(@"
+                SELECT BrandingSettingsId, LogoImage
+                FROM AppBrandingSettings
+                WHERE BrandingSettingsId = @BrandingSettingsId
+                LIMIT 1", connection);
+
+            command.Parameters.AddWithValue("@BrandingSettingsId", brandingSettingsId);
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            return new AppBranding
+            {
+                BrandingSettingsId = Convert.ToInt32(reader["BrandingSettingsId"]),
+                LogoImage = reader["LogoImage"] is DBNull ? null : (byte[])reader["LogoImage"]
+            };
+        }
+
         private static Attendance? LoadLocalAttendance(MySqlConnection connection, int attendanceId)
         {
             using var command = new MySqlCommand(@"
-                SELECT AttendanceId, EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified
+                SELECT AttendanceId, EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified
                 FROM AttendanceRecords
                 WHERE AttendanceId = @AttendanceId
                 LIMIT 1", connection);
@@ -973,8 +1092,10 @@ namespace AttendancePayrollSystem.Services
                 AttendanceId = Convert.ToInt32(reader["AttendanceId"]),
                 EmployeeId = Convert.ToInt32(reader["EmployeeId"]),
                 AttendanceDate = Convert.ToDateTime(reader["AttendanceDate"]),
-                TimeIn = reader["TimeIn"] is DBNull ? null : Convert.ToDateTime(reader["TimeIn"]),
-                TimeOut = reader["TimeOut"] is DBNull ? null : Convert.ToDateTime(reader["TimeOut"]),
+                TimeInAM = reader["TimeInAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeInAM"]),
+                TimeOutAM = reader["TimeOutAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutAM"]),
+                TimeInPM = reader["TimeInPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeInPM"]),
+                TimeOutPM = reader["TimeOutPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutPM"]),
                 Status = Convert.ToString(reader["Status"]) ?? string.Empty,
                 IsBiometricVerified = Convert.ToBoolean(reader["IsBiometricVerified"])
             };
@@ -1102,6 +1223,7 @@ namespace AttendancePayrollSystem.Services
                 FROM {SyncQueueTableName}
                 ORDER BY
                     CASE EntityType
+                        WHEN 'Branding' THEN 0
                         WHEN 'Employee' THEN 1
                         WHEN 'LeaveRequest' THEN 2
                         WHEN 'Attendance' THEN 3

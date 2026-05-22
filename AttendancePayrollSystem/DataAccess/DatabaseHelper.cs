@@ -41,8 +41,10 @@ namespace AttendancePayrollSystem.DataAccess
                     AttendanceId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     EmployeeId INT NOT NULL,
                     AttendanceDate DATE NOT NULL,
-                    TimeIn DATETIME NULL,
-                    TimeOut DATETIME NULL,
+                    TimeInAM DATETIME NULL,
+                    TimeOutAM DATETIME NULL,
+                    TimeInPM DATETIME NULL,
+                    TimeOutPM DATETIME NULL,
                     Status VARCHAR(30) NOT NULL DEFAULT 'Present',
                     IsBiometricVerified BOOLEAN NOT NULL DEFAULT FALSE,
                     CONSTRAINT FK_AttendanceRecords_Employees FOREIGN KEY (EmployeeId)
@@ -88,6 +90,12 @@ namespace AttendancePayrollSystem.DataAccess
                     CONSTRAINT FK_LeaveRequests_Employees FOREIGN KEY (EmployeeId)
                         REFERENCES Employees(EmployeeId)
                         ON DELETE CASCADE
+                ) ENGINE=InnoDB;",
+            @"
+                CREATE TABLE IF NOT EXISTS AppBrandingSettings
+                (
+                    BrandingSettingsId INT NOT NULL PRIMARY KEY,
+                    LogoImage LONGBLOB NULL
                 ) ENGINE=InnoDB;"
         ];
 
@@ -105,6 +113,8 @@ namespace AttendancePayrollSystem.DataAccess
             }
 
             EnsureEmployeeIntegrationColumns(connection, transaction);
+            EnsureAttendanceTwoSessionColumns(connection, transaction);
+            EnsureBrandingSeedRow(connection, transaction);
         }
 
         public static void VerifyConnection(string rawConnectionString)
@@ -290,6 +300,40 @@ namespace AttendancePayrollSystem.DataAccess
             EnsureEmployeeIndexExists(connection, transaction, "UQ_Employees_SourceUserId", "SourceUserId", isUnique: true);
         }
 
+        /// <summary>
+        /// Migrates the AttendanceRecords table from single-session (TimeIn/TimeOut) to
+        /// two-session (TimeInAM/TimeOutAM/TimeInPM/TimeOutPM) if the old columns still exist.
+        /// </summary>
+        private static void EnsureAttendanceTwoSessionColumns(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            // Check if old 'TimeIn' column exists (meaning migration hasn't run yet)
+            const string checkSql = @"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AttendanceRecords'
+                  AND COLUMN_NAME = 'TimeIn'";
+
+            using var checkCommand = new MySqlCommand(checkSql, connection, transaction);
+            var hasOldColumn = Convert.ToInt32(checkCommand.ExecuteScalar()) > 0;
+
+            if (!hasOldColumn)
+            {
+                return; // Already migrated or fresh database
+            }
+
+            // Rename TimeIn -> TimeInAM, TimeOut -> TimeOutAM, then add TimeInPM and TimeOutPM
+            const string migrateSql = @"
+                ALTER TABLE AttendanceRecords
+                    CHANGE COLUMN TimeIn TimeInAM DATETIME NULL,
+                    CHANGE COLUMN TimeOut TimeOutAM DATETIME NULL,
+                    ADD COLUMN TimeInPM DATETIME NULL AFTER TimeOutAM,
+                    ADD COLUMN TimeOutPM DATETIME NULL AFTER TimeInPM";
+
+            using var migrateCommand = new MySqlCommand(migrateSql, connection, transaction);
+            migrateCommand.ExecuteNonQuery();
+        }
+
         private static void EnsureEmployeeColumnExists(
             MySqlConnection connection,
             MySqlTransaction transaction,
@@ -346,6 +390,18 @@ namespace AttendancePayrollSystem.DataAccess
                 connection,
                 transaction);
             alterCommand.ExecuteNonQuery();
+        }
+
+        private static void EnsureBrandingSeedRow(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            using var command = new MySqlCommand(@"
+                INSERT INTO AppBrandingSettings (BrandingSettingsId, LogoImage)
+                VALUES (@BrandingSettingsId, NULL)
+                ON DUPLICATE KEY UPDATE BrandingSettingsId = VALUES(BrandingSettingsId)",
+                connection,
+                transaction);
+            command.Parameters.AddWithValue("@BrandingSettingsId", Models.AppBranding.DefaultBrandingSettingsId);
+            command.ExecuteNonQuery();
         }
     }
 }

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Services;
 using MySqlConnector;
@@ -101,71 +103,95 @@ namespace AttendancePayrollSystem.ViewModels
 
         public void RefreshDashboard()
         {
-            DashboardDateText = DateTime.Now.ToString("dddd, dd MMMM yyyy");
-            LoadRuntimeStatus();
-            LoadStatistics();
-            LoadBirthdayCelebrants();
-            LoadLatestAttendances();
-            UpdateBirthdaySummary();
+            var now = DateTime.Now;
+            var snapshot = LoadDashboardSnapshot(now, now.Date);
+            ApplyDashboardSnapshot(snapshot);
         }
 
-        private void LoadRuntimeStatus()
+        public async Task RefreshDashboardAsync()
+        {
+            var now = DateTime.Now;
+            var today = now.Date;
+            var snapshot = await Task.Run(() => LoadDashboardSnapshot(now, today));
+            ApplyDashboardSnapshot(snapshot);
+        }
+
+        private DashboardSnapshot LoadDashboardSnapshot(DateTime now, DateTime today)
+        {
+            return new DashboardSnapshot
+            {
+                DashboardDateText = now.ToString("dddd, dd MMMM yyyy"),
+                RuntimeStatus = LoadRuntimeStatusSnapshot(),
+                Statistics = LoadStatisticsSnapshot(today),
+                BirthdayCelebrants = LoadBirthdayCelebrantsSnapshot(today),
+                LatestAttendances = LoadLatestAttendancesSnapshot()
+            };
+        }
+
+        private RuntimeStatusSnapshot LoadRuntimeStatusSnapshot()
         {
             var pendingSyncOperations = DatabaseRuntimeState.IsOfflineDatabaseAvailable
                 ? MySqlOfflineSyncService.GetPendingOperationCount()
                 : 0;
 
-            IsOnlineMode = false;
-            IsOfflineMode = false;
-            HasDatabaseIssue = false;
-
             if (DatabaseRuntimeState.UseOfflineDatabase)
             {
-                IsOfflineMode = true;
-                DatabaseStatusTitle = "OFFLINE MIRROR ACTIVE";
-                DatabaseStatusBadgeText = "LOCAL MODE";
-                DatabaseStatusDetail = $"{DatabaseHelper.GetActiveConnectionSummary()}\nPending sync operations: {pendingSyncOperations}";
-                return;
+                return new RuntimeStatusSnapshot
+                {
+                    IsOfflineMode = true,
+                    DatabaseStatusTitle = "OFFLINE MIRROR ACTIVE",
+                    DatabaseStatusBadgeText = "LOCAL MODE",
+                    DatabaseStatusDetail = $"{DatabaseHelper.GetActiveConnectionSummary()}\nPending sync operations: {pendingSyncOperations}"
+                };
             }
 
             if (DatabaseRuntimeState.IsOnlineAvailable)
             {
-                IsOnlineMode = true;
-                DatabaseStatusTitle = "DATABASE CONNECTED";
-                DatabaseStatusBadgeText = "ONLINE MODE";
-                DatabaseStatusDetail = DatabaseHelper.GetActiveConnectionSummary();
-
+                var detail = DatabaseHelper.GetActiveConnectionSummary();
                 if (DatabaseRuntimeState.IsOfflineDatabaseAvailable)
                 {
-                    DatabaseStatusDetail = $"{DatabaseStatusDetail}\nPending sync operations: {pendingSyncOperations}";
+                    detail = $"{detail}\nPending sync operations: {pendingSyncOperations}";
                 }
 
-                return;
+                return new RuntimeStatusSnapshot
+                {
+                    IsOnlineMode = true,
+                    DatabaseStatusTitle = "DATABASE CONNECTED",
+                    DatabaseStatusBadgeText = "ONLINE MODE",
+                    DatabaseStatusDetail = detail
+                };
             }
 
-            HasDatabaseIssue = true;
-            DatabaseStatusTitle = "DATABASE ATTENTION";
-            DatabaseStatusBadgeText = "CHECK SETTINGS";
-            DatabaseStatusDetail = BuildCompactStatusMessage(DatabaseRuntimeState.StatusMessage);
+            return new RuntimeStatusSnapshot
+            {
+                HasDatabaseIssue = true,
+                DatabaseStatusTitle = "DATABASE ATTENTION",
+                DatabaseStatusBadgeText = "CHECK SETTINGS",
+                DatabaseStatusDetail = BuildCompactStatusMessage(DatabaseRuntimeState.StatusMessage)
+            };
         }
 
-        private void LoadStatistics()
+        private StatisticsSnapshot LoadStatisticsSnapshot(DateTime today)
         {
             if (SupabaseConfig.UseApi)
             {
                 var employees = _employeeRepository.GetAllEmployees();
                 var activeEmployees = employees.Where(employee => employee.IsActive).ToList();
-                var todaysAttendances = _attendanceRepository.GetAttendancesByDate(DateTime.Today);
-
-                TotalEmployees = activeEmployees.Count;
-                PresentToday = todaysAttendances
-                    .Where(attendance => attendance.TimeIn.HasValue)
+                var todaysAttendances = _attendanceRepository.GetAttendancesByDate(today);
+                var presentToday = todaysAttendances
+                    .Where(attendance => attendance.TimeInAM.HasValue || attendance.TimeInPM.HasValue)
                     .Select(attendance => attendance.EmployeeId)
                     .Distinct()
                     .Count();
-                LateToday = todaysAttendances.Count(attendance => string.Equals(attendance.Status, "Late", StringComparison.OrdinalIgnoreCase));
-                AbsentToday = Math.Max(0, TotalEmployees - PresentToday);
-                return;
+                var lateToday = todaysAttendances.Count(attendance => string.Equals(attendance.Status, "Late", StringComparison.OrdinalIgnoreCase));
+
+                return new StatisticsSnapshot
+                {
+                    TotalEmployees = activeEmployees.Count,
+                    PresentToday = presentToday,
+                    LateToday = lateToday,
+                    AbsentToday = Math.Max(0, activeEmployees.Count - presentToday)
+                };
             }
 
             using var connection = DatabaseHelper.GetConnection();
@@ -177,51 +203,52 @@ namespace AttendancePayrollSystem.ViewModels
                 ? " AND e.SourceTeacherId IS NOT NULL"
                 : string.Empty;
 
-            TotalEmployees = ExecuteScalarInt(connection, $"SELECT COUNT(*) FROM Employees WHERE IsActive = TRUE{employeeFilter}");
-            PresentToday = ExecuteScalarInt(connection, $@"
+            var totalEmployees = ExecuteScalarInt(connection, $"SELECT COUNT(*) FROM Employees WHERE IsActive = TRUE{employeeFilter}");
+            var dbPresentToday = ExecuteScalarInt(connection, $@"
                 SELECT COUNT(DISTINCT a.EmployeeId)
                 FROM AttendanceRecords a
                 INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
                 WHERE a.AttendanceDate = @Today
-                  AND a.TimeIn IS NOT NULL{joinedEmployeeFilter}", includeToday: true);
-            LateToday = ExecuteScalarInt(connection, $@"
+                  AND a.TimeInAM IS NOT NULL{joinedEmployeeFilter}", today);
+            var dbLateToday = ExecuteScalarInt(connection, $@"
                 SELECT COUNT(*)
                 FROM AttendanceRecords a
                 INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
                 WHERE a.AttendanceDate = @Today
-                  AND a.Status = 'Late'{joinedEmployeeFilter}", includeToday: true);
+                  AND a.Status = 'Late'{joinedEmployeeFilter}", today);
 
-            AbsentToday = Math.Max(0, TotalEmployees - PresentToday);
+            return new StatisticsSnapshot
+            {
+                TotalEmployees = totalEmployees,
+                PresentToday = dbPresentToday,
+                LateToday = dbLateToday,
+                AbsentToday = Math.Max(0, totalEmployees - dbPresentToday)
+            };
         }
 
-        private void LoadBirthdayCelebrants()
+        private List<BirthdayEmployeeItem> LoadBirthdayCelebrantsSnapshot(DateTime today)
         {
-            BirthdayCelebrants.Clear();
-
             if (SupabaseConfig.UseApi)
             {
-                foreach (var employee in _employeeRepository.GetAllEmployees()
-                             .Where(employee => employee.IsActive)
-                             .Where(employee => employee.HireDate.Month == DateTime.Today.Month && employee.HireDate.Day == DateTime.Today.Day)
-                             .OrderBy(employee => employee.FullName))
-                {
-                    BirthdayCelebrants.Add(new BirthdayEmployeeItem
+                return _employeeRepository.GetAllEmployees()
+                    .Where(employee => employee.IsActive)
+                    .Where(employee => employee.HireDate.Month == today.Month && employee.HireDate.Day == today.Day)
+                    .OrderBy(employee => employee.FullName)
+                    .Select(employee => new BirthdayEmployeeItem
                     {
                         EmployeeId = employee.EmployeeId,
                         EmployeeCode = employee.EmployeeCode,
                         FullName = employee.FullName,
                         ProfileImage = employee.ProfileImage,
                         Label = "Anniversary (Hire Date)"
-                    });
-                }
-
-                UpdateBirthdaySummary();
-                return;
+                    })
+                    .ToList();
             }
 
             var birthdayColumnExists = ColumnExists("Employees", "BirthDate");
             var dateColumn = birthdayColumnExists ? "BirthDate" : "HireDate";
             var label = birthdayColumnExists ? "Birthday Today" : "Anniversary (Hire Date)";
+            var celebrants = new List<BirthdayEmployeeItem>();
 
             using var connection = DatabaseHelper.GetConnection();
             var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
@@ -235,13 +262,13 @@ namespace AttendancePayrollSystem.ViewModels
                   AND DAY({dateColumn}) = DAY(@Today){employeeFilter}
                 ORDER BY FullName", connection);
 
-            command.Parameters.AddWithValue("@Today", DateTime.Today);
+            command.Parameters.AddWithValue("@Today", today);
             connection.Open();
 
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                BirthdayCelebrants.Add(new BirthdayEmployeeItem
+                celebrants.Add(new BirthdayEmployeeItem
                 {
                     EmployeeId = Convert.ToInt32(reader["EmployeeId"]),
                     EmployeeCode = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty,
@@ -251,33 +278,32 @@ namespace AttendancePayrollSystem.ViewModels
                 });
             }
 
-            UpdateBirthdaySummary();
+            return celebrants;
         }
 
-        private void LoadLatestAttendances()
+        private List<LatestAttendanceItem> LoadLatestAttendancesSnapshot()
         {
-            LatestAttendances.Clear();
-
             if (SupabaseConfig.UseApi)
             {
                 var employees = _employeeRepository.GetAllEmployees().ToDictionary(employee => employee.EmployeeId);
-                foreach (var attendance in _attendanceRepository.GetRecentAttendances(20))
-                {
-                    employees.TryGetValue(attendance.EmployeeId, out var employee);
-                    LatestAttendances.Add(new LatestAttendanceItem
+                return _attendanceRepository.GetRecentAttendances(20)
+                    .Select(attendance =>
                     {
-                        EmployeeCode = employee?.EmployeeCode ?? string.Empty,
-                        FullName = employee?.FullName ?? string.Empty,
-                        AttendanceDate = attendance.AttendanceDate,
-                        TimeIn = attendance.TimeIn,
-                        TimeOut = attendance.TimeOut,
-                        Status = attendance.Status
-                    });
-                }
-
-                return;
+                        employees.TryGetValue(attendance.EmployeeId, out var employee);
+                        return new LatestAttendanceItem
+                        {
+                            EmployeeCode = employee?.EmployeeCode ?? string.Empty,
+                            FullName = employee?.FullName ?? string.Empty,
+                            AttendanceDate = attendance.AttendanceDate,
+                            TimeIn = attendance.TimeInAM,
+                            TimeOut = attendance.TimeOutPM,
+                            Status = attendance.Status
+                        };
+                    })
+                    .ToList();
             }
 
+            var latestAttendances = new List<LatestAttendanceItem>();
             using var connection = DatabaseHelper.GetConnection();
             var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
                 ? "WHERE e.SourceTeacherId IS NOT NULL"
@@ -285,42 +311,75 @@ namespace AttendancePayrollSystem.ViewModels
             using var command = new MySqlCommand($@"
                 SELECT
                     a.AttendanceDate,
-                    a.TimeIn,
-                    a.TimeOut,
+                    a.TimeInAM,
+                    a.TimeOutPM,
                     a.Status,
                     e.EmployeeCode,
                     e.FullName
                 FROM AttendanceRecords a
                 INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
                 {employeeFilter}
-                ORDER BY a.AttendanceDate DESC, a.TimeIn DESC
+                ORDER BY a.AttendanceDate DESC, a.TimeInAM DESC
                 LIMIT 20", connection);
 
             connection.Open();
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                LatestAttendances.Add(new LatestAttendanceItem
+                latestAttendances.Add(new LatestAttendanceItem
                 {
                     EmployeeCode = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty,
                     FullName = Convert.ToString(reader["FullName"]) ?? string.Empty,
                     AttendanceDate = Convert.ToDateTime(reader["AttendanceDate"]),
-                    TimeIn = reader["TimeIn"] is DBNull ? null : Convert.ToDateTime(reader["TimeIn"]),
-                    TimeOut = reader["TimeOut"] is DBNull ? null : Convert.ToDateTime(reader["TimeOut"]),
+                    TimeIn = reader["TimeInAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeInAM"]),
+                    TimeOut = reader["TimeOutPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutPM"]),
                     Status = Convert.ToString(reader["Status"]) ?? string.Empty
                 });
             }
+
+            return latestAttendances;
         }
 
-        private static int ExecuteScalarInt(MySqlConnection connection, string sql, bool includeToday = false)
+        private static int ExecuteScalarInt(MySqlConnection connection, string sql, DateTime? today = null)
         {
             using var command = new MySqlCommand(sql, connection);
-            if (includeToday)
+            if (today.HasValue)
             {
-                command.Parameters.AddWithValue("@Today", DateTime.Today);
+                command.Parameters.AddWithValue("@Today", today.Value);
             }
 
             return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        private void ApplyDashboardSnapshot(DashboardSnapshot snapshot)
+        {
+            DashboardDateText = snapshot.DashboardDateText;
+
+            IsOnlineMode = snapshot.RuntimeStatus.IsOnlineMode;
+            IsOfflineMode = snapshot.RuntimeStatus.IsOfflineMode;
+            HasDatabaseIssue = snapshot.RuntimeStatus.HasDatabaseIssue;
+            DatabaseStatusTitle = snapshot.RuntimeStatus.DatabaseStatusTitle;
+            DatabaseStatusDetail = snapshot.RuntimeStatus.DatabaseStatusDetail;
+            DatabaseStatusBadgeText = snapshot.RuntimeStatus.DatabaseStatusBadgeText;
+
+            TotalEmployees = snapshot.Statistics.TotalEmployees;
+            PresentToday = snapshot.Statistics.PresentToday;
+            LateToday = snapshot.Statistics.LateToday;
+            AbsentToday = snapshot.Statistics.AbsentToday;
+
+            BirthdayCelebrants.Clear();
+            foreach (var celebrant in snapshot.BirthdayCelebrants)
+            {
+                BirthdayCelebrants.Add(celebrant);
+            }
+
+            LatestAttendances.Clear();
+            foreach (var attendance in snapshot.LatestAttendances)
+            {
+                LatestAttendances.Add(attendance);
+            }
+
+            UpdateBirthdaySummary();
         }
 
         private void UpdateBirthdaySummary()
@@ -370,6 +429,33 @@ namespace AttendancePayrollSystem.ViewModels
             connection.Open();
 
             return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+
+        private sealed class DashboardSnapshot
+        {
+            public string DashboardDateText { get; init; } = string.Empty;
+            public RuntimeStatusSnapshot RuntimeStatus { get; init; } = new();
+            public StatisticsSnapshot Statistics { get; init; } = new();
+            public List<BirthdayEmployeeItem> BirthdayCelebrants { get; init; } = new();
+            public List<LatestAttendanceItem> LatestAttendances { get; init; } = new();
+        }
+
+        private sealed class RuntimeStatusSnapshot
+        {
+            public bool IsOnlineMode { get; init; }
+            public bool IsOfflineMode { get; init; }
+            public bool HasDatabaseIssue { get; init; }
+            public string DatabaseStatusTitle { get; init; } = string.Empty;
+            public string DatabaseStatusDetail { get; init; } = string.Empty;
+            public string DatabaseStatusBadgeText { get; init; } = string.Empty;
+        }
+
+        private sealed class StatisticsSnapshot
+        {
+            public int TotalEmployees { get; init; }
+            public int PresentToday { get; init; }
+            public int LateToday { get; init; }
+            public int AbsentToday { get; init; }
         }
     }
 

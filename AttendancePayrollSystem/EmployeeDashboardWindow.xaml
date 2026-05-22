@@ -15,10 +15,36 @@
         </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" LastChildFill="False" Margin="8,8,8,14">
-            <StackPanel DockPanel.Dock="Left">
-                <TextBlock Text="Employee Dashboard" Style="{StaticResource HeaderText}" Margin="0,0,0,4" />
-                <TextBlock Text="{Binding WelcomeText}" FontSize="14" Foreground="#374151" Margin="0,0,0,2" />
-                <TextBlock Text="{Binding TodayText}" FontSize="13" Foreground="#6B7280" />
+            <StackPanel DockPanel.Dock="Left"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Border Width="56"
+                        Height="56"
+                        Background="#E2E8F0"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="7">
+                    <Grid>
+                        <Grid x:Name="EmployeeBrandLogoFallbackPanel">
+                            <TextBlock Text="APS"
+                                       Foreground="#334155"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                        <Image x:Name="EmployeeBrandLogoImage"
+                               Stretch="Uniform"
+                               Visibility="Collapsed" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Margin="12,0,0,0">
+                    <TextBlock Text="Employee Dashboard" Style="{StaticResource HeaderText}" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding WelcomeText}" FontSize="14" Foreground="#374151" Margin="0,0,0,2" />
+                    <TextBlock Text="{Binding TodayText}" FontSize="13" Foreground="#6B7280" />
+                </StackPanel>
             </StackPanel>
 
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -97,8 +123,8 @@
                 <StackPanel>
                     <TextBlock Text="Today Attendance" Foreground="#166534" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <TextBlock Text="{Binding AttendanceStatusText}" FontWeight="SemiBold" Margin="0,2,0,8" />
-                    <TextBlock Text="{Binding TimeInText, StringFormat='Time In: {0}'}" Margin="0,2,0,2" />
-                    <TextBlock Text="{Binding TimeOutText, StringFormat='Time Out: {0}'}" Margin="0,2,0,2" />
+                    <TextBlock Text="{Binding TimeInText, StringFormat='In: {0}'}" Margin="0,2,0,2" />
+                    <TextBlock Text="{Binding TimeOutText, StringFormat='Out: {0}'}" Margin="0,2,0,2" />
                 </StackPanel>
             </Border>
 
@@ -141,11 +167,13 @@
                               Style="{StaticResource ModernDataGrid}"
                               Margin="0,8,0,0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="130" />
-                            <DataGridTextColumn Header="Time In" Binding="{Binding TimeIn, StringFormat=HH:mm:ss}" Width="120" />
-                            <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOut, StringFormat=HH:mm:ss}" Width="120" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
-                            <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="90" />
+                            <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
+                            <DataGridTextColumn Header="In AM" Binding="{Binding TimeInAM, StringFormat=HH:mm}" Width="70" />
+                            <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="70" />
+                            <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="70" />
+                            <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="70" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
+                            <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="70" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

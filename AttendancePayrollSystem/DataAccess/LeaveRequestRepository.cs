@@ -451,7 +451,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
 
             using var command = new MySqlCommand(@"
-                SELECT AttendanceDate, TimeIn, TimeOut, Status
+                SELECT AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status
                 FROM AttendanceRecords
                 WHERE EmployeeId = @EmployeeId
                   AND AttendanceDate >= @StartDate
@@ -472,7 +472,7 @@ namespace AttendancePayrollSystem.DataAccess
                     continue;
                 }
 
-                var hasTime = reader["TimeIn"] is not DBNull || reader["TimeOut"] is not DBNull;
+                var hasTime = reader["TimeInAM"] is not DBNull || reader["TimeOutAM"] is not DBNull || reader["TimeInPM"] is not DBNull || reader["TimeOutPM"] is not DBNull;
                 var status = Convert.ToString(reader["Status"]) ?? string.Empty;
                 if (hasTime || !LeavePolicies.IsLeaveAttendanceStatus(status))
                 {
@@ -489,7 +489,7 @@ namespace AttendancePayrollSystem.DataAccess
             foreach (var attendanceDate in LeavePolicies.GetChargeableDates(leaveRequest.StartDate, leaveRequest.EndDate))
             {
                 using var selectCommand = new MySqlCommand(@"
-                    SELECT AttendanceId, TimeIn, TimeOut, Status
+                    SELECT AttendanceId, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status
                     FROM AttendanceRecords
                     WHERE EmployeeId = @EmployeeId
                       AND AttendanceDate = @AttendanceDate
@@ -508,7 +508,7 @@ namespace AttendancePayrollSystem.DataAccess
                 if (reader.Read())
                 {
                     attendanceId = Convert.ToInt32(reader["AttendanceId"]);
-                    hasTime = reader["TimeIn"] is not DBNull || reader["TimeOut"] is not DBNull;
+                    hasTime = reader["TimeInAM"] is not DBNull || reader["TimeOutAM"] is not DBNull || reader["TimeInPM"] is not DBNull || reader["TimeOutPM"] is not DBNull;
                     existingStatus = Convert.ToString(reader["Status"]) ?? string.Empty;
                 }
 
@@ -528,8 +528,10 @@ namespace AttendancePayrollSystem.DataAccess
 
                     using var updateCommand = new MySqlCommand(@"
                         UPDATE AttendanceRecords
-                        SET TimeIn = NULL,
-                            TimeOut = NULL,
+                        SET TimeInAM = NULL,
+                            TimeOutAM = NULL,
+                            TimeInPM = NULL,
+                            TimeOutPM = NULL,
                             Status = @Status,
                             IsBiometricVerified = FALSE
                         WHERE AttendanceId = @AttendanceId",
@@ -544,8 +546,8 @@ namespace AttendancePayrollSystem.DataAccess
                 }
 
                 using var insertCommand = new MySqlCommand(@"
-                    INSERT INTO AttendanceRecords (EmployeeId, AttendanceDate, TimeIn, TimeOut, Status, IsBiometricVerified)
-                    VALUES (@EmployeeId, @AttendanceDate, NULL, NULL, @Status, FALSE)",
+                    INSERT INTO AttendanceRecords (EmployeeId, AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status, IsBiometricVerified)
+                    VALUES (@EmployeeId, @AttendanceDate, NULL, NULL, NULL, NULL, @Status, FALSE)",
                     connection,
                     transaction);
 
@@ -806,7 +808,7 @@ namespace AttendancePayrollSystem.DataAccess
                     continue;
                 }
 
-                if (attendance.TimeIn.HasValue || attendance.TimeOut.HasValue || !LeavePolicies.IsLeaveAttendanceStatus(attendance.Status))
+                if (attendance.TimeInAM.HasValue || attendance.TimeOutAM.HasValue || attendance.TimeInPM.HasValue || attendance.TimeOutPM.HasValue || !LeavePolicies.IsLeaveAttendanceStatus(attendance.Status))
                 {
                     throw new InvalidOperationException($"Attendance already exists for {attendance.AttendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                 }
@@ -819,7 +821,7 @@ namespace AttendancePayrollSystem.DataAccess
                 "attendancerecords",
                 new Dictionary<string, string>
                 {
-                    ["select"] = "attendanceid,employeeid,attendancedate,timein,timeout,status,isbiometricverified",
+                    ["select"] = "attendanceid,employeeid,attendancedate,timeinam,timeoutam,timeinpm,timeoutpm,status,isbiometricverified",
                     ["employeeid"] = $"eq.{employeeId}",
                     ["attendancedate"] = $"eq.{attendanceDate:yyyy-MM-dd}",
                     ["limit"] = "1"
@@ -827,7 +829,7 @@ namespace AttendancePayrollSystem.DataAccess
 
             if (existing != null)
             {
-                if (existing.TimeIn.HasValue || existing.TimeOut.HasValue)
+                if (existing.TimeInAM.HasValue || existing.TimeOutAM.HasValue || existing.TimeInPM.HasValue || existing.TimeOutPM.HasValue)
                 {
                     throw new InvalidOperationException($"Attendance already exists for {attendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                 }
@@ -841,8 +843,10 @@ namespace AttendancePayrollSystem.DataAccess
                     "attendancerecords",
                     new
                     {
-                        timein = (DateTime?)null,
-                        timeout = (DateTime?)null,
+                        timeinam = (DateTime?)null,
+                        timeoutam = (DateTime?)null,
+                        timeinpm = (DateTime?)null,
+                        timeoutpm = (DateTime?)null,
                         status,
                         isbiometricverified = false
                     },
@@ -859,8 +863,10 @@ namespace AttendancePayrollSystem.DataAccess
                 {
                     employeeid = employeeId,
                     attendancedate = attendanceDate.Date,
-                    timein = (DateTime?)null,
-                    timeout = (DateTime?)null,
+                    timeinam = (DateTime?)null,
+                    timeoutam = (DateTime?)null,
+                    timeinpm = (DateTime?)null,
+                    timeoutpm = (DateTime?)null,
                     status,
                     isbiometricverified = false
                 });
@@ -982,8 +988,10 @@ namespace AttendancePayrollSystem.DataAccess
             public int AttendanceId { get; set; }
             public int EmployeeId { get; set; }
             public DateTime AttendanceDate { get; set; }
-            public DateTime? TimeIn { get; set; }
-            public DateTime? TimeOut { get; set; }
+            public DateTime? TimeInAM { get; set; }
+            public DateTime? TimeOutAM { get; set; }
+            public DateTime? TimeInPM { get; set; }
+            public DateTime? TimeOutPM { get; set; }
             public string Status { get; set; } = string.Empty;
             public bool IsBiometricVerified { get; set; }
         }

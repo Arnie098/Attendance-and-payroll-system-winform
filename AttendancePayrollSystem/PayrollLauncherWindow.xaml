@@ -1,0 +1,170 @@
+<Window x:Class="AttendancePayrollSystem.PayrollLauncherWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Payroll Launcher"
+        Height="820"
+        Width="1180"
+        MinHeight="550"
+        MinWidth="800"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        Background="{StaticResource AppBackgroundBrush}">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="#103B53"
+                BorderBrush="#1F5B73"
+                BorderThickness="1"
+                CornerRadius="22"
+                Margin="0,0,0,16"
+                Padding="22,18">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="58"
+                            Height="58"
+                            Background="#0D2F42"
+                            BorderBrush="#2E6A83"
+                            BorderThickness="1"
+                            CornerRadius="16">
+                        <materialDesign:PackIcon Kind="CashRegister"
+                                                 Width="30"
+                                                 Height="30"
+                                                 Foreground="White"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Margin="14,0,0,0">
+                        <TextBlock Text="Payroll Launcher"
+                                   Foreground="White"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="Choose an employee, then open payroll processing in its own form."
+                                   Foreground="#C6E4EE"
+                                   FontSize="13" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Button Content="Refresh"
+                            Style="{StaticResource ModernButton}"
+                            Width="110"
+                            Click="RefreshEmployees_Click" />
+                    <Button Content="Close"
+                            Style="{StaticResource ModernButton}"
+                            Background="#475569"
+                            Width="110"
+                            Click="Close_Click" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.35*" />
+                <ColumnDefinition Width="0.95*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Style="{StaticResource ModernCard}"
+                    Margin="0,0,12,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0">
+                        <TextBlock Text="Employees"
+                                   Style="{StaticResource HeaderText}"
+                                   Margin="0,0,0,0" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Open Payroll"
+                                Width="130"
+                                Style="{StaticResource ModernButton}"
+                                IsEnabled="{Binding IsEmployeeSelected}"
+                                Click="OpenPayroll_Click" />
+                    </DockPanel>
+
+                    <DataGrid x:Name="EmployeeDataGrid"
+                              Grid.Row="1"
+                              ItemsSource="{Binding Employees}"
+                              Style="{StaticResource ModernDataGrid}"
+                              Margin="0,10,0,0"
+                              SelectionChanged="EmployeeDataGrid_SelectionChanged"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="100" />
+                            <DataGridTextColumn Header="Name" Binding="{Binding FullName}" Width="220" />
+                            <DataGridTextColumn Header="Position" Binding="{Binding Position}" Width="170" />
+                            <DataGridTextColumn Header="Department" Binding="{Binding Department}" Width="160" />
+                            <DataGridTextColumn Header="Hourly Rate" Binding="{Binding HourlyRate, StringFormat=PHP {0:N2}}" Width="130" />
+                            <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Style="{StaticResource ModernCard}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Selected Employee"
+                                   Style="{StaticResource HeaderText}" />
+
+                    <Ellipse Width="116"
+                             Height="116"
+                             HorizontalAlignment="Center"
+                             Margin="0,0,0,16">
+                        <Ellipse.Fill>
+                            <ImageBrush ImageSource="{Binding SelectedEmployee.ProfileImage, Converter={StaticResource ByteToImage}}"
+                                        Stretch="UniformToFill" />
+                        </Ellipse.Fill>
+                    </Ellipse>
+
+                    <TextBlock Text="{Binding SelectedEmployee.FullName, TargetNullValue='No employee selected'}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               TextAlignment="Center"
+                               Margin="0,0,0,10" />
+                    <TextBlock Text="{Binding SelectedEmployee.EmployeeCode, StringFormat='Code: {0}', TargetNullValue='Code: -'}"
+                               Margin="0,4" />
+                    <TextBlock Text="{Binding SelectedEmployee.Position, StringFormat='Position: {0}', TargetNullValue='Position: -'}"
+                               Margin="0,4" />
+                    <TextBlock Text="{Binding SelectedEmployee.Department, StringFormat='Department: {0}', TargetNullValue='Department: -'}"
+                               Margin="0,4" />
+                    <TextBlock Text="{Binding SelectedEmployee.HourlyRate, StringFormat='Hourly Rate: PHP {0:N2}', TargetNullValue='Hourly Rate: -'}"
+                               Margin="0,4" />
+
+                    <Border Background="#EFF6FF"
+                            CornerRadius="12"
+                            Padding="12"
+                            Margin="0,18,0,18">
+                        <TextBlock Text="Use this launcher to jump straight into payroll processing for the selected employee."
+                                   Foreground="#334155"
+                                   TextWrapping="Wrap" />
+                    </Border>
+
+                    <Button Content="Open Payroll Processing"
+                            Height="42"
+                            Style="{StaticResource ModernButton}"
+                            Background="#0F766E"
+                            IsEnabled="{Binding IsEmployeeSelected}"
+                            Click="OpenPayroll_Click" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
 
@@ -30,9 +32,18 @@ namespace AttendancePayrollSystem.ViewModels
 
         public void LoadEmployees()
         {
-            Employees.Clear();
-            var employees = _employeeRepo.GetAllEmployees();
+            ReplaceEmployees(_employeeRepo.GetAllEmployees());
+        }
 
+        public async Task LoadEmployeesAsync()
+        {
+            var employees = await Task.Run(() => _employeeRepo.GetAllEmployees());
+            ReplaceEmployees(employees);
+        }
+
+        public void ReplaceEmployees(IEnumerable<Employee> employees)
+        {
+            Employees.Clear();
             foreach (var employee in employees)
             {
                 Employees.Add(employee);

@@ -17,5 +17,16 @@ namespace AttendancePayrollSystem.Models
 
         public string EmployeeName { get; set; } = string.Empty;
         public string EmployeeCode { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Total tardiness minutes accumulated during the pay period.
+        /// </summary>
+        public int TotalTardinessMinutes { get; set; }
+
+        /// <summary>
+        /// Amount deducted from pay due to tardiness (minute-rate based).
+        /// This is already included in Deductions.
+        /// </summary>
+        public decimal TardinessDeduction { get; set; }
     }
 }
