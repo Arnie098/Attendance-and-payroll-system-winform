@@ -18,9 +18,9 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 INSERT INTO PayrollRecords
-                (EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, Status)
+                (EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status)
                 VALUES
-                (@EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @Status)";
+                (@EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status)";
 
             using var connection = DatabaseHelper.GetConnection();
             using var command = new MySqlCommand(sql, connection);
@@ -32,6 +32,8 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
+            command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
+            command.Parameters.AddWithValue("@ManualDeductionNote", payroll.ManualDeductionNote ?? string.Empty);
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
             command.ExecuteNonQuery();
@@ -48,7 +50,8 @@ namespace AttendancePayrollSystem.DataAccess
             var payrollList = new List<Payroll>();
             const string sql = @"
                 SELECT p.PayrollId, p.EmployeeId, p.PayPeriodStart, p.PayPeriodEnd,
-                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay, p.Status,
+                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay,
+                       p.ManualDeduction, p.ManualDeductionNote, p.Status,
                        e.FullName, e.EmployeeCode
                 FROM PayrollRecords p
                 INNER JOIN Employees e ON e.EmployeeId = p.EmployeeId
@@ -78,7 +81,8 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 SELECT p.PayrollId, p.EmployeeId, p.PayPeriodStart, p.PayPeriodEnd,
-                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay, p.Status,
+                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay,
+                       p.ManualDeduction, p.ManualDeductionNote, p.Status,
                        e.FullName, e.EmployeeCode
                 FROM PayrollRecords p
                 INNER JOIN Employees e ON e.EmployeeId = p.EmployeeId
@@ -121,6 +125,8 @@ namespace AttendancePayrollSystem.DataAccess
                     GrossPay = @GrossPay,
                     Deductions = @Deductions,
                     NetPay = @NetPay,
+                    ManualDeduction = @ManualDeduction,
+                    ManualDeductionNote = @ManualDeductionNote,
                     Status = @Status
                 WHERE PayrollId = @PayrollId";
 
@@ -134,6 +140,8 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
+            command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
+            command.Parameters.AddWithValue("@ManualDeductionNote", payroll.ManualDeductionNote ?? string.Empty);
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
             command.ExecuteNonQuery();
@@ -226,6 +234,8 @@ namespace AttendancePayrollSystem.DataAccess
                 grosspay = payroll.GrossPay,
                 deductions = payroll.Deductions,
                 netpay = payroll.NetPay,
+                manualdeduction = payroll.ManualDeduction,
+                manualdeductionnote = payroll.ManualDeductionNote ?? string.Empty,
                 status = payroll.Status
             };
         }
@@ -243,6 +253,8 @@ namespace AttendancePayrollSystem.DataAccess
                 GrossPay = Convert.ToDecimal(reader["GrossPay"]),
                 Deductions = Convert.ToDecimal(reader["Deductions"]),
                 NetPay = Convert.ToDecimal(reader["NetPay"]),
+                ManualDeduction = reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]),
+                ManualDeductionNote = reader["ManualDeductionNote"] is DBNull ? string.Empty : Convert.ToString(reader["ManualDeductionNote"]) ?? string.Empty,
                 Status = Convert.ToString(reader["Status"]) ?? string.Empty,
                 EmployeeName = Convert.ToString(reader["FullName"]) ?? string.Empty,
                 EmployeeCode = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty

@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using AttendancePayrollSystem.Services;
+using Microsoft.Data.Sqlite;
 using MySqlConnector;
 
 namespace AttendancePayrollSystem.DataAccess
@@ -13,7 +14,8 @@ namespace AttendancePayrollSystem.DataAccess
         private const string OfflineConnectionStringName = "OfflineAttendanceDb";
         private const string SupabaseUrlSetting = "SupabaseUrl";
         private const string SupabasePublishableKeySetting = "SupabasePublishableKey";
-        private static readonly string[] _coreSchemaStatements =
+
+        private static readonly string[] _mySqlCoreSchemaStatements =
         [
             @"
                 CREATE TABLE IF NOT EXISTS Employees
@@ -63,6 +65,8 @@ namespace AttendancePayrollSystem.DataAccess
                     GrossPay DECIMAL(18, 2) NOT NULL,
                     Deductions DECIMAL(18, 2) NOT NULL,
                     NetPay DECIMAL(18, 2) NOT NULL,
+                    ManualDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    ManualDeductionNote VARCHAR(255) NOT NULL DEFAULT '',
                     Status VARCHAR(30) NOT NULL DEFAULT 'Pending',
                     CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     CONSTRAINT FK_PayrollRecords_Employees FOREIGN KEY (EmployeeId)
@@ -99,21 +103,124 @@ namespace AttendancePayrollSystem.DataAccess
                 ) ENGINE=InnoDB;"
         ];
 
+        private static readonly string[] _sqliteCoreSchemaStatements =
+        [
+            "PRAGMA foreign_keys = ON;",
+            @"
+                CREATE TABLE IF NOT EXISTS Employees
+                (
+                    EmployeeId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    EmployeeCode TEXT NOT NULL UNIQUE,
+                    FullName TEXT NOT NULL,
+                    Email TEXT NULL,
+                    Phone TEXT NULL,
+                    Position TEXT NULL,
+                    Department TEXT NULL,
+                    HourlyRate REAL NOT NULL,
+                    HireDate TEXT NOT NULL,
+                    IsActive INTEGER NOT NULL DEFAULT 1,
+                    SourceTeacherId INTEGER NULL UNIQUE,
+                    SourceUserId INTEGER NULL UNIQUE,
+                    ProfileImage BLOB NULL,
+                    BiometricTemplate BLOB NULL
+                );",
+            @"
+                CREATE TABLE IF NOT EXISTS AttendanceRecords
+                (
+                    AttendanceId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    EmployeeId INTEGER NOT NULL,
+                    AttendanceDate TEXT NOT NULL,
+                    TimeInAM TEXT NULL,
+                    TimeOutAM TEXT NULL,
+                    TimeInPM TEXT NULL,
+                    TimeOutPM TEXT NULL,
+                    Status TEXT NOT NULL DEFAULT 'Present',
+                    IsBiometricVerified INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId),
+                    UNIQUE (EmployeeId, AttendanceDate)
+                );",
+            @"
+                CREATE TABLE IF NOT EXISTS PayrollRecords
+                (
+                    PayrollId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    EmployeeId INTEGER NOT NULL,
+                    PayPeriodStart TEXT NOT NULL,
+                    PayPeriodEnd TEXT NOT NULL,
+                    RegularHours REAL NOT NULL,
+                    OvertimeHours REAL NOT NULL,
+                    GrossPay REAL NOT NULL,
+                    Deductions REAL NOT NULL,
+                    NetPay REAL NOT NULL,
+                    ManualDeduction REAL NOT NULL DEFAULT 0,
+                    ManualDeductionNote TEXT NOT NULL DEFAULT '',
+                    Status TEXT NOT NULL DEFAULT 'Pending',
+                    CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId)
+                );",
+            @"
+                CREATE TABLE IF NOT EXISTS LeaveRequests
+                (
+                    LeaveRequestId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    EmployeeId INTEGER NOT NULL,
+                    LeaveType TEXT NOT NULL,
+                    IsPaid INTEGER NOT NULL DEFAULT 0,
+                    StartDate TEXT NOT NULL,
+                    EndDate TEXT NOT NULL,
+                    Reason TEXT NOT NULL,
+                    Status TEXT NOT NULL DEFAULT 'Pending',
+                    ReviewerNotes TEXT NULL,
+                    ReviewedBy TEXT NULL,
+                    ReviewedAt TEXT NULL,
+                    CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId) ON DELETE CASCADE
+                );",
+            "CREATE INDEX IF NOT EXISTS IDX_LeaveRequests_EmployeeId ON LeaveRequests (EmployeeId);",
+            "CREATE INDEX IF NOT EXISTS IDX_LeaveRequests_Status ON LeaveRequests (Status);",
+            "CREATE INDEX IF NOT EXISTS IDX_LeaveRequests_DateRange ON LeaveRequests (StartDate, EndDate);",
+            @"
+                CREATE TABLE IF NOT EXISTS AppBrandingSettings
+                (
+                    BrandingSettingsId INTEGER NOT NULL PRIMARY KEY,
+                    LogoImage BLOB NULL
+                );"
+        ];
+
         public static MySqlConnection GetConnection(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
         {
             return new MySqlConnection(BuildConnectionString(target));
         }
 
+        public static DatabaseProvider GetProvider(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
+        {
+            var rawConnectionString = ResolveRawConnectionString(target);
+            return DatabaseProviderResolver.DetectProvider(rawConnectionString ?? string.Empty);
+        }
+
+        public static bool UsesSqlite(DatabaseConnectionTarget target = DatabaseConnectionTarget.Active)
+        {
+            return GetProvider(target) == DatabaseProvider.Sqlite;
+        }
+
         public static void EnsureCoreSchema(MySqlConnection connection, MySqlTransaction transaction)
         {
-            foreach (var sql in _coreSchemaStatements)
+            var statements = connection.Provider == DatabaseProvider.Sqlite
+                ? _sqliteCoreSchemaStatements
+                : _mySqlCoreSchemaStatements;
+
+            foreach (var sql in statements)
             {
                 using var command = new MySqlCommand(sql, connection, transaction);
                 command.ExecuteNonQuery();
             }
 
-            EnsureEmployeeIntegrationColumns(connection, transaction);
-            EnsureAttendanceTwoSessionColumns(connection, transaction);
+            if (connection.Provider == DatabaseProvider.MySql)
+            {
+                EnsureEmployeeIntegrationColumns(connection, transaction);
+                EnsureAttendanceTwoSessionColumns(connection, transaction);
+                EnsurePayrollManualDeductionColumns(connection, transaction);
+            }
+
             EnsureBrandingSeedRow(connection, transaction);
         }
 
@@ -134,14 +241,10 @@ namespace AttendancePayrollSystem.DataAccess
 
             try
             {
-                var builder = new MySqlConnectionStringBuilder(NormalizeConnectionString(rawConnectionString))
-                {
-                    ConnectionTimeout = 2
-                };
-
-                using var connection = new MySqlConnection(builder.ConnectionString);
+                var normalizedConnectionString = NormalizeConnectionString(rawConnectionString);
+                using var connection = new MySqlConnection(normalizedConnectionString);
                 connection.Open();
-                message = GetConnectionSummary(builder.ConnectionString);
+                message = GetConnectionSummary(normalizedConnectionString);
                 return true;
             }
             catch (Exception ex)
@@ -153,6 +256,13 @@ namespace AttendancePayrollSystem.DataAccess
 
         public static string NormalizeConnectionString(string rawConnectionString)
         {
+            return DatabaseProviderResolver.DetectProvider(rawConnectionString) == DatabaseProvider.Sqlite
+                ? DatabaseProviderResolver.NormalizeSqliteConnectionString(rawConnectionString)
+                : NormalizeMySqlConnectionString(rawConnectionString);
+        }
+
+        public static string NormalizeMySqlConnectionString(string rawConnectionString)
+        {
             if (string.IsNullOrWhiteSpace(rawConnectionString))
             {
                 throw new InvalidOperationException(
@@ -160,7 +270,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
 
             var builder = new MySqlConnectionStringBuilder(rawConnectionString);
-            ValidateConnectionString(builder, rawConnectionString);
+            ValidateMySqlConnectionString(builder, rawConnectionString);
             return builder.ConnectionString;
         }
 
@@ -178,11 +288,9 @@ namespace AttendancePayrollSystem.DataAccess
 
             try
             {
-                var builder = new MySqlConnectionStringBuilder(rawConnectionString);
-                var port = builder.Port == 0 ? 3306 : builder.Port;
-                var server = string.IsNullOrWhiteSpace(builder.Server) ? "<missing host>" : builder.Server;
-                var database = string.IsNullOrWhiteSpace(builder.Database) ? "<missing database>" : builder.Database;
-                return $"{server}:{port} / {database}";
+                return DatabaseProviderResolver.DetectProvider(rawConnectionString) == DatabaseProvider.Sqlite
+                    ? GetSqliteConnectionSummary(rawConnectionString)
+                    : GetMySqlConnectionSummary(rawConnectionString);
             }
             catch
             {
@@ -217,6 +325,39 @@ namespace AttendancePayrollSystem.DataAccess
                 : DatabaseConnectionTarget.Online;
         }
 
+        public static bool ColumnExists(MySqlConnection connection, string tableName, string columnName, MySqlTransaction? transaction = null)
+        {
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? $"PRAGMA table_info({tableName})"
+                : @"
+                    SELECT COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND LOWER(TABLE_NAME) = LOWER(@TableName)
+                      AND LOWER(COLUMN_NAME) = LOWER(@ColumnName)
+                    LIMIT 1";
+
+            using var command = new MySqlCommand(sql, connection, transaction);
+            if (connection.Provider == DatabaseProvider.MySql)
+            {
+                command.Parameters.AddWithValue("@TableName", tableName);
+                command.Parameters.AddWithValue("@ColumnName", columnName);
+                return command.ExecuteScalar() != null;
+            }
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var existingColumn = Convert.ToString(reader["name"]);
+                if (string.Equals(existingColumn, columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static string BuildConnectionString(DatabaseConnectionTarget target)
         {
             return NormalizeConnectionString(ResolveRawConnectionString(target) ?? string.Empty);
@@ -247,7 +388,25 @@ namespace AttendancePayrollSystem.DataAccess
             return ConfigurationManager.ConnectionStrings[connectionStringName]?.ConnectionString;
         }
 
-        private static void ValidateConnectionString(MySqlConnectionStringBuilder builder, string rawConnectionString)
+        private static string GetMySqlConnectionSummary(string rawConnectionString)
+        {
+            var builder = new MySqlConnectionStringBuilder(rawConnectionString);
+            var port = builder.Port == 0 ? 3306 : builder.Port;
+            var server = string.IsNullOrWhiteSpace(builder.Server) ? "<missing host>" : builder.Server;
+            var database = string.IsNullOrWhiteSpace(builder.Database) ? "<missing database>" : builder.Database;
+            return $"{server}:{port} / {database}";
+        }
+
+        private static string GetSqliteConnectionSummary(string rawConnectionString)
+        {
+            var builder = new SqliteConnectionStringBuilder(rawConnectionString);
+            var dataSource = string.IsNullOrWhiteSpace(builder.DataSource)
+                ? "<missing file>"
+                : Environment.ExpandEnvironmentVariables(builder.DataSource);
+            return $"SQLite / {dataSource}";
+        }
+
+        private static void ValidateMySqlConnectionString(MySqlConnectionStringBuilder builder, string rawConnectionString)
         {
             if (string.IsNullOrWhiteSpace(builder.Server))
             {
@@ -300,29 +459,13 @@ namespace AttendancePayrollSystem.DataAccess
             EnsureEmployeeIndexExists(connection, transaction, "UQ_Employees_SourceUserId", "SourceUserId", isUnique: true);
         }
 
-        /// <summary>
-        /// Migrates the AttendanceRecords table from single-session (TimeIn/TimeOut) to
-        /// two-session (TimeInAM/TimeOutAM/TimeInPM/TimeOutPM) if the old columns still exist.
-        /// </summary>
         private static void EnsureAttendanceTwoSessionColumns(MySqlConnection connection, MySqlTransaction transaction)
         {
-            // Check if old 'TimeIn' column exists (meaning migration hasn't run yet)
-            const string checkSql = @"
-                SELECT COUNT(*)
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'AttendanceRecords'
-                  AND COLUMN_NAME = 'TimeIn'";
-
-            using var checkCommand = new MySqlCommand(checkSql, connection, transaction);
-            var hasOldColumn = Convert.ToInt32(checkCommand.ExecuteScalar()) > 0;
-
-            if (!hasOldColumn)
+            if (!ColumnExists(connection, "AttendanceRecords", "TimeIn", transaction))
             {
-                return; // Already migrated or fresh database
+                return;
             }
 
-            // Rename TimeIn -> TimeInAM, TimeOut -> TimeOutAM, then add TimeInPM and TimeOutPM
             const string migrateSql = @"
                 ALTER TABLE AttendanceRecords
                     CHANGE COLUMN TimeIn TimeInAM DATETIME NULL,
@@ -334,23 +477,29 @@ namespace AttendancePayrollSystem.DataAccess
             migrateCommand.ExecuteNonQuery();
         }
 
+        private static void EnsurePayrollManualDeductionColumns(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            if (ColumnExists(connection, "PayrollRecords", "ManualDeduction", transaction))
+            {
+                return;
+            }
+
+            const string alterSql = @"
+                ALTER TABLE PayrollRecords
+                    ADD COLUMN ManualDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0 AFTER NetPay,
+                    ADD COLUMN ManualDeductionNote VARCHAR(255) NOT NULL DEFAULT '' AFTER ManualDeduction";
+
+            using var alterCommand = new MySqlCommand(alterSql, connection, transaction);
+            alterCommand.ExecuteNonQuery();
+        }
+
         private static void EnsureEmployeeColumnExists(
             MySqlConnection connection,
             MySqlTransaction transaction,
             string columnName,
             string definition)
         {
-            const string checkSql = @"
-                SELECT 1
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND LOWER(TABLE_NAME) = LOWER('Employees')
-                  AND LOWER(COLUMN_NAME) = LOWER(@ColumnName)
-                LIMIT 1";
-
-            using var checkCommand = new MySqlCommand(checkSql, connection, transaction);
-            checkCommand.Parameters.AddWithValue("@ColumnName", columnName);
-            if (checkCommand.ExecuteScalar() != null)
+            if (ColumnExists(connection, "Employees", columnName, transaction))
             {
                 return;
             }
@@ -394,12 +543,17 @@ namespace AttendancePayrollSystem.DataAccess
 
         private static void EnsureBrandingSeedRow(MySqlConnection connection, MySqlTransaction transaction)
         {
-            using var command = new MySqlCommand(@"
-                INSERT INTO AppBrandingSettings (BrandingSettingsId, LogoImage)
-                VALUES (@BrandingSettingsId, NULL)
-                ON DUPLICATE KEY UPDATE BrandingSettingsId = VALUES(BrandingSettingsId)",
-                connection,
-                transaction);
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    INSERT INTO AppBrandingSettings (BrandingSettingsId, LogoImage)
+                    VALUES (@BrandingSettingsId, NULL)
+                    ON CONFLICT(BrandingSettingsId) DO NOTHING"
+                : @"
+                    INSERT INTO AppBrandingSettings (BrandingSettingsId, LogoImage)
+                    VALUES (@BrandingSettingsId, NULL)
+                    ON DUPLICATE KEY UPDATE BrandingSettingsId = VALUES(BrandingSettingsId)";
+
+            using var command = new MySqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@BrandingSettingsId", Models.AppBranding.DefaultBrandingSettingsId);
             command.ExecuteNonQuery();
         }

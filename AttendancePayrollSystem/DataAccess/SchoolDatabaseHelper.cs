@@ -35,7 +35,7 @@ namespace AttendancePayrollSystem.DataAccess
 
             try
             {
-                var builder = new MySqlConnectionStringBuilder(rawConnectionString);
+                var builder = new MySqlConnector.MySqlConnectionStringBuilder(rawConnectionString);
                 var port = builder.Port == 0 ? 3306 : builder.Port;
                 var server = string.IsNullOrWhiteSpace(builder.Server) ? "<missing host>" : builder.Server;
                 var database = string.IsNullOrWhiteSpace(builder.Database) ? "<missing database>" : builder.Database;
@@ -55,7 +55,7 @@ namespace AttendancePayrollSystem.DataAccess
                     $"Missing school management connection string. Configure {SchoolDbConnectionEnvVar} or set {ConnectionStringName} in App.config.");
             }
 
-            var builder = new MySqlConnectionStringBuilder(rawConnectionString);
+            var builder = new MySqlConnector.MySqlConnectionStringBuilder(rawConnectionString);
             ValidateConnectionString(builder);
             return builder.ConnectionString;
         }

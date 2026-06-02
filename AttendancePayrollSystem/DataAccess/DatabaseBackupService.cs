@@ -34,6 +34,12 @@ namespace AttendancePayrollSystem.DataAccess
                     "Database backup export is only available when the app is connected directly to MySQL.");
             }
 
+            if (DatabaseHelper.UsesSqlite())
+            {
+                throw new InvalidOperationException(
+                    "SQL export backup is currently available only for MySQL. The offline SQLite database file can be copied directly as a backup.");
+            }
+
             using var connection = DatabaseHelper.GetConnection();
             connection.Open();
 

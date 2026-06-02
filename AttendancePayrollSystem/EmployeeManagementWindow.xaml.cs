@@ -112,7 +112,8 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            if (EmployeeSourcePolicy.UseSchoolAsExclusiveSource)
+            var isSchoolManaged = EmployeeSourcePolicy.IsSchoolManagedEmployee(_viewModel.SelectedEmployee);
+            if (EmployeeSourcePolicy.UseSchoolAsExclusiveSource && !isSchoolManaged)
             {
                 ShowSchoolEmployeeManagementMessage();
                 return;
@@ -134,8 +135,15 @@ namespace AttendancePayrollSystem
                 var employee = modal.ResultEmployee;
                 await Task.Run(() =>
                 {
-                    _employeeRepo.UpdateEmployee(employee);
-                    TrySynchronizeEmployeeAccounts(showError: false);
+                    if (EmployeeSourcePolicy.UseSchoolAsExclusiveSource && isSchoolManaged)
+                    {
+                        _employeeRepo.UpdateAdminManagedFields(employee);
+                    }
+                    else
+                    {
+                        _employeeRepo.UpdateEmployee(employee);
+                        TrySynchronizeEmployeeAccounts(showError: false);
+                    }
                 });
 
                 await LoadEmployeesAsync();
@@ -316,12 +324,17 @@ namespace AttendancePayrollSystem
         {
             var usesSchoolSource = EmployeeSourcePolicy.UseSchoolAsExclusiveSource;
             var hasSelection = _viewModel.SelectedEmployee != null;
+            var selectedIsSchoolManaged = EmployeeSourcePolicy.IsSchoolManagedEmployee(_viewModel.SelectedEmployee);
             AddEmployeeButton.IsEnabled = !usesSchoolSource;
-            EditEmployeeButton.IsEnabled = !usesSchoolSource && hasSelection;
+            EditEmployeeButton.IsEnabled = hasSelection && (!usesSchoolSource || selectedIsSchoolManaged);
             DeleteEmployeeButton.IsEnabled = !usesSchoolSource && hasSelection;
 
             var infoMessage = string.Empty;
-            if (usesSchoolSource)
+            if (usesSchoolSource && selectedIsSchoolManaged)
+            {
+                infoMessage = EmployeeSourcePolicy.LinkedEmployeeEditMessage;
+            }
+            else if (usesSchoolSource)
             {
                 infoMessage = EmployeeSourcePolicy.EmployeeManagementMessage;
             }

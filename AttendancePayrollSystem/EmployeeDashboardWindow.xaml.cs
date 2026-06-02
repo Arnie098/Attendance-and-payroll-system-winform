@@ -315,8 +315,7 @@ namespace AttendancePayrollSystem
             }
         }
 
-        private async void FileLeave_Click(object sender, RoutedEventArgs e)
-        {
+        private async void FileLeave_Click(object sender, RoutedEventArgs e)        {
             var modal = new LeaveRequestModal(_employee)
             {
                 Owner = this
@@ -351,6 +350,16 @@ namespace AttendancePayrollSystem
             {
                 Mouse.OverrideCursor = null;
             }
+        }
+
+        private void ViewPayroll_Click(object sender, RoutedEventArgs e)
+        {
+            var modal = new PayrollModal(_employee)
+            {
+                Owner = this
+            };
+
+            modal.ShowDialog();
         }
 
         private void LeaveRequestsDataGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

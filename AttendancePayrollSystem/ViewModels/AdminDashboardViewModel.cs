@@ -203,7 +203,7 @@ namespace AttendancePayrollSystem.ViewModels
                 ? " AND e.SourceTeacherId IS NOT NULL"
                 : string.Empty;
 
-            var totalEmployees = ExecuteScalarInt(connection, $"SELECT COUNT(*) FROM Employees WHERE IsActive = TRUE{employeeFilter}");
+            var totalEmployees = ExecuteScalarInt(connection, $"SELECT COUNT(*) FROM Employees WHERE IsActive = 1{employeeFilter}");
             var dbPresentToday = ExecuteScalarInt(connection, $@"
                 SELECT COUNT(DISTINCT a.EmployeeId)
                 FROM AttendanceRecords a
@@ -254,13 +254,22 @@ namespace AttendancePayrollSystem.ViewModels
             var employeeFilter = EmployeeSourcePolicy.UseSchoolAsExclusiveSource
                 ? " AND SourceTeacherId IS NOT NULL"
                 : string.Empty;
-            using var command = new MySqlCommand($@"
-                SELECT EmployeeId, EmployeeCode, FullName, ProfileImage
-                FROM Employees
-                WHERE IsActive = TRUE
-                  AND MONTH({dateColumn}) = MONTH(@Today)
-                  AND DAY({dateColumn}) = DAY(@Today){employeeFilter}
-                ORDER BY FullName", connection);
+            var birthdaySql = connection.Provider == DatabaseProvider.Sqlite
+                ? $@"
+                    SELECT EmployeeId, EmployeeCode, FullName, ProfileImage
+                    FROM Employees
+                    WHERE IsActive = 1
+                      AND strftime('%m', {dateColumn}) = strftime('%m', @Today)
+                      AND strftime('%d', {dateColumn}) = strftime('%d', @Today){employeeFilter}
+                    ORDER BY FullName"
+                : $@"
+                    SELECT EmployeeId, EmployeeCode, FullName, ProfileImage
+                    FROM Employees
+                    WHERE IsActive = TRUE
+                      AND MONTH({dateColumn}) = MONTH(@Today)
+                      AND DAY({dateColumn}) = DAY(@Today){employeeFilter}
+                    ORDER BY FullName";
+            using var command = new MySqlCommand(birthdaySql, connection);
 
             command.Parameters.AddWithValue("@Today", today);
             connection.Open();
@@ -296,6 +305,8 @@ namespace AttendancePayrollSystem.ViewModels
                             FullName = employee?.FullName ?? string.Empty,
                             AttendanceDate = attendance.AttendanceDate,
                             TimeIn = attendance.TimeInAM,
+                            TimeOutAM = attendance.TimeOutAM,
+                            TimeInPM = attendance.TimeInPM,
                             TimeOut = attendance.TimeOutPM,
                             Status = attendance.Status
                         };
@@ -312,6 +323,8 @@ namespace AttendancePayrollSystem.ViewModels
                 SELECT
                     a.AttendanceDate,
                     a.TimeInAM,
+                    a.TimeOutAM,
+                    a.TimeInPM,
                     a.TimeOutPM,
                     a.Status,
                     e.EmployeeCode,
@@ -320,7 +333,7 @@ namespace AttendancePayrollSystem.ViewModels
                 INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
                 {employeeFilter}
                 ORDER BY a.AttendanceDate DESC, a.TimeInAM DESC
-                LIMIT 20", connection);
+                LIMIT 50", connection);
 
             connection.Open();
             using var reader = command.ExecuteReader();
@@ -332,6 +345,8 @@ namespace AttendancePayrollSystem.ViewModels
                     FullName = Convert.ToString(reader["FullName"]) ?? string.Empty,
                     AttendanceDate = Convert.ToDateTime(reader["AttendanceDate"]),
                     TimeIn = reader["TimeInAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeInAM"]),
+                    TimeOutAM = reader["TimeOutAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutAM"]),
+                    TimeInPM = reader["TimeInPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeInPM"]),
                     TimeOut = reader["TimeOutPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutPM"]),
                     Status = Convert.ToString(reader["Status"]) ?? string.Empty
                 });
@@ -417,18 +432,8 @@ namespace AttendancePayrollSystem.ViewModels
             }
 
             using var connection = DatabaseHelper.GetConnection();
-            using var command = new MySqlCommand(@"
-                SELECT COUNT(*)
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND LOWER(TABLE_NAME) = LOWER(@TableName)
-                  AND LOWER(COLUMN_NAME) = LOWER(@ColumnName)", connection);
-
-            command.Parameters.AddWithValue("@TableName", tableName);
-            command.Parameters.AddWithValue("@ColumnName", columnName);
             connection.Open();
-
-            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+            return DatabaseHelper.ColumnExists(connection, tableName, columnName);
         }
 
         private sealed class DashboardSnapshot
@@ -474,7 +479,55 @@ namespace AttendancePayrollSystem.ViewModels
         public string FullName { get; set; } = string.Empty;
         public DateTime AttendanceDate { get; set; }
         public DateTime? TimeIn { get; set; }
+        public DateTime? TimeOutAM { get; set; }
+        public DateTime? TimeInPM { get; set; }
         public DateTime? TimeOut { get; set; }
         public string Status { get; set; } = string.Empty;
+
+        public double TotalHours
+        {
+            get
+            {
+                double total = 0;
+                if (TimeIn.HasValue && TimeOutAM.HasValue)
+                {
+                    var morning = (TimeOutAM.Value - TimeIn.Value).TotalHours;
+                    if (morning > 0) total += morning;
+                }
+                if (TimeInPM.HasValue && TimeOut.HasValue)
+                {
+                    var afternoon = (TimeOut.Value - TimeInPM.Value).TotalHours;
+                    if (afternoon > 0) total += afternoon;
+                }
+                return Math.Round(total, 2);
+            }
+        }
+
+        public int TardinessMinutes
+        {
+            get
+            {
+                int total = 0;
+                if (TimeIn.HasValue)
+                {
+                    var scheduledStart = AttendanceDate.Date.Add(DataAccess.DatabaseConfig.MorningStartTime);
+                    var graceEnd = scheduledStart.AddMinutes(DataAccess.DatabaseConfig.GracePeriodMinutes);
+                    if (TimeIn.Value > graceEnd)
+                    {
+                        total += (int)Math.Ceiling((TimeIn.Value - scheduledStart).TotalMinutes);
+                    }
+                }
+                if (TimeInPM.HasValue)
+                {
+                    var scheduledStart = AttendanceDate.Date.Add(DataAccess.DatabaseConfig.AfternoonStartTime);
+                    var graceEnd = scheduledStart.AddMinutes(DataAccess.DatabaseConfig.GracePeriodMinutes);
+                    if (TimeInPM.Value > graceEnd)
+                    {
+                        total += (int)Math.Ceiling((TimeInPM.Value - scheduledStart).TotalMinutes);
+                    }
+                }
+                return total;
+            }
+        }
     }
 }

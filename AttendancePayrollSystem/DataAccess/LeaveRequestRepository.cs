@@ -196,7 +196,6 @@ namespace AttendancePayrollSystem.DataAccess
             try
             {
                 EnsureNoOverlappingLeave(connection, transaction, leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate, null);
-                EnsureNoAttendanceConflict(connection, transaction, leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
 
                 using var command = new MySqlCommand(@"
                     INSERT INTO LeaveRequests
@@ -659,7 +658,6 @@ namespace AttendancePayrollSystem.DataAccess
         private int SubmitLeaveRequestViaApi(LeaveRequest leaveRequest)
         {
             EnsureNoOverlappingLeaveViaApi(leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate, null);
-            EnsureNoAttendanceConflictViaApi(leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
 
             var created = SupabaseRestClient.InsertAndReturnSingle<ApiLeaveRequestRecord>(
                 "leaverequests",

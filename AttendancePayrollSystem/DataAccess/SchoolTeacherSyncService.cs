@@ -21,7 +21,7 @@ namespace AttendancePayrollSystem.DataAccess
 
             if (DatabaseRuntimeState.UseOfflineDatabase)
             {
-                return SchoolTeacherSyncResult.Skipped("School teacher sync skipped while the app is using the local MySQL offline mirror.");
+                return SchoolTeacherSyncResult.Skipped("School teacher sync skipped while the app is using the local offline database.");
             }
 
             if (!SchoolDatabaseHelper.IsConfigured())
@@ -63,6 +63,7 @@ namespace AttendancePayrollSystem.DataAccess
                 {
                     TeachersRead = schoolTeachers.Count
                 };
+                var matchedEmployeeIds = new HashSet<int>();
 
                 foreach (var teacher in schoolTeachers)
                 {
@@ -93,6 +94,7 @@ namespace AttendancePayrollSystem.DataAccess
                     employee.IsActive = IsTeacherActive(teacher);
                     employee.SourceTeacherId = teacher.TeacherId;
                     employee.SourceUserId = teacher.UserId;
+                    matchedEmployeeIds.Add(employee.EmployeeId);
 
                     if (!string.IsNullOrWhiteSpace(previousEmployeeCode) &&
                         !string.Equals(previousEmployeeCode, employee.EmployeeCode, StringComparison.OrdinalIgnoreCase))
@@ -101,7 +103,10 @@ namespace AttendancePayrollSystem.DataAccess
                     }
 
                     employeesByTeacherId[teacher.TeacherId] = employee;
-                    employeesByUserId[teacher.UserId] = employee;
+                    if (teacher.UserId.HasValue)
+                    {
+                        employeesByUserId[teacher.UserId.Value] = employee;
+                    }
                     employeesByCode[employee.EmployeeCode] = employee;
 
                     if (TrySyncUserAccount(connection, transaction, teacher, employee, accountsByEmployeeId, accountsByUsername, out var accountInserted))
@@ -116,6 +121,14 @@ namespace AttendancePayrollSystem.DataAccess
                         }
                     }
                 }
+
+                ReconcileMissingSchoolEmployees(
+                    connection,
+                    transaction,
+                    employees,
+                    accountsByEmployeeId,
+                    matchedEmployeeIds,
+                    result);
 
                 transaction.Commit();
                 return result;
@@ -138,7 +151,8 @@ namespace AttendancePayrollSystem.DataAccess
                 return employeeByTeacher;
             }
 
-            if (employeesByUserId.TryGetValue(teacher.UserId, out var employeeByUser))
+            if (teacher.UserId.HasValue &&
+                employeesByUserId.TryGetValue(teacher.UserId.Value, out var employeeByUser))
             {
                 return employeeByUser;
             }
@@ -194,7 +208,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@HireDate", teacher.HireDate?.Date ?? DateTime.Today);
             command.Parameters.AddWithValue("@IsActive", IsTeacherActive(teacher));
             command.Parameters.AddWithValue("@SourceTeacherId", teacher.TeacherId);
-            command.Parameters.AddWithValue("@SourceUserId", teacher.UserId);
+            command.Parameters.AddWithValue("@SourceUserId", teacher.UserId.HasValue ? teacher.UserId.Value : DBNull.Value);
             command.ExecuteNonQuery();
 
             return Convert.ToInt32(command.LastInsertedId);
@@ -231,7 +245,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@HireDate", teacher.HireDate?.Date ?? employee.HireDate.Date);
             command.Parameters.AddWithValue("@IsActive", IsTeacherActive(teacher));
             command.Parameters.AddWithValue("@SourceTeacherId", teacher.TeacherId);
-            command.Parameters.AddWithValue("@SourceUserId", teacher.UserId);
+            command.Parameters.AddWithValue("@SourceUserId", teacher.UserId.HasValue ? teacher.UserId.Value : DBNull.Value);
             command.ExecuteNonQuery();
         }
 
@@ -245,88 +259,85 @@ namespace AttendancePayrollSystem.DataAccess
             out bool accountInserted)
         {
             accountInserted = false;
-
-            var username = teacher.Username.Trim().ToLowerInvariant();
-            var passwordHash = teacher.PasswordHash.Trim();
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(passwordHash))
-            {
-                return false;
-            }
-
-            var desiredIsActive = employee.IsActive && IsUserActive(teacher);
-            accountsByEmployeeId.TryGetValue(employee.EmployeeId, out var existingAccount);
-
-            if (accountsByUsername.TryGetValue(username, out var conflictingAccount) &&
-                (existingAccount == null || conflictingAccount.UserAccountId != existingAccount.UserAccountId))
-            {
-                throw new InvalidOperationException(
-                    $"School teacher sync could not assign username '{username}' because it is already used by another local account.");
-            }
-
-            if (existingAccount == null)
-            {
-                using var insertCommand = new MySqlCommand(@"
-                    INSERT INTO UserAccounts (Username, PasswordHash, PasswordSalt, HashIterations, Role, EmployeeId, IsActive)
-                    VALUES (@Username, @PasswordHash, NULL, 0, @Role, @EmployeeId, @IsActive)", connection, transaction);
-
-                insertCommand.Parameters.AddWithValue("@Username", username);
-                insertCommand.Parameters.AddWithValue("@PasswordHash", passwordHash);
-                insertCommand.Parameters.AddWithValue("@Role", UserRoles.Employee);
-                insertCommand.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
-                insertCommand.Parameters.AddWithValue("@IsActive", desiredIsActive);
-                insertCommand.ExecuteNonQuery();
-
-                var createdAccount = new LegacyUserAccountSyncRow
-                {
-                    UserAccountId = Convert.ToInt32(insertCommand.LastInsertedId),
-                    EmployeeId = employee.EmployeeId,
-                    Username = username,
-                    PasswordHash = passwordHash,
-                    IsActive = desiredIsActive
-                };
-
-                accountsByEmployeeId[employee.EmployeeId] = createdAccount;
-                accountsByUsername[username] = createdAccount;
-                accountInserted = true;
-                return true;
-            }
-
-            var usernameChanged = !string.Equals(existingAccount.Username, username, StringComparison.OrdinalIgnoreCase);
-            var passwordChanged = !string.Equals(existingAccount.PasswordHash, passwordHash, StringComparison.Ordinal);
-            var statusChanged = existingAccount.IsActive != desiredIsActive;
-
-            if (!usernameChanged && !passwordChanged && !statusChanged)
+            var desiredIsActive = employee.IsActive;
+            if (!accountsByEmployeeId.TryGetValue(employee.EmployeeId, out var existingAccount) ||
+                existingAccount.IsActive == desiredIsActive)
             {
                 return false;
             }
 
             using var updateCommand = new MySqlCommand(@"
                 UPDATE UserAccounts
-                SET Username = @Username,
-                    PasswordHash = @PasswordHash,
-                    PasswordSalt = NULL,
-                    HashIterations = 0,
-                    Role = @Role,
+                SET Role = @Role,
                     IsActive = @IsActive
                 WHERE UserAccountId = @UserAccountId", connection, transaction);
 
             updateCommand.Parameters.AddWithValue("@UserAccountId", existingAccount.UserAccountId);
-            updateCommand.Parameters.AddWithValue("@Username", username);
-            updateCommand.Parameters.AddWithValue("@PasswordHash", passwordHash);
             updateCommand.Parameters.AddWithValue("@Role", UserRoles.Employee);
             updateCommand.Parameters.AddWithValue("@IsActive", desiredIsActive);
             updateCommand.ExecuteNonQuery();
 
-            if (usernameChanged && !string.IsNullOrWhiteSpace(existingAccount.Username))
+            existingAccount.IsActive = desiredIsActive;
+            return true;
+        }
+
+        private static bool DeactivateExistingAccount(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            IDictionary<int, LegacyUserAccountSyncRow> accountsByEmployeeId,
+            int employeeId)
+        {
+            if (!accountsByEmployeeId.TryGetValue(employeeId, out var existingAccount) || !existingAccount.IsActive)
             {
-                accountsByUsername.Remove(existingAccount.Username);
+                return false;
             }
 
-            existingAccount.Username = username;
-            existingAccount.PasswordHash = passwordHash;
-            existingAccount.IsActive = desiredIsActive;
-            accountsByUsername[username] = existingAccount;
+            using var command = new MySqlCommand(@"
+                UPDATE UserAccounts
+                SET IsActive = FALSE
+                WHERE UserAccountId = @UserAccountId", connection, transaction);
+            command.Parameters.AddWithValue("@UserAccountId", existingAccount.UserAccountId);
+            command.ExecuteNonQuery();
+            existingAccount.IsActive = false;
             return true;
+        }
+
+        private static void ReconcileMissingSchoolEmployees(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            IEnumerable<LegacyEmployeeSyncRow> employees,
+            IDictionary<int, LegacyUserAccountSyncRow> accountsByEmployeeId,
+            ISet<int> matchedEmployeeIds,
+            SchoolTeacherSyncResult result)
+        {
+            foreach (var employee in employees.Where(employee =>
+                         employee.SourceTeacherId.HasValue &&
+                         !matchedEmployeeIds.Contains(employee.EmployeeId)))
+            {
+                if (employee.IsActive)
+                {
+                    using var deactivateEmployee = new MySqlCommand(@"
+                        UPDATE Employees
+                        SET IsActive = FALSE
+                        WHERE EmployeeId = @EmployeeId", connection, transaction);
+                    deactivateEmployee.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
+                    deactivateEmployee.ExecuteNonQuery();
+                    employee.IsActive = false;
+                    result.EmployeesInactivated++;
+                }
+
+                if (accountsByEmployeeId.TryGetValue(employee.EmployeeId, out var account) && account.IsActive)
+                {
+                    using var deactivateAccount = new MySqlCommand(@"
+                        UPDATE UserAccounts
+                        SET IsActive = FALSE
+                        WHERE UserAccountId = @UserAccountId", connection, transaction);
+                    deactivateAccount.Parameters.AddWithValue("@UserAccountId", account.UserAccountId);
+                    deactivateAccount.ExecuteNonQuery();
+                    account.IsActive = false;
+                    result.AccountsInactivated++;
+                }
+            }
         }
 
         private static List<LegacyEmployeeSyncRow> LoadLegacyEmployees(MySqlConnection connection, MySqlTransaction transaction)
@@ -457,8 +468,10 @@ namespace AttendancePayrollSystem.DataAccess
         public int TeachersRead { get; init; }
         public int EmployeesInserted { get; set; }
         public int EmployeesUpdated { get; set; }
+        public int EmployeesInactivated { get; set; }
         public int AccountsInserted { get; set; }
         public int AccountsUpdated { get; set; }
+        public int AccountsInactivated { get; set; }
         public bool WasSkipped { get; init; }
         public string Message { get; init; } = string.Empty;
 
@@ -475,7 +488,7 @@ namespace AttendancePayrollSystem.DataAccess
         {
             return WasSkipped
                 ? Message
-                : $"School sync: {TeachersRead} teachers read, {EmployeesInserted} employees added, {EmployeesUpdated} employees updated, {AccountsInserted} accounts added, {AccountsUpdated} accounts updated.";
+                : $"School sync: {TeachersRead} teachers read, {EmployeesInserted} employees added, {EmployeesUpdated} employees updated, {EmployeesInactivated} employees inactivated, {AccountsInserted} accounts added, {AccountsUpdated} accounts updated, {AccountsInactivated} accounts inactivated.";
         }
     }
 }

@@ -14,18 +14,18 @@ namespace AttendancePayrollSystem.Services
             !SupabaseConfig.UseApi && SchoolDatabaseHelper.IsConfigured();
 
         public static bool UseSchoolAsExclusiveSource =>
-            SchoolSyncEnabled && GetOptionalBool(ExclusiveSourceSetting, ExclusiveSourceEnvVar);
+            GetOptionalBool(ExclusiveSourceSetting, ExclusiveSourceEnvVar);
 
         public static string EmployeeManagementMessage =>
             UseSchoolAsExclusiveSource
-                ? "Employees are managed from the school management database while SCHOOL_DB_CONNECTION is configured. Use Refresh to sync teachers instead of creating, editing, or deleting local employee records."
+                ? "Employees are managed from the school management database only. Use Refresh to sync teachers instead of creating or deleting local employee records. Linked employees can still be updated locally for admin-owned payroll fields such as position, department, and hourly rate."
                 : "School teacher sync is enabled. Linked teacher records still refresh from the school management database, and local employees remain manageable here.";
 
         public static string RegistrationMessage =>
             "Employee self-registration is disabled because the school management database is the source of truth for employees.";
 
         public static string LinkedEmployeeEditMessage =>
-            "This employee is linked to the school management database. Employee code, name, email, phone, hire date, and active status are refreshed from school data. Position, department, and hourly rate stay local.";
+            "This employee is linked to the school management database. Employee code, name, email, phone, hire date, and active status are refreshed from school data. Position, department, and hourly rate are admin-managed here. Profile photo and fingerprint template are employee-managed here.";
 
         public static string LinkedEmployeeDeleteMessage =>
             "This employee is linked to the school management database. Deleting it here removes the local copy only. It will be recreated on the next school sync unless removed from the school system.";

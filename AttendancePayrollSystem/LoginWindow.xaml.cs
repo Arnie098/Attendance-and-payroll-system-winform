@@ -18,6 +18,11 @@ namespace AttendancePayrollSystem
         private bool _isDatabaseReady;
         private bool _isInitializingDatabase;
         private bool _isAuthenticating;
+        private string _busyMessage = "Preparing the application...";
+        private static string OfflineModeDescription =>
+            DatabaseHelper.UsesSqlite(DatabaseConnectionTarget.Offline)
+                ? "Using local SQLite store"
+                : "Using local MySQL mirror";
 
         public LoginWindow()
         {
@@ -84,6 +89,7 @@ namespace AttendancePayrollSystem
             }
 
             _isAuthenticating = true;
+            _busyMessage = "Signing you in...";
             UpdateInteractiveState();
 
             try
@@ -179,7 +185,7 @@ namespace AttendancePayrollSystem
             if (useOffline && !DatabaseRuntimeState.IsOfflineDatabaseAvailable)
             {
                 MessageBox.Show(
-                    "The offline database is not available. Please configure ATTENDANCE_OFFLINE_DB_CONNECTION in your .env file and ensure the local MySQL server is running.",
+                    "The offline database is not available. Configure ATTENDANCE_OFFLINE_DB_CONNECTION in your .env file with either a local MySQL connection string or a SQLite Data Source path.",
                     "Offline Database Unavailable",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -213,12 +219,16 @@ namespace AttendancePayrollSystem
             }
 
             // Apply the mode change
+            DatabaseRuntimeState.SetPreferredMode(useOffline);
             DatabaseRuntimeState.SetRuntimeState(
                 useOfflineDatabase: useOffline,
                 isOnlineAvailable: DatabaseRuntimeState.IsOnlineAvailable,
                 isOfflineDatabaseAvailable: DatabaseRuntimeState.IsOfflineDatabaseAvailable,
                 statusMessage: DatabaseRuntimeState.StatusMessage);
 
+            _busyMessage = useOffline
+                ? "Switching to the offline database..."
+                : "Switching to the online database...";
             UpdateToggleLabels();
             UpdateDatabaseTarget();
             await InitializeDatabaseAsync();
@@ -241,7 +251,7 @@ namespace AttendancePayrollSystem
             if (DatabaseModeToggle.IsChecked == true)
             {
                 DatabaseModeLabel.Text = "Offline Database";
-                DatabaseModeDescription.Text = "Using local MySQL mirror";
+                DatabaseModeDescription.Text = OfflineModeDescription;
             }
             else
             {
@@ -279,6 +289,9 @@ namespace AttendancePayrollSystem
             }
 
             _isInitializingDatabase = true;
+            _busyMessage = DatabaseRuntimeState.PreferOfflineDatabase
+                ? "Preparing the offline database..."
+                : "Checking database connections...";
             UpdateInteractiveState();
             UpdateDatabaseTarget();
             SetStatus(string.Empty);
@@ -349,7 +362,9 @@ namespace AttendancePayrollSystem
             var sourceLabel = DatabaseConnectionSettingsStore.HasSavedOverride()
                 ? "Local laptop setting"
                 : "App default setting";
-            var modeLabel = DatabaseRuntimeState.UseOfflineDatabase ? "Local MySQL mirror" : "Online MySQL";
+            var modeLabel = DatabaseRuntimeState.UseOfflineDatabase
+                ? DatabaseHelper.UsesSqlite(DatabaseConnectionTarget.Offline) ? "Local SQLite" : "Local MySQL mirror"
+                : "Online MySQL";
             DatabaseTargetTextBlock.Text = $"{DatabaseHelper.GetActiveConnectionSummary()} ({modeLabel}, {sourceLabel})";
         }
 
@@ -379,6 +394,8 @@ namespace AttendancePayrollSystem
             DatabaseSettingsButton.IsEnabled = !isBusy;
             LoginButton.Content = _isAuthenticating ? "Signing In..." : "Sign In";
             DatabaseSettingsButton.Content = _isInitializingDatabase ? "Checking Database..." : "Database Settings";
+            BusyStatusTextBlock.Text = _busyMessage;
+            BusyOverlay.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private InitializationState LoadInitializationState()

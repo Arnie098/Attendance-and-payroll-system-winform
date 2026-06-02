@@ -23,15 +23,22 @@ namespace AttendancePayrollSystem.DataAccess
                 return;
             }
 
-            const string sql = @"
-                INSERT INTO AppBrandingSettings
-                (BrandingSettingsId, LogoImage)
-                VALUES
-                (@BrandingSettingsId, @LogoImage)
-                ON DUPLICATE KEY UPDATE
-                    LogoImage = VALUES(LogoImage)";
-
             using var connection = DatabaseHelper.GetConnection();
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    INSERT INTO AppBrandingSettings
+                    (BrandingSettingsId, LogoImage)
+                    VALUES
+                    (@BrandingSettingsId, @LogoImage)
+                    ON CONFLICT(BrandingSettingsId) DO UPDATE SET
+                        LogoImage = excluded.LogoImage"
+                : @"
+                    INSERT INTO AppBrandingSettings
+                    (BrandingSettingsId, LogoImage)
+                    VALUES
+                    (@BrandingSettingsId, @LogoImage)
+                    ON DUPLICATE KEY UPDATE
+                        LogoImage = VALUES(LogoImage)";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@BrandingSettingsId", AppBranding.DefaultBrandingSettingsId);
             command.Parameters.AddWithValue("@LogoImage", logoImage is null ? DBNull.Value : logoImage);

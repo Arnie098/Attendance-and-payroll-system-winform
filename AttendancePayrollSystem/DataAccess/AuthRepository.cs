@@ -15,9 +15,11 @@ namespace AttendancePayrollSystem.DataAccess
         private const string BootstrapAdminPasswordEnvVar = "ATTENDANCE_BOOTSTRAP_ADMIN_PASSWORD";
         private const string DemoModeEnvVar = "ATTENDANCE_ENABLE_DEMO_ACCOUNTS";
         private const string DemoEmployeePasswordEnvVar = "ATTENDANCE_DEMO_EMPLOYEE_PASSWORD";
+        private const string GeneratedEmployeePasswordEnvVar = "ATTENDANCE_GENERATED_EMPLOYEE_PASSWORD";
         private const string BootstrapAdminPasswordSetting = "BootstrapAdminPassword";
         private const string DemoModeSetting = "EnableDemoAccounts";
         private const string DemoEmployeePasswordSetting = "DemoEmployeePassword";
+        private const string GeneratedEmployeePasswordSetting = "GeneratedEmployeePassword";
         private const int PasswordSaltSize = 16;
         private const int PasswordHashSize = 32;
         private const int PasswordHashIterations = 210000;
@@ -762,24 +764,42 @@ namespace AttendancePayrollSystem.DataAccess
 
         private static void EnsureUserAccountsTable(MySqlConnection connection, MySqlTransaction transaction)
         {
-            const string sql = @"
-                CREATE TABLE IF NOT EXISTS UserAccounts
-                (
-                    UserAccountId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    Username VARCHAR(80) NOT NULL UNIQUE,
-                    PasswordHash VARCHAR(256) NOT NULL,
-                    PasswordSalt VARBINARY(64) NULL,
-                    HashIterations INT NOT NULL DEFAULT 210000,
-                    Role VARCHAR(20) NOT NULL,
-                    EmployeeId INT NULL,
-                    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
-                    CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    INDEX IDX_UserAccounts_Role (Role),
-                    CONSTRAINT FK_UserAccounts_Employee FOREIGN KEY (EmployeeId)
-                        REFERENCES Employees(EmployeeId)
-                        ON DELETE CASCADE,
-                    CONSTRAINT UQ_UserAccounts_EmployeeId UNIQUE (EmployeeId)
-                ) ENGINE=InnoDB;";
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    CREATE TABLE IF NOT EXISTS UserAccounts
+                    (
+                        UserAccountId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        Username TEXT NOT NULL UNIQUE,
+                        PasswordHash TEXT NOT NULL,
+                        PasswordSalt BLOB NULL,
+                        HashIterations INTEGER NOT NULL DEFAULT 210000,
+                        Role TEXT NOT NULL,
+                        EmployeeId INTEGER NULL UNIQUE,
+                        IsActive INTEGER NOT NULL DEFAULT 1,
+                        CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (EmployeeId)
+                            REFERENCES Employees(EmployeeId)
+                            ON DELETE CASCADE
+                    );
+                    CREATE INDEX IF NOT EXISTS IDX_UserAccounts_Role ON UserAccounts (Role);"
+                : @"
+                    CREATE TABLE IF NOT EXISTS UserAccounts
+                    (
+                        UserAccountId INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        Username VARCHAR(80) NOT NULL UNIQUE,
+                        PasswordHash VARCHAR(256) NOT NULL,
+                        PasswordSalt VARBINARY(64) NULL,
+                        HashIterations INT NOT NULL DEFAULT 210000,
+                        Role VARCHAR(20) NOT NULL,
+                        EmployeeId INT NULL,
+                        IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+                        CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        INDEX IDX_UserAccounts_Role (Role),
+                        CONSTRAINT FK_UserAccounts_Employee FOREIGN KEY (EmployeeId)
+                            REFERENCES Employees(EmployeeId)
+                            ON DELETE CASCADE,
+                        CONSTRAINT UQ_UserAccounts_EmployeeId UNIQUE (EmployeeId)
+                    ) ENGINE=InnoDB;";
 
             using var command = new MySqlCommand(sql, connection, transaction);
             command.ExecuteNonQuery();
@@ -813,18 +833,7 @@ namespace AttendancePayrollSystem.DataAccess
             string columnName,
             string definition)
         {
-            const string checkSql = @"
-                SELECT 1
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND LOWER(TABLE_NAME) = LOWER('UserAccounts')
-                  AND LOWER(COLUMN_NAME) = LOWER(@ColumnName)
-                LIMIT 1";
-
-            using var checkCommand = new MySqlCommand(checkSql, connection, transaction);
-            checkCommand.Parameters.AddWithValue("@ColumnName", columnName);
-            var columnExists = checkCommand.ExecuteScalar() != null;
-            if (columnExists)
+            if (DatabaseHelper.ColumnExists(connection, "UserAccounts", columnName, transaction))
             {
                 return;
             }
@@ -876,19 +885,130 @@ namespace AttendancePayrollSystem.DataAccess
 
         private static void EnsureEmployeeAccounts(MySqlConnection connection, MySqlTransaction transaction)
         {
+            EnsureGeneratedSchoolEmployeeAccounts(connection, transaction);
+
             if (IsDemoModeEnabled)
             {
                 EnsureDemoEmployeeAccounts(connection, transaction);
             }
-            const string updateStatusSql = @"
-                UPDATE UserAccounts u
-                INNER JOIN Employees e ON e.EmployeeId = u.EmployeeId
-                SET u.IsActive = e.IsActive
-                WHERE u.Role = @Role";
+            var updateStatusSql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    UPDATE UserAccounts
+                    SET IsActive = (
+                        SELECT e.IsActive
+                        FROM Employees e
+                        WHERE e.EmployeeId = UserAccounts.EmployeeId
+                    )
+                    WHERE Role = @Role
+                      AND EmployeeId IS NOT NULL"
+                : @"
+                    UPDATE UserAccounts u
+                    INNER JOIN Employees e ON e.EmployeeId = u.EmployeeId
+                    SET u.IsActive = e.IsActive
+                    WHERE u.Role = @Role";
 
             using var updateCommand = new MySqlCommand(updateStatusSql, connection, transaction);
             updateCommand.Parameters.AddWithValue("@Role", UserRoles.Employee);
             updateCommand.ExecuteNonQuery();
+        }
+
+        private static void EnsureGeneratedSchoolEmployeeAccounts(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var generatedPassword = GetOptionalValue(GeneratedEmployeePasswordSetting, GeneratedEmployeePasswordEnvVar);
+            if (string.IsNullOrWhiteSpace(generatedPassword))
+            {
+                return;
+            }
+
+            ValidateStrongPassword(generatedPassword, GeneratedEmployeePasswordEnvVar);
+
+            const string selectSchoolManagedSql = @"
+                SELECT e.EmployeeId,
+                       LOWER(TRIM(e.EmployeeCode)) AS EmployeeUsername,
+                       e.IsActive,
+                       u.UserAccountId,
+                       u.Username,
+                       u.PasswordSalt,
+                       u.HashIterations
+                FROM Employees e
+                LEFT JOIN UserAccounts u ON u.EmployeeId = e.EmployeeId
+                WHERE e.SourceTeacherId IS NOT NULL";
+
+            using var selectCommand = new MySqlCommand(selectSchoolManagedSql, connection, transaction);
+            using var reader = selectCommand.ExecuteReader();
+
+            var schoolManagedEmployees = new List<(int EmployeeId, string PreferredUsername, bool IsActive, int? UserAccountId, string Username, byte[]? PasswordSalt, int HashIterations)>();
+            while (reader.Read())
+            {
+                schoolManagedEmployees.Add(
+                    (
+                        Convert.ToInt32(reader["EmployeeId"]),
+                        Convert.ToString(reader["EmployeeUsername"]) ?? string.Empty,
+                        Convert.ToBoolean(reader["IsActive"]),
+                        reader["UserAccountId"] is DBNull ? null : Convert.ToInt32(reader["UserAccountId"]),
+                        reader["Username"] is DBNull ? string.Empty : Convert.ToString(reader["Username"]) ?? string.Empty,
+                        reader["PasswordSalt"] is DBNull ? null : (byte[])reader["PasswordSalt"],
+                        reader["HashIterations"] is DBNull ? 0 : Convert.ToInt32(reader["HashIterations"])
+                    ));
+            }
+
+            reader.Close();
+
+            foreach (var employee in schoolManagedEmployees)
+            {
+                if (!employee.UserAccountId.HasValue)
+                {
+                    var username = GetAvailableUsername(connection, transaction, employee.PreferredUsername, employee.EmployeeId);
+                    var secret = CreatePasswordSecret(generatedPassword);
+
+                    using var insertCommand = new MySqlCommand(@"
+                        INSERT INTO UserAccounts (Username, PasswordHash, PasswordSalt, HashIterations, Role, EmployeeId, IsActive)
+                        VALUES (@Username, @PasswordHash, @PasswordSalt, @HashIterations, @Role, @EmployeeId, @IsActive)", connection, transaction);
+
+                    insertCommand.Parameters.AddWithValue("@Username", username);
+                    insertCommand.Parameters.AddWithValue("@PasswordHash", secret.Hash);
+                    insertCommand.Parameters.AddWithValue("@PasswordSalt", secret.Salt);
+                    insertCommand.Parameters.AddWithValue("@HashIterations", secret.Iterations);
+                    insertCommand.Parameters.AddWithValue("@Role", UserRoles.Employee);
+                    insertCommand.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
+                    insertCommand.Parameters.AddWithValue("@IsActive", employee.IsActive);
+                    insertCommand.ExecuteNonQuery();
+                    continue;
+                }
+
+                if (!ShouldMigrateSchoolManagedCredential(employee.PasswordSalt, employee.HashIterations))
+                {
+                    continue;
+                }
+
+                var migratedUsername = GetAvailableUsernameForExistingAccount(
+                    connection,
+                    transaction,
+                    employee.PreferredUsername,
+                    employee.EmployeeId,
+                    employee.UserAccountId.Value,
+                    employee.Username);
+                var migratedSecret = CreatePasswordSecret(generatedPassword);
+
+                using var updateCommand = new MySqlCommand(@"
+                    UPDATE UserAccounts
+                    SET Username = @Username,
+                        PasswordHash = @PasswordHash,
+                        PasswordSalt = @PasswordSalt,
+                        HashIterations = @HashIterations,
+                        Role = @Role,
+                        IsActive = @IsActive
+                    WHERE UserAccountId = @UserAccountId", connection, transaction);
+
+                updateCommand.Parameters.AddWithValue("@UserAccountId", employee.UserAccountId.Value);
+                updateCommand.Parameters.AddWithValue("@Username", migratedUsername);
+                updateCommand.Parameters.AddWithValue("@PasswordHash", migratedSecret.Hash);
+                updateCommand.Parameters.AddWithValue("@PasswordSalt", migratedSecret.Salt);
+                updateCommand.Parameters.AddWithValue("@HashIterations", migratedSecret.Iterations);
+                updateCommand.Parameters.AddWithValue("@Role", UserRoles.Employee);
+                updateCommand.Parameters.AddWithValue("@IsActive", employee.IsActive);
+                updateCommand.ExecuteNonQuery();
+            }
         }
 
         private static void EnsureDemoEmployeeAccounts(MySqlConnection connection, MySqlTransaction transaction)
@@ -977,6 +1097,58 @@ namespace AttendancePayrollSystem.DataAccess
             using var command = new MySqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@Username", username);
             return command.ExecuteScalar() != null;
+        }
+
+        private static string GetAvailableUsernameForExistingAccount(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            string preferredUsername,
+            int employeeId,
+            int userAccountId,
+            string existingUsername)
+        {
+            var baseUsername = string.IsNullOrWhiteSpace(preferredUsername)
+                ? $"employee-{employeeId}"
+                : preferredUsername;
+
+            if (string.Equals(existingUsername, baseUsername, StringComparison.OrdinalIgnoreCase))
+            {
+                return baseUsername;
+            }
+
+            var candidate = baseUsername;
+            var suffix = 0;
+            while (UsernameExistsForAnotherAccount(connection, transaction, candidate, userAccountId))
+            {
+                suffix++;
+                candidate = $"{baseUsername}-{suffix}";
+            }
+
+            return candidate;
+        }
+
+        private static bool UsernameExistsForAnotherAccount(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            string username,
+            int userAccountId)
+        {
+            const string sql = @"
+                SELECT 1
+                FROM UserAccounts
+                WHERE Username = @Username
+                  AND UserAccountId <> @UserAccountId
+                LIMIT 1";
+
+            using var command = new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@Username", username);
+            command.Parameters.AddWithValue("@UserAccountId", userAccountId);
+            return command.ExecuteScalar() != null;
+        }
+
+        private static bool ShouldMigrateSchoolManagedCredential(byte[]? passwordSalt, int hashIterations)
+        {
+            return passwordSalt == null || passwordSalt.Length == 0 || hashIterations <= 0;
         }
 
         private static PasswordSecret CreatePasswordSecret(string password)

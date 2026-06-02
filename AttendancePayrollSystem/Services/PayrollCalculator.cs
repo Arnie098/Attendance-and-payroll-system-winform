@@ -11,7 +11,7 @@ namespace AttendancePayrollSystem.Services
         private readonly AttendanceRepository _attendanceRepo = new();
         private readonly LeaveRequestRepository _leaveRequestRepository = new();
 
-        public Payroll CalculatePayroll(Employee employee, DateTime periodStart, DateTime periodEnd)
+        public Payroll CalculatePayroll(Employee employee, DateTime periodStart, DateTime periodEnd, decimal manualDeduction = 0m, string manualDeductionNote = "")
         {
             var attendances = _attendanceRepo.GetAttendanceByEmployee(employee.EmployeeId, periodStart, periodEnd);
             var approvedPaidLeaveDates = _leaveRequestRepository.GetApprovedPaidLeaveDates(employee.EmployeeId, periodStart, periodEnd);
@@ -62,9 +62,10 @@ namespace AttendancePayrollSystem.Services
             var minuteRate = employee.HourlyRate / 60m;
             var tardinessDeduction = RoundCurrency(totalTardinessMinutes * minuteRate);
 
-            // Total deductions = statutory + tardiness
+            // Total deductions = statutory + tardiness + manual
             var statutoryDeductions = RoundCurrency(Math.Min(grossPay, CalculateDeductions(grossPay)));
-            var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction);
+            var manualDed = RoundCurrency(Math.Max(0m, manualDeduction));
+            var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction + manualDed);
             var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
 
             return new Payroll
@@ -81,7 +82,9 @@ namespace AttendancePayrollSystem.Services
                 EmployeeName = employee.FullName,
                 EmployeeCode = employee.EmployeeCode,
                 TotalTardinessMinutes = totalTardinessMinutes,
-                TardinessDeduction = tardinessDeduction
+                TardinessDeduction = tardinessDeduction,
+                ManualDeduction = manualDed,
+                ManualDeductionNote = manualDeductionNote ?? string.Empty
             };
         }
 

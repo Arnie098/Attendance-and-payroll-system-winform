@@ -28,5 +28,16 @@ namespace AttendancePayrollSystem.Models
         /// This is already included in Deductions.
         /// </summary>
         public decimal TardinessDeduction { get; set; }
+
+        /// <summary>
+        /// Manual/additional deduction amount entered by the admin.
+        /// This is already included in Deductions.
+        /// </summary>
+        public decimal ManualDeduction { get; set; }
+
+        /// <summary>
+        /// Optional note describing the reason for the manual deduction.
+        /// </summary>
+        public string ManualDeductionNote { get; set; } = string.Empty;
     }
 }

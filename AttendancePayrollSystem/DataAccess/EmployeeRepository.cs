@@ -122,6 +122,32 @@ namespace AttendancePayrollSystem.DataAccess
             MySqlOfflineSyncService.QueueEmployeeUpsert(employee.EmployeeId);
         }
 
+        public void UpdateAdminManagedFields(Employee employee)
+        {
+            if (SupabaseConfig.UseApi)
+            {
+                UpdateAdminManagedFieldsViaApi(employee);
+                return;
+            }
+
+            const string sql = @"
+                UPDATE Employees
+                SET Position = @Position,
+                    Department = @Department,
+                    HourlyRate = @HourlyRate
+                WHERE EmployeeId = @EmployeeId";
+
+            using var connection = DatabaseHelper.GetConnection();
+            using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@EmployeeId", employee.EmployeeId);
+            command.Parameters.AddWithValue("@Position", ToDbValue(employee.Position));
+            command.Parameters.AddWithValue("@Department", ToDbValue(employee.Department));
+            command.Parameters.AddWithValue("@HourlyRate", employee.HourlyRate);
+            connection.Open();
+            command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueEmployeeUpsert(employee.EmployeeId);
+        }
+
         public void UpdateProfileImage(int employeeId, byte[]? profileImage)
         {
             if (SupabaseConfig.UseApi)
@@ -139,6 +165,28 @@ namespace AttendancePayrollSystem.DataAccess
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@EmployeeId", employeeId);
             command.Parameters.AddWithValue("@ProfileImage", profileImage is null ? DBNull.Value : profileImage);
+            connection.Open();
+            command.ExecuteNonQuery();
+            MySqlOfflineSyncService.QueueEmployeeUpsert(employeeId);
+        }
+
+        public void UpdateBiometricTemplate(int employeeId, byte[]? biometricTemplate)
+        {
+            if (SupabaseConfig.UseApi)
+            {
+                UpdateBiometricTemplateViaApi(employeeId, biometricTemplate);
+                return;
+            }
+
+            const string sql = @"
+                UPDATE Employees
+                SET BiometricTemplate = @BiometricTemplate
+                WHERE EmployeeId = @EmployeeId";
+
+            using var connection = DatabaseHelper.GetConnection();
+            using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@EmployeeId", employeeId);
+            command.Parameters.AddWithValue("@BiometricTemplate", biometricTemplate is null ? DBNull.Value : biometricTemplate);
             connection.Open();
             command.ExecuteNonQuery();
             MySqlOfflineSyncService.QueueEmployeeUpsert(employeeId);
@@ -192,7 +240,7 @@ namespace AttendancePayrollSystem.DataAccess
                 "employees",
                 new Dictionary<string, string>
                 {
-                    ["select"] = "employeeid,employeecode,fullname,email,phone,position,department,hourlyrate,hiredate,isactive,profileimage",
+                    ["select"] = "employeeid,employeecode,fullname,email,phone,position,department,hourlyrate,hiredate,isactive,profileimage,biometrictemplate",
                     ["order"] = "fullname.asc"
                 }).ConvertAll(MapApiEmployee);
         }
@@ -203,7 +251,7 @@ namespace AttendancePayrollSystem.DataAccess
                 "employees",
                 new Dictionary<string, string>
                 {
-                    ["select"] = "employeeid,employeecode,fullname,email,phone,position,department,hourlyrate,hiredate,isactive,profileimage",
+                    ["select"] = "employeeid,employeecode,fullname,email,phone,position,department,hourlyrate,hiredate,isactive,profileimage,biometrictemplate",
                     ["employeeid"] = $"eq.{employeeId}",
                     ["limit"] = "1"
                 });
@@ -228,6 +276,22 @@ namespace AttendancePayrollSystem.DataAccess
                 });
         }
 
+        private static void UpdateAdminManagedFieldsViaApi(Employee employee)
+        {
+            SupabaseRestClient.Update(
+                "employees",
+                new
+                {
+                    position = ToApiValue(employee.Position),
+                    department = ToApiValue(employee.Department),
+                    hourlyrate = employee.HourlyRate
+                },
+                new Dictionary<string, string>
+                {
+                    ["employeeid"] = $"eq.{employee.EmployeeId}"
+                });
+        }
+
         private static void UpdateProfileImageViaApi(int employeeId, byte[]? profileImage)
         {
             SupabaseRestClient.Update(
@@ -235,6 +299,20 @@ namespace AttendancePayrollSystem.DataAccess
                 new
                 {
                     profileimage = ToApiByteaValue(profileImage)
+                },
+                new Dictionary<string, string>
+                {
+                    ["employeeid"] = $"eq.{employeeId}"
+                });
+        }
+
+        private static void UpdateBiometricTemplateViaApi(int employeeId, byte[]? biometricTemplate)
+        {
+            SupabaseRestClient.Update(
+                "employees",
+                new
+                {
+                    biometrictemplate = ToApiByteaValue(biometricTemplate)
                 },
                 new Dictionary<string, string>
                 {
@@ -269,7 +347,8 @@ namespace AttendancePayrollSystem.DataAccess
                 hourlyrate = employee.HourlyRate,
                 hiredate = employee.HireDate.Date,
                 isactive = employee.IsActive,
-                profileimage = ToApiByteaValue(employee.ProfileImage)
+                profileimage = ToApiByteaValue(employee.ProfileImage),
+                biometrictemplate = ToApiByteaValue(employee.BiometricTemplate)
             };
         }
 
@@ -336,7 +415,8 @@ namespace AttendancePayrollSystem.DataAccess
                 HourlyRate = record.HourlyRate,
                 HireDate = record.HireDate,
                 IsActive = record.IsActive,
-                ProfileImage = ParseBytea(record.ProfileImage)
+                ProfileImage = ParseBytea(record.ProfileImage),
+                BiometricTemplate = ParseBytea(record.BiometricTemplate)
             };
         }
 
@@ -374,6 +454,7 @@ namespace AttendancePayrollSystem.DataAccess
             public DateTime HireDate { get; set; }
             public bool IsActive { get; set; }
             public string? ProfileImage { get; set; }
+            public string? BiometricTemplate { get; set; }
         }
     }
 }

@@ -43,7 +43,7 @@ namespace AttendancePayrollSystem.DataAccess
                 teachers.Add(new SchoolTeacherRecord
                 {
                     TeacherId = Convert.ToInt64(reader["TeacherId"]),
-                    UserId = Convert.ToInt64(reader["UserId"]),
+                    UserId = reader["UserId"] is DBNull ? null : Convert.ToInt64(reader["UserId"]),
                     EmployeeNo = Convert.ToString(reader["EmployeeNo"]) ?? string.Empty,
                     FirstName = Convert.ToString(reader["FirstName"]) ?? string.Empty,
                     LastName = Convert.ToString(reader["LastName"]) ?? string.Empty,
@@ -66,7 +66,7 @@ namespace AttendancePayrollSystem.DataAccess
     public sealed class SchoolTeacherRecord
     {
         public long TeacherId { get; set; }
-        public long UserId { get; set; }
+        public long? UserId { get; set; }
         public string EmployeeNo { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;

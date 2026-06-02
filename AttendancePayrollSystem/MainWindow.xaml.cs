@@ -11,6 +11,7 @@ namespace AttendancePayrollSystem
         private readonly AdminDashboardViewModel _dashboardViewModel;
         private readonly string _currentUsername;
         private bool _isRefreshingRuntimeData;
+        private bool _hasShownLoginNotifications;
 
         public MainWindow(string currentUsername = "admin")
         {
@@ -25,6 +26,7 @@ namespace AttendancePayrollSystem
         {
             Loaded -= MainWindow_Loaded;
             await RefreshRuntimeDataAsync(showSyncError: false);
+            ShowLoginNotifications();
         }
 
         public async Task RefreshRuntimeDataAsync(bool showSyncError = true)
@@ -136,6 +138,29 @@ namespace AttendancePayrollSystem
             Application.Current.MainWindow = loginWindow;
             loginWindow.Show();
             Close();
+        }
+
+        private void ShowLoginNotifications()
+        {
+            if (_hasShownLoginNotifications)
+            {
+                return;
+            }
+
+            try
+            {
+                _hasShownLoginNotifications = true;
+                var snapshot = new Services.LoginNotificationService().BuildSnapshot(_currentUsername, isEmployeeAudience: false);
+                var window = new LoginNotificationsWindow(snapshot)
+                {
+                    Owner = this
+                };
+                window.ShowDialog();
+            }
+            catch
+            {
+                // Notification popup should not block dashboard access if summary loading fails.
+            }
         }
     }
 }

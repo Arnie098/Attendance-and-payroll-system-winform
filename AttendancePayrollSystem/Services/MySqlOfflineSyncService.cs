@@ -15,6 +15,7 @@ namespace AttendancePayrollSystem.Services
         private static readonly object _syncGate = new();
         private static bool _syncInProgress;
         private static DateTime _lastOfflineMirrorRefreshUtc = DateTime.MinValue;
+        private static string OfflineStoreLabel => $"local {GetOfflineStoreLabel()}";
 
         public static bool IsEnabled =>
             !SupabaseConfig.UseApi && DatabaseHelper.IsOfflineConfigured();
@@ -29,6 +30,7 @@ namespace AttendancePayrollSystem.Services
         {
             if (SupabaseConfig.UseApi)
             {
+                DatabaseRuntimeState.SetPreferredMode(false);
                 DatabaseRuntimeState.SetRuntimeState(
                     useOfflineDatabase: false,
                     isOnlineAvailable: false,
@@ -40,15 +42,10 @@ namespace AttendancePayrollSystem.Services
 
             var offlineAvailable = EnsureOfflineDatabaseReady(out var offlineMessage);
             var onlineAvailable = DatabaseHelper.CanConnect(DatabaseConnectionTarget.Online, out var onlineMessage);
+            var preferOffline = offlineAvailable && DatabaseRuntimeState.PreferOfflineDatabase;
 
             if (onlineAvailable)
             {
-                DatabaseRuntimeState.SetRuntimeState(
-                    useOfflineDatabase: false,
-                    isOnlineAvailable: true,
-                    isOfflineDatabaseAvailable: offlineAvailable,
-                    statusMessage: string.Empty);
-
                 try
                 {
                     var onlineDetails = EnsureOnlineDatabaseReady();
@@ -64,29 +61,40 @@ namespace AttendancePayrollSystem.Services
                         RefreshOfflineMirrorFromOnline();
                     }
 
-                    var statusMessage = offlineAvailable
-                        ? $"Online database ready. Local MySQL offline mirror is synchronized. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
-                        : $"Online database ready. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}";
+                    var statusMessage = preferOffline
+                        ? $"Offline database selected. Using the {OfflineStoreLabel} while the online database remains available for synchronization.\nOnline target: {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
+                        : offlineAvailable
+                            ? $"Online database ready. {OfflineStoreLabel} is synchronized. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
+                            : $"Online database ready. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}";
+                    if (!preferOffline && offlineAvailable)
+                    {
+                        statusMessage = $"{statusMessage}\nOffline target: {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Offline)}";
+                    }
 
                     if (!string.IsNullOrWhiteSpace(onlineDetails))
                     {
                         statusMessage = $"{statusMessage}\n{onlineDetails}";
                     }
 
+                    if (offlineAvailable)
+                    {
+                        statusMessage = $"{statusMessage}\nPending sync operations: {GetPendingOperationCount()}";
+                    }
+
                     DatabaseRuntimeState.SetRuntimeState(
-                        useOfflineDatabase: false,
+                        useOfflineDatabase: preferOffline,
                         isOnlineAvailable: true,
                         isOfflineDatabaseAvailable: offlineAvailable,
                         statusMessage: statusMessage);
 
-                    return new OfflineSyncInitializationResult(true, false, 0, statusMessage);
+                    return new OfflineSyncInitializationResult(true, preferOffline, offlineAvailable ? GetPendingOperationCount() : 0, statusMessage);
                 }
                 catch (Exception ex)
                 {
                     if (offlineAvailable && HasOfflineLoginData())
                     {
                         var warningMessage =
-                            $"Online database initialization failed. The app switched to the local MySQL offline mirror.\n\n{ex.Message}";
+                            $"Online database initialization failed. The app switched to the {OfflineStoreLabel}.\n\n{ex.Message}";
                         DatabaseRuntimeState.SetRuntimeState(
                             useOfflineDatabase: true,
                             isOnlineAvailable: false,
@@ -111,7 +119,7 @@ namespace AttendancePayrollSystem.Services
             {
                 var pendingCount = GetPendingOperationCount();
                 var statusMessage =
-                    $"Offline mode active. Using the local MySQL mirror because the online database is unavailable.\nLocal target: {offlineMessage}\nPending sync operations: {pendingCount}";
+                    $"Offline mode active. Using the {OfflineStoreLabel} because the online database is unavailable.\nLocal target: {offlineMessage}\nPending sync operations: {pendingCount}";
 
                 DatabaseRuntimeState.SetRuntimeState(
                     useOfflineDatabase: true,
@@ -134,7 +142,7 @@ namespace AttendancePayrollSystem.Services
                     {
                         var pendingCount = GetPendingOperationCount();
                         var statusMessage =
-                            $"Offline mode active. Bootstrap admin seeded into the local MySQL mirror.\nLocal target: {offlineMessage}\nPending sync operations: {pendingCount}";
+                            $"Offline mode active. Bootstrap admin seeded into the {OfflineStoreLabel}.\nLocal target: {offlineMessage}\nPending sync operations: {pendingCount}";
 
                         DatabaseRuntimeState.SetRuntimeState(
                             useOfflineDatabase: true,
@@ -152,10 +160,10 @@ namespace AttendancePayrollSystem.Services
             }
 
             var unavailableMessage = offlineAvailable
-                ? $"Cannot reach the online database, and the local MySQL mirror does not have cached login data.\nOnline target error: {onlineMessage}"
+                ? $"Cannot reach the online database, and the {OfflineStoreLabel} does not have cached login data.\nOnline target error: {onlineMessage}"
                 : DatabaseHelper.IsOfflineConfigured()
-                    ? $"Cannot reach the online database and the local MySQL offline connection is not available.\nOnline target error: {onlineMessage}\nOffline target error: {offlineMessage}"
-                    : $"Cannot reach the online database.\n{onlineMessage}\n\nConfigure ATTENDANCE_OFFLINE_DB_CONNECTION for local MySQL offline support.";
+                    ? $"Cannot reach the online database and the {OfflineStoreLabel} is not available.\nOnline target error: {onlineMessage}\nOffline target error: {offlineMessage}"
+                    : $"Cannot reach the online database.\n{onlineMessage}\n\nConfigure ATTENDANCE_OFFLINE_DB_CONNECTION for local offline support.";
 
             DatabaseRuntimeState.SetRuntimeState(
                 useOfflineDatabase: false,
@@ -191,6 +199,7 @@ namespace AttendancePayrollSystem.Services
             {
                 var offlineAvailable = EnsureOfflineDatabaseReady(out var offlineMessage);
                 var onlineAvailable = DatabaseHelper.CanConnect(DatabaseConnectionTarget.Online, out var onlineMessage);
+                var preferOffline = offlineAvailable && DatabaseRuntimeState.PreferOfflineDatabase;
 
                 if (!onlineAvailable)
                 {
@@ -198,7 +207,7 @@ namespace AttendancePayrollSystem.Services
                     {
                         var offlinePendingCount = GetPendingOperationCount();
                         var offlineStatusMessage =
-                            $"Offline mode active. Using the local MySQL mirror because the online database is unavailable.\nLocal target: {offlineMessage}\nPending sync operations: {offlinePendingCount}";
+                            $"Offline mode active. Using the {OfflineStoreLabel} because the online database is unavailable.\nLocal target: {offlineMessage}\nPending sync operations: {offlinePendingCount}";
 
                         DatabaseRuntimeState.SetRuntimeState(
                             useOfflineDatabase: true,
@@ -219,12 +228,6 @@ namespace AttendancePayrollSystem.Services
                     return new OfflineSyncInitializationResult(false, false, 0, errorMessage);
                 }
 
-                DatabaseRuntimeState.SetRuntimeState(
-                    useOfflineDatabase: false,
-                    isOnlineAvailable: true,
-                    isOfflineDatabaseAvailable: offlineAvailable,
-                    statusMessage: DatabaseRuntimeState.StatusMessage);
-
                 var onlineDetails = EnsureOnlineDatabaseReady();
                 var pendingCountBeforeSync = offlineAvailable ? GetPendingOperationCount() : 0;
 
@@ -240,9 +243,15 @@ namespace AttendancePayrollSystem.Services
                 }
 
                 var pendingCount = offlineAvailable ? GetPendingOperationCount() : 0;
-                var statusMessage = offlineAvailable
-                    ? $"Online database ready. Local MySQL offline mirror is synchronized. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
-                    : $"Online database ready. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}";
+                var statusMessage = preferOffline
+                    ? $"Offline database selected. Using the {OfflineStoreLabel} while the online database remains available for synchronization.\nOnline target: {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
+                    : offlineAvailable
+                        ? $"Online database ready. {OfflineStoreLabel} is synchronized. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}"
+                        : $"Online database ready. {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Online)}";
+                if (!preferOffline && offlineAvailable)
+                {
+                    statusMessage = $"{statusMessage}\nOffline target: {DatabaseHelper.GetConnectionSummary(DatabaseConnectionTarget.Offline)}";
+                }
 
                 if (!string.IsNullOrWhiteSpace(onlineDetails))
                 {
@@ -255,19 +264,19 @@ namespace AttendancePayrollSystem.Services
                 }
 
                 DatabaseRuntimeState.SetRuntimeState(
-                    useOfflineDatabase: false,
+                    useOfflineDatabase: preferOffline,
                     isOnlineAvailable: true,
                     isOfflineDatabaseAvailable: offlineAvailable,
                     statusMessage: statusMessage);
 
-                return new OfflineSyncInitializationResult(true, false, pendingCount, statusMessage);
+                return new OfflineSyncInitializationResult(true, preferOffline, pendingCount, statusMessage);
             }
             catch (Exception ex)
             {
                 if (DatabaseHelper.CanConnect(DatabaseConnectionTarget.Offline, out var offlineTargetMessage) && HasOfflineLoginData())
                 {
                     var fallbackMessage =
-                        $"Synchronization warning. The app switched to the local MySQL offline mirror.\nLocal target: {offlineTargetMessage}\n\n{ex.Message}";
+                        $"Synchronization warning. The app switched to the {OfflineStoreLabel}.\nLocal target: {offlineTargetMessage}\n\n{ex.Message}";
 
                     DatabaseRuntimeState.SetRuntimeState(
                         useOfflineDatabase: true,
@@ -278,7 +287,7 @@ namespace AttendancePayrollSystem.Services
                     return new OfflineSyncInitializationResult(true, true, GetPendingOperationCount(), fallbackMessage);
                 }
 
-                var errorMessage = $"Failed to synchronize the local MySQL mirror.\n\n{ex.Message}";
+                var errorMessage = $"Failed to synchronize the {OfflineStoreLabel}.\n\n{ex.Message}";
                 DatabaseRuntimeState.SetRuntimeState(
                     useOfflineDatabase: false,
                     isOnlineAvailable: false,
@@ -360,7 +369,7 @@ namespace AttendancePayrollSystem.Services
         {
             if (!DatabaseHelper.IsOfflineConfigured())
             {
-                message = "Local MySQL mirror is not configured.";
+                message = $"Local {GetOfflineStoreLabel()} is not configured.";
                 return false;
             }
 
@@ -436,10 +445,9 @@ namespace AttendancePayrollSystem.Services
                 using var command = new MySqlCommand($@"
                     INSERT INTO {SyncQueueTableName} (EntityType, OperationType, RecordId, ScopeKey)
                     VALUES (@EntityType, @OperationType, @RecordId, @ScopeKey)
-                    ON DUPLICATE KEY UPDATE
-                        OperationType = VALUES(OperationType),
-                        ScopeKey = VALUES(ScopeKey),
-                        CreatedAt = CURRENT_TIMESTAMP", connection, transaction);
+                    {(connection.Provider == DatabaseProvider.Sqlite
+                        ? "ON CONFLICT(EntityType, RecordId) DO UPDATE SET OperationType = excluded.OperationType, ScopeKey = excluded.ScopeKey, CreatedAt = CURRENT_TIMESTAMP"
+                        : "ON DUPLICATE KEY UPDATE OperationType = VALUES(OperationType), ScopeKey = VALUES(ScopeKey), CreatedAt = CURRENT_TIMESTAMP")}", connection, transaction);
 
                 command.Parameters.AddWithValue("@EntityType", entityType);
                 command.Parameters.AddWithValue("@OperationType", operationType);
@@ -521,7 +529,12 @@ namespace AttendancePayrollSystem.Services
             {
                 EnsureSyncQueueTable(offlineConnection, transaction);
 
-                using (var disableForeignKeys = new MySqlCommand("SET FOREIGN_KEY_CHECKS = 0;", offlineConnection, transaction))
+                using (var disableForeignKeys = new MySqlCommand(
+                    offlineConnection.Provider == DatabaseProvider.Sqlite
+                        ? "PRAGMA foreign_keys = OFF;"
+                        : "SET FOREIGN_KEY_CHECKS = 0;",
+                    offlineConnection,
+                    transaction))
                 {
                     disableForeignKeys.ExecuteNonQuery();
                 }
@@ -545,7 +558,12 @@ namespace AttendancePayrollSystem.Services
                 EnsureOfflineIdentityFloor(offlineConnection, transaction, "PayrollRecords", "PayrollId");
                 EnsureOfflineIdentityFloor(offlineConnection, transaction, "UserAccounts", "UserAccountId");
 
-                using (var enableForeignKeys = new MySqlCommand("SET FOREIGN_KEY_CHECKS = 1;", offlineConnection, transaction))
+                using (var enableForeignKeys = new MySqlCommand(
+                    offlineConnection.Provider == DatabaseProvider.Sqlite
+                        ? "PRAGMA foreign_keys = ON;"
+                        : "SET FOREIGN_KEY_CHECKS = 1;",
+                    offlineConnection,
+                    transaction))
                 {
                     enableForeignKeys.ExecuteNonQuery();
                 }
@@ -692,7 +710,7 @@ namespace AttendancePayrollSystem.Services
         {
             using var selectCommand = new MySqlCommand(@"
                 SELECT PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours,
-                       GrossPay, Deductions, NetPay, Status, CreatedAt
+                       GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
                 FROM PayrollRecords
                 ORDER BY PayrollId", onlineConnection);
 
@@ -701,9 +719,9 @@ namespace AttendancePayrollSystem.Services
             {
                 using var insertCommand = new MySqlCommand(@"
                     INSERT INTO PayrollRecords
-                    (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, Status, CreatedAt)
+                    (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
                     VALUES
-                    (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @Status, @CreatedAt)",
+                    (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)",
                     offlineConnection,
                     transaction);
 
@@ -716,6 +734,8 @@ namespace AttendancePayrollSystem.Services
                 insertCommand.Parameters.AddWithValue("@GrossPay", Convert.ToDecimal(reader["GrossPay"]));
                 insertCommand.Parameters.AddWithValue("@Deductions", Convert.ToDecimal(reader["Deductions"]));
                 insertCommand.Parameters.AddWithValue("@NetPay", Convert.ToDecimal(reader["NetPay"]));
+                insertCommand.Parameters.AddWithValue("@ManualDeduction", reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]));
+                insertCommand.Parameters.AddWithValue("@ManualDeductionNote", reader["ManualDeductionNote"] is DBNull ? string.Empty : Convert.ToString(reader["ManualDeductionNote"]) ?? string.Empty);
                 insertCommand.Parameters.AddWithValue("@Status", Convert.ToString(reader["Status"]) ?? string.Empty);
                 insertCommand.Parameters.AddWithValue("@CreatedAt", reader["CreatedAt"] is DBNull ? DateTime.UtcNow : reader["CreatedAt"]);
                 insertCommand.ExecuteNonQuery();
@@ -993,9 +1013,9 @@ namespace AttendancePayrollSystem.Services
 
             using var command = new MySqlCommand(@"
                 INSERT INTO PayrollRecords
-                (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, Status, CreatedAt)
+                (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
                 VALUES
-                (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @Status, @CreatedAt)
+                (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)
                 ON DUPLICATE KEY UPDATE
                     EmployeeId = VALUES(EmployeeId),
                     PayPeriodStart = VALUES(PayPeriodStart),
@@ -1005,6 +1025,8 @@ namespace AttendancePayrollSystem.Services
                     GrossPay = VALUES(GrossPay),
                     Deductions = VALUES(Deductions),
                     NetPay = VALUES(NetPay),
+                    ManualDeduction = VALUES(ManualDeduction),
+                    ManualDeductionNote = VALUES(ManualDeductionNote),
                     Status = VALUES(Status)",
                 onlineConnection,
                 onlineTransaction);
@@ -1139,7 +1161,7 @@ namespace AttendancePayrollSystem.Services
         {
             using var command = new MySqlCommand(@"
                 SELECT PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours,
-                       GrossPay, Deductions, NetPay, Status, CreatedAt
+                       GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
                 FROM PayrollRecords
                 WHERE PayrollId = @PayrollId
                 LIMIT 1", connection);
@@ -1162,6 +1184,8 @@ namespace AttendancePayrollSystem.Services
                 GrossPay = Convert.ToDecimal(reader["GrossPay"]),
                 Deductions = Convert.ToDecimal(reader["Deductions"]),
                 NetPay = Convert.ToDecimal(reader["NetPay"]),
+                ManualDeduction = reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]),
+                ManualDeductionNote = reader["ManualDeductionNote"] is DBNull ? string.Empty : Convert.ToString(reader["ManualDeductionNote"]) ?? string.Empty,
                 Status = Convert.ToString(reader["Status"]) ?? string.Empty,
                 CreatedAt = reader["CreatedAt"] is DBNull ? DateTime.UtcNow : Convert.ToDateTime(reader["CreatedAt"])
             };
@@ -1179,20 +1203,32 @@ namespace AttendancePayrollSystem.Services
 
         private static void EnsureSyncQueueTable(MySqlConnection connection, MySqlTransaction transaction)
         {
-            using var command = new MySqlCommand($@"
-                CREATE TABLE IF NOT EXISTS {SyncQueueTableName}
-                (
-                    SyncQueueId BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    EntityType VARCHAR(30) NOT NULL,
-                    OperationType VARCHAR(20) NOT NULL,
-                    RecordId INT NOT NULL,
-                    ScopeKey VARCHAR(50) NOT NULL,
-                    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY UQ_{SyncQueueTableName}_EntityRecord (EntityType, RecordId),
-                    INDEX IX_{SyncQueueTableName}_ScopeCreated (ScopeKey, CreatedAt)
-                ) ENGINE=InnoDB;",
-                connection,
-                transaction);
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? $@"
+                    CREATE TABLE IF NOT EXISTS {SyncQueueTableName}
+                    (
+                        SyncQueueId INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        EntityType TEXT NOT NULL,
+                        OperationType TEXT NOT NULL,
+                        RecordId INTEGER NOT NULL,
+                        ScopeKey TEXT NOT NULL,
+                        CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE (EntityType, RecordId)
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_{SyncQueueTableName}_ScopeCreated ON {SyncQueueTableName} (ScopeKey, CreatedAt);"
+                : $@"
+                    CREATE TABLE IF NOT EXISTS {SyncQueueTableName}
+                    (
+                        SyncQueueId BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        EntityType VARCHAR(30) NOT NULL,
+                        OperationType VARCHAR(20) NOT NULL,
+                        RecordId INT NOT NULL,
+                        ScopeKey VARCHAR(50) NOT NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE KEY UQ_{SyncQueueTableName}_EntityRecord (EntityType, RecordId),
+                        INDEX IX_{SyncQueueTableName}_ScopeCreated (ScopeKey, CreatedAt)
+                    ) ENGINE=InnoDB;";
+            using var command = new MySqlCommand(sql, connection, transaction);
             command.ExecuteNonQuery();
         }
 
@@ -1204,6 +1240,30 @@ namespace AttendancePayrollSystem.Services
                 transaction);
             var currentMax = Convert.ToInt64(maxCommand.ExecuteScalar());
             var nextAutoIncrement = Math.Max(currentMax + 1, OfflineIdentityFloor);
+
+            if (connection.Provider == DatabaseProvider.Sqlite)
+            {
+                using var updateCommand = new MySqlCommand(
+                    "UPDATE sqlite_sequence SET seq = MAX(seq, @NextValue) WHERE name = @TableName",
+                    connection,
+                    transaction);
+                updateCommand.Parameters.AddWithValue("@TableName", tableName);
+                updateCommand.Parameters.AddWithValue("@NextValue", nextAutoIncrement - 1);
+                var rowsAffected = updateCommand.ExecuteNonQuery();
+
+                if (rowsAffected == 0)
+                {
+                    using var insertCommand = new MySqlCommand(
+                        "INSERT INTO sqlite_sequence(name, seq) VALUES (@TableName, @NextValue)",
+                        connection,
+                        transaction);
+                    insertCommand.Parameters.AddWithValue("@TableName", tableName);
+                    insertCommand.Parameters.AddWithValue("@NextValue", nextAutoIncrement - 1);
+                    insertCommand.ExecuteNonQuery();
+                }
+
+                return;
+            }
 
             using var alterCommand = new MySqlCommand(
                 $"ALTER TABLE {tableName} AUTO_INCREMENT = {nextAutoIncrement}",
@@ -1282,6 +1342,8 @@ namespace AttendancePayrollSystem.Services
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
+            command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
+            command.Parameters.AddWithValue("@ManualDeductionNote", payroll.ManualDeductionNote ?? string.Empty);
             command.Parameters.AddWithValue("@Status", payroll.Status);
         }
 
@@ -1301,6 +1363,13 @@ namespace AttendancePayrollSystem.Services
 
         private static string BuildScopeKey(int employeeId) =>
             $"employee:{employeeId}";
+
+        private static string GetOfflineStoreLabel()
+        {
+            return DatabaseHelper.UsesSqlite(DatabaseConnectionTarget.Offline)
+                ? "SQLite offline store"
+                : "MySQL mirror";
+        }
 
         private static bool GetOptionalBool(string envVar, bool defaultValue)
         {
@@ -1334,6 +1403,8 @@ namespace AttendancePayrollSystem.Services
             public decimal GrossPay { get; init; }
             public decimal Deductions { get; init; }
             public decimal NetPay { get; init; }
+            public decimal ManualDeduction { get; init; }
+            public string ManualDeductionNote { get; init; } = string.Empty;
             public string Status { get; init; } = string.Empty;
             public DateTime CreatedAt { get; init; }
         }

@@ -101,4 +101,14 @@
         <Setter Property="Padding" Value="10,6" />
     </Style>
 
+    <Style x:Key="ModernPasswordBox" TargetType="PasswordBox">
+        <Setter Property="Margin" Value="0,8,0,8" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Foreground" Value="{StaticResource BodyBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+    </Style>
+
 </ResourceDictionary>

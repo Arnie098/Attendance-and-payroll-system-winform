@@ -3,8 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:AttendancePayrollSystem.Views"
         Title="Admin Dashboard - Attendance and Payroll System"
-        Height="900"
+        Height="980"
+        MinHeight="900"
         Width="1450"
+        MinWidth="1280"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#082C3C">

@@ -49,9 +49,25 @@ namespace AttendancePayrollSystem
                 return;
             }
 
+            decimal manualDeduction = 0m;
+            if (!string.IsNullOrWhiteSpace(ManualDeductionAmountTextBox.Text) &&
+                !decimal.TryParse(ManualDeductionAmountTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out manualDeduction))
+            {
+                MessageBox.Show("Manual deduction must be a valid number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (manualDeduction < 0)
+            {
+                MessageBox.Show("Manual deduction cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var manualDeductionNote = ManualDeductionNoteTextBox.Text.Trim();
+
             try
             {
-                var payroll = _payrollCalculator.CalculatePayroll(_employee, _viewModel.PeriodStart.Value, _viewModel.PeriodEnd.Value);
+                var payroll = _payrollCalculator.CalculatePayroll(_employee, _viewModel.PeriodStart.Value, _viewModel.PeriodEnd.Value, manualDeduction, manualDeductionNote);
                 var existingPayroll = _payrollRepository.GetPayrollByEmployeeAndPeriod(
                     _employee.EmployeeId,
                     payroll.PayPeriodStart,
@@ -72,8 +88,9 @@ namespace AttendancePayrollSystem
 
                 LoadPayrolls();
 
+                var manualNote = manualDeduction > 0 ? $"\nManual Deduction: PHP {manualDeduction:N2}" : string.Empty;
                 MessageBox.Show(
-                    $"Payroll {action}.\nGross: PHP {payroll.GrossPay:N2}\nNet: PHP {payroll.NetPay:N2}",
+                    $"Payroll {action}.\nGross: PHP {payroll.GrossPay:N2}{manualNote}\nNet: PHP {payroll.NetPay:N2}",
                     "Payroll Calculated",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -101,6 +118,8 @@ namespace AttendancePayrollSystem
             ManualGrossPayTextBox.Text = selected.GrossPay.ToString("N2", CultureInfo.InvariantCulture);
             ManualDeductionsTextBox.Text = selected.Deductions.ToString("N2", CultureInfo.InvariantCulture);
             ManualNetPayTextBox.Text = selected.NetPay.ToString("N2", CultureInfo.InvariantCulture);
+            ManualManualDeductionTextBox.Text = selected.ManualDeduction.ToString("N2", CultureInfo.InvariantCulture);
+            ManualManualDeductionNoteTextBox.Text = selected.ManualDeductionNote;
             SelectStatus(selected.Status);
         }
 
@@ -225,6 +244,20 @@ namespace AttendancePayrollSystem
                 return false;
             }
 
+            decimal manualDed = 0m;
+            if (!string.IsNullOrWhiteSpace(ManualManualDeductionTextBox.Text) &&
+                !decimal.TryParse(ManualManualDeductionTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out manualDed))
+            {
+                MessageBox.Show("Manual deduction must be a valid number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (manualDed < 0)
+            {
+                MessageBox.Show("Manual deduction cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
             payroll.PayPeriodStart = ManualPeriodStartPicker.SelectedDate.Value.Date;
             payroll.PayPeriodEnd = ManualPeriodEndPicker.SelectedDate.Value.Date;
             payroll.RegularHours = regularHours;
@@ -232,6 +265,8 @@ namespace AttendancePayrollSystem
             payroll.GrossPay = grossPay;
             payroll.Deductions = deductions;
             payroll.NetPay = netPay;
+            payroll.ManualDeduction = manualDed;
+            payroll.ManualDeductionNote = ManualManualDeductionNoteTextBox.Text.Trim();
             payroll.Status = GetSelectedStatus();
             payroll.EmployeeName = _employee.FullName;
             payroll.EmployeeCode = _employee.EmployeeCode;
@@ -247,6 +282,8 @@ namespace AttendancePayrollSystem
             ManualGrossPayTextBox.Text = "0.00";
             ManualDeductionsTextBox.Text = "0.00";
             ManualNetPayTextBox.Text = "0.00";
+            ManualManualDeductionTextBox.Text = "0.00";
+            ManualManualDeductionNoteTextBox.Text = string.Empty;
             ManualStatusComboBox.SelectedIndex = 0;
         }
 

@@ -39,7 +39,7 @@ namespace AttendancePayrollSystem.Services
 
             try
             {
-                var builder = new MySqlConnectionStringBuilder(rawConnectionString);
+                var builder = new MySqlConnector.MySqlConnectionStringBuilder(rawConnectionString);
                 return new DatabaseConnectionSettings
                 {
                     Server = builder.Server ?? string.Empty,
@@ -64,7 +64,7 @@ namespace AttendancePayrollSystem.Services
                 ? parsedSslMode
                 : MySqlSslMode.None;
 
-            var builder = new MySqlConnectionStringBuilder
+            var builder = new MySqlConnector.MySqlConnectionStringBuilder
             {
                 Server = settings.Server.Trim(),
                 Port = settings.Port == 0 ? 3306 : settings.Port,

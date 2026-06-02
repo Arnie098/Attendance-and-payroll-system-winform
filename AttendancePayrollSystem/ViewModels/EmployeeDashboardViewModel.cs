@@ -16,6 +16,8 @@ namespace AttendancePayrollSystem.ViewModels
         private string _timeOutText = "-";
         private byte[]? _profileImage;
         private bool _hasProfileImage;
+        private bool _hasBiometricTemplate;
+        private string _biometricStatusText = "Fingerprint not enrolled.";
         private string _clockActionButtonText = "Open Attendance";
         private bool _isClockActionEnabled = true;
         private string _latestPayrollText = "No payroll records yet.";
@@ -96,6 +98,18 @@ namespace AttendancePayrollSystem.ViewModels
         {
             get => _hasProfileImage;
             set => SetProperty(ref _hasProfileImage, value);
+        }
+
+        public bool HasBiometricTemplate
+        {
+            get => _hasBiometricTemplate;
+            set => SetProperty(ref _hasBiometricTemplate, value);
+        }
+
+        public string BiometricStatusText
+        {
+            get => _biometricStatusText;
+            set => SetProperty(ref _biometricStatusText, value);
         }
 
         public string ClockActionButtonText

@@ -1,0 +1,66 @@
+============================================================
+  INSTALLER / RELEASE BUILD COMMANDS
+============================================================
+
+All commands run from the project root:
+  cd C:\Users\Admin\Downloads\Sir-Dvo-Project
+
+
+------------------------------------------------------------
+1. PUBLISH (Release build, self-contained EXE)
+------------------------------------------------------------
+
+dotnet publish AttendancePayrollSystem\AttendancePayrollSystem.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o dist\publish
+
+
+------------------------------------------------------------
+2. BUILD MSI INSTALLER (requires WiX Toolset v4)
+------------------------------------------------------------
+
+Without .env file (recommended for distribution):
+
+  powershell -ExecutionPolicy Bypass -File Installer\build-installer.ps1
+
+With .env file included:
+
+  powershell -ExecutionPolicy Bypass -File Installer\build-installer.ps1 -IncludeEnvFile
+
+Custom version number:
+
+  powershell -ExecutionPolicy Bypass -File Installer\build-installer.ps1 -ProductVersion "2.1.0"
+
+Output: dist\AttendancePayrollSystem-Setup.msi
+
+
+------------------------------------------------------------
+3. QUICK RELEASE (no installer, just the EXE + DLLs)
+------------------------------------------------------------
+
+dotnet publish AttendancePayrollSystem\AttendancePayrollSystem.csproj -c Release -r win-x64 --self-contained true -o dist\release
+
+
+------------------------------------------------------------
+4. FRAMEWORK-DEPENDENT (smaller, requires .NET 8 on target)
+------------------------------------------------------------
+
+dotnet publish AttendancePayrollSystem\AttendancePayrollSystem.csproj -c Release -o dist\framework-dependent
+
+
+------------------------------------------------------------
+NOTES
+------------------------------------------------------------
+
+- Self-contained builds include .NET runtime (~65MB EXE) so
+  the target machine does NOT need .NET installed.
+
+- Framework-dependent builds are smaller (~5MB) but require
+  .NET 8 Desktop Runtime on the target machine.
+
+- The MSI installer requires WiX Toolset v4. Install with:
+  dotnet tool install --global wix
+
+- The .env file contains database credentials. Do NOT
+  include it in public distributions. Use -IncludeEnvFile
+  only for internal/team deployments.
+
+- Output goes to the dist\ folder by default.

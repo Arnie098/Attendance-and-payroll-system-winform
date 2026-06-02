@@ -170,10 +170,16 @@ namespace AttendancePayrollSystem.DataAccess
                 var existing = GetTodayAttendance(employeeId);
                 if (existing != null)
                 {
+                    var updatedStatus = DetermineAttendanceStatus(
+                        existing.AttendanceDate,
+                        isMorning ? now : existing.TimeInAM,
+                        isMorning ? existing.TimeInPM : now,
+                        existing.Status);
+
                     // Update the appropriate session column
                     var updatePayload = isMorning
-                        ? (object)new { timeinam = now }
-                        : new { timeinpm = now };
+                        ? (object)new { timeinam = now, status = updatedStatus, isbiometricverified = biometricVerified || existing.IsBiometricVerified }
+                        : new { timeinpm = now, status = updatedStatus, isbiometricverified = biometricVerified || existing.IsBiometricVerified };
                     SupabaseRestClient.Update(
                         "attendancerecords",
                         updatePayload,
@@ -184,13 +190,18 @@ namespace AttendancePayrollSystem.DataAccess
                 }
                 else
                 {
+                    var status = DetermineAttendanceStatus(
+                        DateTime.Today,
+                        isMorning ? now : null,
+                        isMorning ? null : now);
+
                     var insertPayload = isMorning
                         ? (object)new
                         {
                             employeeid = employeeId,
                             attendancedate = DateTime.Today,
                             timeinam = now,
-                            status = "Present",
+                            status,
                             isbiometricverified = biometricVerified
                         }
                         : new
@@ -198,7 +209,7 @@ namespace AttendancePayrollSystem.DataAccess
                             employeeid = employeeId,
                             attendancedate = DateTime.Today,
                             timeinpm = now,
-                            status = "Present",
+                            status,
                             isbiometricverified = biometricVerified
                         };
                     SupabaseRestClient.InsertAndReturnSingle<Attendance>("attendancerecords", insertPayload);
@@ -210,15 +221,25 @@ namespace AttendancePayrollSystem.DataAccess
             var todayRecord = GetTodayAttendance(employeeId);
             if (todayRecord != null)
             {
+                var updatedStatus = DetermineAttendanceStatus(
+                    todayRecord.AttendanceDate,
+                    isMorning ? now : todayRecord.TimeInAM,
+                    isMorning ? todayRecord.TimeInPM : now,
+                    todayRecord.Status);
+
                 // Update the appropriate session time-in
                 string sql = $@"
                     UPDATE AttendanceRecords
-                    SET {timeColumn} = @TimeIn
+                    SET {timeColumn} = @TimeIn,
+                        Status = @Status,
+                        IsBiometricVerified = @IsBiometricVerified
                     WHERE AttendanceId = @AttendanceId";
 
                 using var connection = DatabaseHelper.GetConnection();
                 using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@TimeIn", now);
+                command.Parameters.AddWithValue("@Status", updatedStatus);
+                command.Parameters.AddWithValue("@IsBiometricVerified", biometricVerified || todayRecord.IsBiometricVerified);
                 command.Parameters.AddWithValue("@AttendanceId", todayRecord.AttendanceId);
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -226,6 +247,11 @@ namespace AttendancePayrollSystem.DataAccess
             }
             else
             {
+                var status = DetermineAttendanceStatus(
+                    DateTime.Today,
+                    isMorning ? now : null,
+                    isMorning ? null : now);
+
                 // Insert new record with the appropriate session time-in
                 string sql = $@"
                     INSERT INTO AttendanceRecords (EmployeeId, AttendanceDate, {timeColumn}, Status, IsBiometricVerified)
@@ -236,7 +262,7 @@ namespace AttendancePayrollSystem.DataAccess
                 command.Parameters.AddWithValue("@EmployeeId", employeeId);
                 command.Parameters.AddWithValue("@AttendanceDate", DateTime.Today);
                 command.Parameters.AddWithValue("@TimeIn", now);
-                command.Parameters.AddWithValue("@Status", "Present");
+                command.Parameters.AddWithValue("@Status", status);
                 command.Parameters.AddWithValue("@IsBiometricVerified", biometricVerified);
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -471,6 +497,33 @@ namespace AttendancePayrollSystem.DataAccess
                 Status = Convert.ToString(reader["Status"]) ?? string.Empty,
                 IsBiometricVerified = Convert.ToBoolean(reader["IsBiometricVerified"])
             };
+        }
+
+        private static string DetermineAttendanceStatus(
+            DateTime attendanceDate,
+            DateTime? timeInAM,
+            DateTime? timeInPM,
+            string? existingStatus = null)
+        {
+            if (!string.IsNullOrWhiteSpace(existingStatus) && LeavePolicies.IsLeaveAttendanceStatus(existingStatus))
+            {
+                return existingStatus;
+            }
+
+            var isLateMorning = IsLateForSession(attendanceDate, timeInAM, DatabaseConfig.MorningStartTime);
+            var isLateAfternoon = IsLateForSession(attendanceDate, timeInPM, DatabaseConfig.AfternoonStartTime);
+            return isLateMorning || isLateAfternoon ? "Late" : "Present";
+        }
+
+        private static bool IsLateForSession(DateTime attendanceDate, DateTime? actualTimeIn, TimeSpan scheduledStart)
+        {
+            if (!actualTimeIn.HasValue)
+            {
+                return false;
+            }
+
+            var graceEnd = attendanceDate.Date.Add(scheduledStart).AddMinutes(DatabaseConfig.GracePeriodMinutes);
+            return actualTimeIn.Value > graceEnd;
         }
 
         private static int? GetEmployeeId(MySqlConnection connection, int attendanceId)
