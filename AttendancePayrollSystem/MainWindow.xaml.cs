@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.ViewModels;
 
 namespace AttendancePayrollSystem
@@ -9,6 +10,7 @@ namespace AttendancePayrollSystem
     public partial class MainWindow : Window
     {
         private readonly AdminDashboardViewModel _dashboardViewModel;
+        private readonly EmployeeRepository _employeeRepository = new();
         private readonly string _currentUsername;
         private bool _isRefreshingRuntimeData;
         private bool _hasShownLoginNotifications;
@@ -75,7 +77,38 @@ namespace AttendancePayrollSystem
 
         public async Task OpenEmployeeManagementAsync()
         {
-            var window = new EmployeeManagementWindow
+            int? selectedEmployeeId;
+
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+                var employees = await Task.Run(() => _employeeRepository.GetAllEmployees());
+                Mouse.OverrideCursor = null;
+
+                var searchWindow = new EmployeeSearchWindow(employees)
+                {
+                    Owner = this
+                };
+
+                if (searchWindow.ShowDialog() != true || !searchWindow.SelectedEmployeeId.HasValue)
+                {
+                    return;
+                }
+
+                selectedEmployeeId = searchWindow.SelectedEmployeeId.Value;
+            }
+            catch (Exception ex)
+            {
+                Mouse.OverrideCursor = null;
+                MessageBox.Show(
+                    $"Failed to load employees.\n{ex.Message}",
+                    "Employee Search",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            var window = new EmployeeManagementWindow(selectedEmployeeId, promptForInitialSelection: false)
             {
                 Owner = this
             };

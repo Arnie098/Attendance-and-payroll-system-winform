@@ -18,19 +18,34 @@ namespace AttendancePayrollSystem
         private readonly AttendanceRepository _attendanceRepo = new();
         private readonly AuthRepository _authRepository = new();
         private System.Collections.Generic.List<Attendance> _allAttendances = new();
+        private readonly int? _initialEmployeeId;
+        private readonly bool _promptForInitialSelection;
+        private bool _hasPromptedForInitialSelection;
 
-        public EmployeeManagementWindow()
+        public EmployeeManagementWindow(int? initialEmployeeId = null, bool promptForInitialSelection = true)
         {
             InitializeComponent();
+            _initialEmployeeId = initialEmployeeId;
+            _promptForInitialSelection = promptForInitialSelection;
             DataContext = _viewModel;
-            EmployeeDataGrid.ItemsSource = _viewModel.Employees;
             Loaded += EmployeeManagementWindow_Loaded;
         }
 
         private async void EmployeeManagementWindow_Loaded(object sender, RoutedEventArgs e)
         {
             Loaded -= EmployeeManagementWindow_Loaded;
-            await LoadEmployeesAsync();
+                await LoadEmployeesAsync();
+
+                if (_initialEmployeeId.HasValue)
+                {
+                    SelectEmployeeById(_initialEmployeeId.Value);
+                return;
+            }
+
+            if (_promptForInitialSelection)
+            {
+                await PromptForInitialEmployeeSelectionAsync();
+            }
         }
 
         private async Task LoadEmployeesAsync()
@@ -61,6 +76,33 @@ namespace AttendancePayrollSystem
             {
                 Mouse.OverrideCursor = null;
             }
+        }
+
+        private async void FindEmployee_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+                if (_viewModel.Employees.Count == 0)
+                {
+                    await LoadEmployeesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to load employees for search.\n{ex.Message}",
+                    "Employee Search",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+
+            ShowEmployeeSearchDialog();
         }
 
         private async void AddEmployee_Click(object sender, RoutedEventArgs e)
@@ -192,7 +234,6 @@ namespace AttendancePayrollSystem
                 Mouse.OverrideCursor = Cursors.Wait;
                 await Task.Run(() => _employeeRepo.DeleteEmployee(target.EmployeeId));
                 await LoadEmployeesAsync();
-                EmployeeDataGrid.SelectedItem = null;
                 _viewModel.SelectedEmployee = null;
                 AttendanceDataGrid.ItemsSource = null;
                 UpdateEmployeeManagementState();
@@ -205,34 +246,6 @@ namespace AttendancePayrollSystem
             {
                 Mouse.OverrideCursor = null;
             }
-        }
-
-        private async void EmployeeDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (EmployeeDataGrid.SelectedItem is Employee employee)
-            {
-                _viewModel.SelectedEmployee = employee;
-
-                try
-                {
-                    await LoadEmployeeAttendanceAsync(employee.EmployeeId);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        $"Failed to load attendance records.\n{ex.Message}",
-                        "Attendance",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-                }
-            }
-            else
-            {
-                _viewModel.SelectedEmployee = null;
-                AttendanceDataGrid.ItemsSource = null;
-            }
-
-            UpdateEmployeeManagementState();
         }
 
         private async void OpenAttendanceModal_Click(object sender, RoutedEventArgs e)
@@ -285,8 +298,50 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            EmployeeDataGrid.SelectedItem = employee;
-            EmployeeDataGrid.ScrollIntoView(employee);
+            _viewModel.SelectedEmployee = employee;
+            _ = LoadSelectedEmployeeAttendanceAsync(employee.EmployeeId);
+            UpdateEmployeeManagementState();
+        }
+
+        private async Task PromptForInitialEmployeeSelectionAsync()
+        {
+            if (_hasPromptedForInitialSelection || _viewModel.Employees.Count == 0)
+            {
+                return;
+            }
+
+            _hasPromptedForInitialSelection = true;
+            await Task.Yield();
+            ShowEmployeeSearchDialog();
+        }
+
+        private void ShowEmployeeSearchDialog()
+        {
+            var dialog = new EmployeeSearchWindow(_viewModel.Employees, _viewModel.SelectedEmployee?.EmployeeId)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() == true && dialog.SelectedEmployeeId.HasValue)
+            {
+                SelectEmployeeById(dialog.SelectedEmployeeId.Value);
+            }
+        }
+
+        private async Task LoadSelectedEmployeeAttendanceAsync(int employeeId)
+        {
+            try
+            {
+                await LoadEmployeeAttendanceAsync(employeeId);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Failed to load attendance records.\n{ex.Message}",
+                    "Attendance",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         private void RestoreSelectedEmployee(int? employeeId)
@@ -326,6 +381,7 @@ namespace AttendancePayrollSystem
             var hasSelection = _viewModel.SelectedEmployee != null;
             var selectedIsSchoolManaged = EmployeeSourcePolicy.IsSchoolManagedEmployee(_viewModel.SelectedEmployee);
             AddEmployeeButton.IsEnabled = !usesSchoolSource;
+            OpenPayrollHeaderButton.IsEnabled = hasSelection;
             EditEmployeeButton.IsEnabled = hasSelection && (!usesSchoolSource || selectedIsSchoolManaged);
             DeleteEmployeeButton.IsEnabled = !usesSchoolSource && hasSelection;
 
@@ -365,27 +421,6 @@ namespace AttendancePayrollSystem
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
-        }
-
-        private void EmployeeSearchBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            var searchText = EmployeeSearchBox.Text.Trim();
-            if (string.IsNullOrEmpty(searchText))
-            {
-                EmployeeDataGrid.ItemsSource = _viewModel.Employees;
-                return;
-            }
-
-            var filtered = _viewModel.Employees
-                .Where(emp =>
-                    emp.FullName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    emp.EmployeeCode.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    (emp.Position ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    (emp.Department ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    (emp.Email ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            EmployeeDataGrid.ItemsSource = filtered;
         }
 
         private void AttendanceSearchBox_TextChanged(object sender, TextChangedEventArgs e)

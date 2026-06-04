@@ -29,9 +29,6 @@ namespace AttendancePayrollSystem
             _viewModel.PeriodEnd = DateTime.Today;
             _viewModel.PeriodStart = DateTime.Today.AddDays(-14);
             DataContext = _viewModel;
-
-            ManualStatusComboBox.SelectedIndex = 0;
-            ResetForm();
             LoadPayrolls();
         }
 
@@ -103,87 +100,45 @@ namespace AttendancePayrollSystem
 
         private void PayrollDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PayrollDataGrid.SelectedItem is not Payroll selected)
-            {
-                ClearSelectedPayroll();
-                return;
-            }
-
-            _selectedPayroll = selected;
-            _viewModel.HasSelectedPayroll = true;
-            ManualPeriodStartPicker.SelectedDate = selected.PayPeriodStart;
-            ManualPeriodEndPicker.SelectedDate = selected.PayPeriodEnd;
-            ManualRegularHoursTextBox.Text = selected.RegularHours.ToString("N2", CultureInfo.InvariantCulture);
-            ManualOvertimeHoursTextBox.Text = selected.OvertimeHours.ToString("N2", CultureInfo.InvariantCulture);
-            ManualGrossPayTextBox.Text = selected.GrossPay.ToString("N2", CultureInfo.InvariantCulture);
-            ManualDeductionsTextBox.Text = selected.Deductions.ToString("N2", CultureInfo.InvariantCulture);
-            ManualNetPayTextBox.Text = selected.NetPay.ToString("N2", CultureInfo.InvariantCulture);
-            ManualManualDeductionTextBox.Text = selected.ManualDeduction.ToString("N2", CultureInfo.InvariantCulture);
-            ManualManualDeductionNoteTextBox.Text = selected.ManualDeductionNote;
-            SelectStatus(selected.Status);
+            _selectedPayroll = PayrollDataGrid.SelectedItem as Payroll;
         }
 
-        private void UpdatePayroll_Click(object sender, RoutedEventArgs e)
+        private void PayrollDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (_selectedPayroll == null)
             {
-                MessageBox.Show("Select a payroll record to update.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            if (!TryBuildPayrollFromForm(out var payroll))
+            var editWindow = new PayrollEditWindow(_employee, _selectedPayroll)
+            {
+                Owner = this
+            };
+
+            if (editWindow.ShowDialog() != true)
             {
                 return;
             }
 
             try
             {
-                payroll.PayrollId = _selectedPayroll.PayrollId;
-                payroll.EmployeeId = _employee.EmployeeId;
-                _payrollRepository.UpdatePayroll(payroll);
+                if (editWindow.DeleteRequested)
+                {
+                    _payrollRepository.DeletePayroll(_selectedPayroll.PayrollId);
+                    MessageBox.Show("Payroll record deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (editWindow.ResultPayroll != null)
+                {
+                    _payrollRepository.UpdatePayroll(editWindow.ResultPayroll);
+                    MessageBox.Show("Payroll record updated successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
                 LoadPayrolls();
-                MessageBox.Show("Payroll record updated successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to update payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Failed to save payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private void DeletePayroll_Click(object sender, RoutedEventArgs e)
-        {
-            if (_selectedPayroll == null)
-            {
-                MessageBox.Show("Select a payroll record to delete.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var result = MessageBox.Show(
-                "Delete selected payroll record?",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                _payrollRepository.DeletePayroll(_selectedPayroll.PayrollId);
-                LoadPayrolls();
-                MessageBox.Show("Payroll record deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to delete payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void ClearForm_Click(object sender, RoutedEventArgs e)
-        {
-            ClearSelectedPayroll();
         }
 
         private void LoadPayrolls()
@@ -194,132 +149,7 @@ namespace AttendancePayrollSystem
             {
                 _viewModel.Payrolls.Add(payroll);
             }
-
-            ClearSelectedPayroll();
-        }
-
-        private bool TryBuildPayrollFromForm(out Payroll payroll)
-        {
-            payroll = new Payroll();
-
-            if (!ManualPeriodStartPicker.SelectedDate.HasValue || !ManualPeriodEndPicker.SelectedDate.HasValue)
-            {
-                MessageBox.Show("Payroll period dates are required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (ManualPeriodStartPicker.SelectedDate.Value > ManualPeriodEndPicker.SelectedDate.Value)
-            {
-                MessageBox.Show("Period start must be on or before period end.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(ManualRegularHoursTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var regularHours) || regularHours < 0)
-            {
-                MessageBox.Show("Regular hours must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(ManualOvertimeHoursTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var overtimeHours) || overtimeHours < 0)
-            {
-                MessageBox.Show("Overtime hours must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(ManualGrossPayTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var grossPay) || grossPay < 0)
-            {
-                MessageBox.Show("Gross pay must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(ManualDeductionsTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var deductions) || deductions < 0)
-            {
-                MessageBox.Show("Deductions must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (!decimal.TryParse(ManualNetPayTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var netPay) || netPay < 0)
-            {
-                MessageBox.Show("Net pay must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            decimal manualDed = 0m;
-            if (!string.IsNullOrWhiteSpace(ManualManualDeductionTextBox.Text) &&
-                !decimal.TryParse(ManualManualDeductionTextBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out manualDed))
-            {
-                MessageBox.Show("Manual deduction must be a valid number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            if (manualDed < 0)
-            {
-                MessageBox.Show("Manual deduction cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-
-            payroll.PayPeriodStart = ManualPeriodStartPicker.SelectedDate.Value.Date;
-            payroll.PayPeriodEnd = ManualPeriodEndPicker.SelectedDate.Value.Date;
-            payroll.RegularHours = regularHours;
-            payroll.OvertimeHours = overtimeHours;
-            payroll.GrossPay = grossPay;
-            payroll.Deductions = deductions;
-            payroll.NetPay = netPay;
-            payroll.ManualDeduction = manualDed;
-            payroll.ManualDeductionNote = ManualManualDeductionNoteTextBox.Text.Trim();
-            payroll.Status = GetSelectedStatus();
-            payroll.EmployeeName = _employee.FullName;
-            payroll.EmployeeCode = _employee.EmployeeCode;
-            return true;
-        }
-
-        private void ResetForm()
-        {
-            ManualPeriodStartPicker.SelectedDate = DateTime.Today.AddDays(-14);
-            ManualPeriodEndPicker.SelectedDate = DateTime.Today;
-            ManualRegularHoursTextBox.Text = "0.00";
-            ManualOvertimeHoursTextBox.Text = "0.00";
-            ManualGrossPayTextBox.Text = "0.00";
-            ManualDeductionsTextBox.Text = "0.00";
-            ManualNetPayTextBox.Text = "0.00";
-            ManualManualDeductionTextBox.Text = "0.00";
-            ManualManualDeductionNoteTextBox.Text = string.Empty;
-            ManualStatusComboBox.SelectedIndex = 0;
-        }
-
-        private void SelectStatus(string status)
-        {
-            foreach (var item in ManualStatusComboBox.Items)
-            {
-                if (item is ComboBoxItem comboItem &&
-                    string.Equals(comboItem.Content?.ToString(), status, StringComparison.OrdinalIgnoreCase))
-                {
-                    ManualStatusComboBox.SelectedItem = comboItem;
-                    return;
-                }
-            }
-
-            ManualStatusComboBox.SelectedIndex = 0;
-        }
-
-        private string GetSelectedStatus()
-        {
-            return ManualStatusComboBox.SelectedItem is ComboBoxItem selected
-                ? selected.Content?.ToString() ?? "Pending"
-                : "Pending";
-        }
-
-        private void ClearSelectedPayroll()
-        {
             _selectedPayroll = null;
-            _viewModel.HasSelectedPayroll = false;
-
-            if (PayrollDataGrid.SelectedItem != null)
-            {
-                PayrollDataGrid.SelectedItem = null;
-            }
-
-            ResetForm();
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
@@ -353,8 +183,6 @@ namespace AttendancePayrollSystem
         private string _employeeDisplay = string.Empty;
         private DateTime? _periodStart;
         private DateTime? _periodEnd;
-        private bool _hasSelectedPayroll;
-
         public ObservableCollection<Payroll> Payrolls { get; } = new();
 
         public string EmployeeDisplay
@@ -375,10 +203,5 @@ namespace AttendancePayrollSystem
             set => SetProperty(ref _periodEnd, value);
         }
 
-        public bool HasSelectedPayroll
-        {
-            get => _hasSelectedPayroll;
-            set => SetProperty(ref _hasSelectedPayroll, value);
-        }
     }
 }
