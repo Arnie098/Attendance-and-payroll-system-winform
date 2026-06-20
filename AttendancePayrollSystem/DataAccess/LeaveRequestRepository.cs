@@ -379,6 +379,11 @@ namespace AttendancePayrollSystem.DataAccess
                 throw new InvalidOperationException("Leave type is required.");
             }
 
+            if (!LeavePolicies.IsKnownLeaveType(leaveRequest.LeaveType))
+            {
+                throw new InvalidOperationException("Leave type is not recognized.");
+            }
+
             if (leaveRequest.EndDate.Date < leaveRequest.StartDate.Date)
             {
                 throw new InvalidOperationException("Leave end date cannot be earlier than the start date.");

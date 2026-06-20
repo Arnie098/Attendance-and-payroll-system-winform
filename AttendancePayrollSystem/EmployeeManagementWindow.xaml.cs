@@ -17,6 +17,7 @@ namespace AttendancePayrollSystem
         private readonly EmployeeRepository _employeeRepo = new();
         private readonly AttendanceRepository _attendanceRepo = new();
         private readonly AuthRepository _authRepository = new();
+        private readonly SchoolTeacherSyncService _schoolTeacherSyncService = new();
         private System.Collections.Generic.List<Attendance> _allAttendances = new();
         private readonly int? _initialEmployeeId;
         private readonly bool _promptForInitialSelection;
@@ -62,6 +63,7 @@ namespace AttendancePayrollSystem
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
+                await Task.Run(() => TrySynchronizeSchoolEmployees(showError: false));
                 await LoadEmployeesAsync();
             }
             catch (Exception ex)
@@ -369,6 +371,28 @@ namespace AttendancePayrollSystem
 
                 MessageBox.Show(
                     $"Employee login accounts could not be synchronized.\n{ex.Message}",
+                    "Warning",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void TrySynchronizeSchoolEmployees(bool showError = true)
+        {
+            try
+            {
+                _schoolTeacherSyncService.SyncTeachers();
+                _authRepository.EnsureEmployeeAccounts();
+            }
+            catch (Exception ex)
+            {
+                if (!showError)
+                {
+                    return;
+                }
+
+                MessageBox.Show(
+                    $"School employees could not be synchronized.\n{ex.Message}",
                     "Warning",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);

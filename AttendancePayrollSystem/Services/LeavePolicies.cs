@@ -14,24 +14,39 @@ namespace AttendancePayrollSystem.Services
         public const string AttendanceStatusOnLeave = "On Leave";
         public const string AttendanceStatusLeaveWithoutPay = "Leave Without Pay";
 
-        public static readonly string[] DefaultLeaveTypes =
-        [
-            "Vacation Leave",
-            "Sick Leave",
-            "Emergency Leave",
-            "Maternity Leave",
-            "Paternity Leave",
-            "Unpaid Leave"
-        ];
+        private static readonly IReadOnlyDictionary<string, bool> LeaveTypePaymentMap =
+            new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Vacation Leave"] = true,
+                ["Sick Leave"] = true,
+                ["Emergency Leave"] = true,
+                ["Maternity Leave"] = true,
+                ["Paternity Leave"] = true,
+                ["Unpaid Leave"] = false
+            };
+
+        public static readonly string[] DefaultLeaveTypes = LeaveTypePaymentMap.Keys.ToArray();
 
         public static bool IsPaidLeaveType(string? leaveType)
         {
-            if (string.IsNullOrWhiteSpace(leaveType))
+            return TryGetPaidLeaveType(leaveType, out var isPaid) && isPaid;
+        }
+
+        public static bool IsKnownLeaveType(string? leaveType)
+        {
+            return TryGetPaidLeaveType(leaveType, out _);
+        }
+
+        public static bool TryGetPaidLeaveType(string? leaveType, out bool isPaid)
+        {
+            if (!string.IsNullOrWhiteSpace(leaveType) &&
+                LeaveTypePaymentMap.TryGetValue(leaveType.Trim(), out isPaid))
             {
-                return false;
+                return true;
             }
 
-            return !string.Equals(leaveType.Trim(), "Unpaid Leave", StringComparison.OrdinalIgnoreCase);
+            isPaid = false;
+            return false;
         }
 
         public static string GetAttendanceStatus(bool isPaidLeave) =>

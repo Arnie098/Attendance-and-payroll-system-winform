@@ -74,7 +74,7 @@ namespace AttendancePayrollSystem.Models
                     var graceEnd = scheduledStart.AddMinutes(DatabaseConfig.GracePeriodMinutes);
                     if (TimeInAM.Value > graceEnd)
                     {
-                        total += (int)Math.Ceiling((TimeInAM.Value - scheduledStart).TotalMinutes);
+                        total += (int)Math.Ceiling((TimeInAM.Value - graceEnd).TotalMinutes);
                     }
                 }
 
@@ -85,7 +85,7 @@ namespace AttendancePayrollSystem.Models
                     var graceEnd = scheduledStart.AddMinutes(DatabaseConfig.GracePeriodMinutes);
                     if (TimeInPM.Value > graceEnd)
                     {
-                        total += (int)Math.Ceiling((TimeInPM.Value - scheduledStart).TotalMinutes);
+                        total += (int)Math.Ceiling((TimeInPM.Value - graceEnd).TotalMinutes);
                     }
                 }
 

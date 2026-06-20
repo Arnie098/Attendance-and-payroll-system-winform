@@ -91,7 +91,7 @@ namespace AttendancePayrollSystem.DataAccess
                     employee.Email = teacher.Email.Trim();
                     employee.Phone = teacher.ContactNo.Trim();
                     employee.HireDate = teacher.HireDate?.Date ?? employee.HireDate.Date;
-                    employee.IsActive = IsTeacherActive(teacher);
+                    employee.IsActive = IsTeacherAvailableForPayroll(teacher);
                     employee.SourceTeacherId = teacher.TeacherId;
                     employee.SourceUserId = teacher.UserId;
                     matchedEmployeeIds.Add(employee.EmployeeId);
@@ -206,7 +206,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@Department", "Faculty");
             command.Parameters.AddWithValue("@HourlyRate", 0m);
             command.Parameters.AddWithValue("@HireDate", teacher.HireDate?.Date ?? DateTime.Today);
-            command.Parameters.AddWithValue("@IsActive", IsTeacherActive(teacher));
+            command.Parameters.AddWithValue("@IsActive", IsTeacherAvailableForPayroll(teacher));
             command.Parameters.AddWithValue("@SourceTeacherId", teacher.TeacherId);
             command.Parameters.AddWithValue("@SourceUserId", teacher.UserId.HasValue ? teacher.UserId.Value : DBNull.Value);
             command.ExecuteNonQuery();
@@ -243,7 +243,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@Position", string.IsNullOrWhiteSpace(employee.Position) ? "Teacher" : employee.Position);
             command.Parameters.AddWithValue("@Department", string.IsNullOrWhiteSpace(employee.Department) ? "Faculty" : employee.Department);
             command.Parameters.AddWithValue("@HireDate", teacher.HireDate?.Date ?? employee.HireDate.Date);
-            command.Parameters.AddWithValue("@IsActive", IsTeacherActive(teacher));
+            command.Parameters.AddWithValue("@IsActive", IsTeacherAvailableForPayroll(teacher));
             command.Parameters.AddWithValue("@SourceTeacherId", teacher.TeacherId);
             command.Parameters.AddWithValue("@SourceUserId", teacher.UserId.HasValue ? teacher.UserId.Value : DBNull.Value);
             command.ExecuteNonQuery();
@@ -397,6 +397,11 @@ namespace AttendancePayrollSystem.DataAccess
         private static bool IsTeacherActive(SchoolTeacherRecord teacher)
         {
             return string.Equals(teacher.TeacherStatus.Trim(), "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsTeacherAvailableForPayroll(SchoolTeacherRecord teacher)
+        {
+            return IsTeacherActive(teacher) && (!teacher.UserId.HasValue || IsUserActive(teacher));
         }
 
         private static bool IsUserActive(SchoolTeacherRecord teacher)

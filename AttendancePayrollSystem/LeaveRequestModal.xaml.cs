@@ -47,6 +47,12 @@ namespace AttendancePayrollSystem
                 return;
             }
 
+            if (!LeavePolicies.TryGetPaidLeaveType(leaveType, out var isPaidLeave))
+            {
+                MessageBox.Show("Please select a valid leave type.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (!StartDatePicker.SelectedDate.HasValue || !EndDatePicker.SelectedDate.HasValue)
             {
                 MessageBox.Show("Start date and end date are required.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -75,7 +81,6 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            var isPaidLeave = LeavePolicies.IsPaidLeaveType(leaveType);
             ResultLeaveRequest = new LeaveRequest
             {
                 EmployeeId = _employee.EmployeeId,
@@ -100,10 +105,14 @@ namespace AttendancePayrollSystem
         private void RefreshLeaveSummary()
         {
             var leaveType = LeaveTypeComboBox.SelectedItem?.ToString() ?? string.Empty;
-            var isPaidLeave = LeavePolicies.IsPaidLeaveType(leaveType);
+            var hasKnownLeaveType = LeavePolicies.TryGetPaidLeaveType(leaveType, out var isPaidLeave);
 
-            PaymentTypeTextBox.Text = isPaidLeave ? "Paid leave" : "Unpaid leave";
-            AttendanceStatusTextBlock.Text = LeavePolicies.GetAttendanceStatus(isPaidLeave);
+            PaymentTypeTextBox.Text = !hasKnownLeaveType
+                ? "-"
+                : isPaidLeave ? "Paid leave" : "Unpaid leave";
+            AttendanceStatusTextBlock.Text = !hasKnownLeaveType
+                ? "-"
+                : LeavePolicies.GetAttendanceStatus(isPaidLeave);
 
             if (!StartDatePicker.SelectedDate.HasValue || !EndDatePicker.SelectedDate.HasValue)
             {

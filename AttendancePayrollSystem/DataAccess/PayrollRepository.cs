@@ -10,8 +10,11 @@ namespace AttendancePayrollSystem.DataAccess
     {
         public void AddPayroll(Payroll payroll)
         {
+            ValidatePayrollPeriod(payroll);
+
             if (SupabaseConfig.UseApi)
             {
+                EnsureNoOverlappingPayrollViaApi(payroll.EmployeeId, payroll.PayPeriodStart, payroll.PayPeriodEnd, null);
                 SupabaseRestClient.InsertAndReturnSingle<Payroll>("payrollrecords", BuildPayrollPayload(payroll));
                 return;
             }
@@ -45,6 +48,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@ManualDeductionNote", payroll.ManualDeductionNote ?? string.Empty);
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
+            EnsureNoOverlappingPayroll(connection, payroll.EmployeeId, payroll.PayPeriodStart, payroll.PayPeriodEnd, null);
             command.ExecuteNonQuery();
             MySqlOfflineSyncService.QueuePayrollUpsert(Convert.ToInt32(command.LastInsertedId), payroll.EmployeeId);
         }
@@ -117,8 +121,11 @@ namespace AttendancePayrollSystem.DataAccess
 
         public void UpdatePayroll(Payroll payroll)
         {
+            ValidatePayrollPeriod(payroll);
+
             if (SupabaseConfig.UseApi)
             {
+                EnsureNoOverlappingPayrollViaApi(payroll.EmployeeId, payroll.PayPeriodStart, payroll.PayPeriodEnd, payroll.PayrollId);
                 SupabaseRestClient.Update(
                     "payrollrecords",
                     BuildPayrollPayload(payroll),
@@ -167,6 +174,7 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@ManualDeductionNote", payroll.ManualDeductionNote ?? string.Empty);
             command.Parameters.AddWithValue("@Status", payroll.Status);
             connection.Open();
+            EnsureNoOverlappingPayroll(connection, payroll.EmployeeId, payroll.PayPeriodStart, payroll.PayPeriodEnd, payroll.PayrollId);
             command.ExecuteNonQuery();
             MySqlOfflineSyncService.QueuePayrollUpsert(payroll.PayrollId, payroll.EmployeeId);
         }
@@ -266,6 +274,73 @@ namespace AttendancePayrollSystem.DataAccess
                 manualdeductionnote = payroll.ManualDeductionNote ?? string.Empty,
                 status = payroll.Status
             };
+        }
+
+        private static void ValidatePayrollPeriod(Payroll payroll)
+        {
+            ArgumentNullException.ThrowIfNull(payroll);
+
+            if (payroll.EmployeeId <= 0)
+            {
+                throw new InvalidOperationException("Employee is required for payroll.");
+            }
+
+            if (payroll.PayPeriodEnd.Date < payroll.PayPeriodStart.Date)
+            {
+                throw new InvalidOperationException("Payroll period end cannot be earlier than the start date.");
+            }
+        }
+
+        private static void EnsureNoOverlappingPayroll(
+            MySqlConnection connection,
+            int employeeId,
+            DateTime payPeriodStart,
+            DateTime payPeriodEnd,
+            int? excludePayrollId)
+        {
+            using var command = new MySqlCommand(@"
+                SELECT 1
+                FROM PayrollRecords
+                WHERE EmployeeId = @EmployeeId
+                  AND PayPeriodStart <= @PayPeriodEnd
+                  AND PayPeriodEnd >= @PayPeriodStart
+                  AND (@ExcludePayrollId IS NULL OR PayrollId <> @ExcludePayrollId)
+                LIMIT 1", connection);
+
+            command.Parameters.AddWithValue("@EmployeeId", employeeId);
+            command.Parameters.AddWithValue("@PayPeriodStart", payPeriodStart.Date);
+            command.Parameters.AddWithValue("@PayPeriodEnd", payPeriodEnd.Date);
+            command.Parameters.AddWithValue("@ExcludePayrollId", excludePayrollId.HasValue ? excludePayrollId.Value : DBNull.Value);
+
+            if (command.ExecuteScalar() != null)
+            {
+                throw new InvalidOperationException("This payroll period overlaps an existing payroll record for the employee.");
+            }
+        }
+
+        private static void EnsureNoOverlappingPayrollViaApi(
+            int employeeId,
+            DateTime payPeriodStart,
+            DateTime payPeriodEnd,
+            int? excludePayrollId)
+        {
+            var payrolls = SupabaseRestClient.GetList<Payroll>(
+                "payrollrecords",
+                new Dictionary<string, string>
+                {
+                    ["select"] = "payrollid,employeeid,payperiodstart,payperiodend",
+                    ["employeeid"] = $"eq.{employeeId}"
+                });
+
+            var overlaps = payrolls.Exists(payroll =>
+                (!excludePayrollId.HasValue || payroll.PayrollId != excludePayrollId.Value) &&
+                payroll.PayPeriodStart.Date <= payPeriodEnd.Date &&
+                payroll.PayPeriodEnd.Date >= payPeriodStart.Date);
+
+            if (overlaps)
+            {
+                throw new InvalidOperationException("This payroll period overlaps an existing payroll record for the employee.");
+            }
         }
 
         private static Payroll MapPayroll(MySqlDataReader reader)
