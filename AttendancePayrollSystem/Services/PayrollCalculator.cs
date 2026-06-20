@@ -11,7 +11,13 @@ namespace AttendancePayrollSystem.Services
         private readonly AttendanceRepository _attendanceRepo = new();
         private readonly LeaveRequestRepository _leaveRequestRepository = new();
 
-        public Payroll CalculatePayroll(Employee employee, DateTime periodStart, DateTime periodEnd, decimal manualDeduction = 0m, string manualDeductionNote = "")
+        public Payroll CalculatePayroll(
+            Employee employee,
+            DateTime periodStart,
+            DateTime periodEnd,
+            decimal manualDeduction = 0m,
+            string manualDeductionNote = "",
+            PayrollDeductionOverrides? deductionOverrides = null)
         {
             var attendances = _attendanceRepo.GetAttendanceByEmployee(employee.EmployeeId, periodStart, periodEnd);
             var approvedPaidLeaveDates = _leaveRequestRepository.GetApprovedPaidLeaveDates(employee.EmployeeId, periodStart, periodEnd);
@@ -62,8 +68,12 @@ namespace AttendancePayrollSystem.Services
             var minuteRate = employee.HourlyRate / 60m;
             var tardinessDeduction = RoundCurrency(totalTardinessMinutes * minuteRate);
 
-            // Total deductions = statutory + tardiness + manual
-            var statutoryDeductions = RoundCurrency(Math.Min(grossPay, CalculateDeductions(grossPay)));
+            var statutoryBreakdown = CalculateStatutoryDeductions(grossPay, deductionOverrides);
+            var statutoryDeductions = RoundCurrency(
+                statutoryBreakdown.Sss +
+                statutoryBreakdown.PhilHealth +
+                statutoryBreakdown.PagIbig +
+                statutoryBreakdown.WithholdingTax);
             var manualDed = RoundCurrency(Math.Max(0m, manualDeduction));
             var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction + manualDed);
             var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
@@ -79,6 +89,10 @@ namespace AttendancePayrollSystem.Services
                 Deductions = totalDeductions,
                 NetPay = netPay,
                 Status = "Pending",
+                SssDeduction = statutoryBreakdown.Sss,
+                PhilHealthDeduction = statutoryBreakdown.PhilHealth,
+                PagIbigDeduction = statutoryBreakdown.PagIbig,
+                WithholdingTax = statutoryBreakdown.WithholdingTax,
                 EmployeeName = employee.FullName,
                 EmployeeCode = employee.EmployeeCode,
                 TotalTardinessMinutes = totalTardinessMinutes,
@@ -88,14 +102,14 @@ namespace AttendancePayrollSystem.Services
             };
         }
 
-        private decimal CalculateDeductions(decimal grossPay)
+        private StatutoryDeductions CalculateStatutoryDeductions(decimal grossPay, PayrollDeductionOverrides? overrides)
         {
-            return PayrollDeductionConfig.Current.CalculateDeductions(grossPay);
-        }
-
-        private decimal CalculateWithholdingTax(decimal grossPay)
-        {
-            return PayrollDeductionConfig.Current.CalculateWithholdingTax(grossPay);
+            var config = PayrollDeductionConfig.Current;
+            return new StatutoryDeductions(
+                Sss: RoundCurrency(Math.Max(0m, overrides?.SssDeduction ?? grossPay * config.SssRate)),
+                PhilHealth: RoundCurrency(Math.Max(0m, overrides?.PhilHealthDeduction ?? grossPay * config.PhilHealthRate)),
+                PagIbig: RoundCurrency(Math.Max(0m, overrides?.PagIbigDeduction ?? Math.Min(grossPay * config.PagIbigRate, config.PagIbigCap))),
+                WithholdingTax: RoundCurrency(Math.Max(0m, overrides?.WithholdingTax ?? config.CalculateWithholdingTax(grossPay))));
         }
 
         private static decimal RoundHours(decimal hours)
@@ -107,5 +121,13 @@ namespace AttendancePayrollSystem.Services
         {
             return Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         }
+
+        private sealed record StatutoryDeductions(decimal Sss, decimal PhilHealth, decimal PagIbig, decimal WithholdingTax);
     }
+
+    public sealed record PayrollDeductionOverrides(
+        decimal? SssDeduction,
+        decimal? PhilHealthDeduction,
+        decimal? PagIbigDeduction,
+        decimal? WithholdingTax);
 }

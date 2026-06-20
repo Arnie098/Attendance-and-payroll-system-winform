@@ -110,7 +110,10 @@
                                 <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="70" />
                                 <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="70" />
                                 <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="70" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" />
+                                <DataGridTextColumn Header="Status"
+                                                    Binding="{Binding Status}"
+                                                    Width="80"
+                                                    ElementStyle="{StaticResource AttendanceStatusTextStyle}" />
                                 <DataGridCheckBoxColumn Header="Bio" Binding="{Binding IsBiometricVerified}" Width="50" />
                                 <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="60" />
                                 <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="80" />

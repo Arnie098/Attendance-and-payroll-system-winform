@@ -17,23 +17,46 @@
 
         <!-- Header Banner -->
         <Border Grid.Row="0"
-                Background="#123C47"
-                BorderBrush="#2D7082"
-                BorderThickness="1"
                 CornerRadius="18"
-                Padding="20"
+                Padding="22,20"
                 Margin="0,0,0,12">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0B1220" Offset="0" />
+                    <GradientStop Color="#14532D" Offset="0.55" />
+                    <GradientStop Color="#155E75" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.22" Color="#0F172A" />
+            </Border.Effect>
             <DockPanel>
-                <StackPanel DockPanel.Dock="Left">
+                <Border DockPanel.Dock="Left"
+                        Width="56"
+                        Height="56"
+                        Background="#1FFFFFFF"
+                        BorderBrush="#33FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        VerticalAlignment="Center"
+                        Margin="0,0,16,0">
+                    <materialDesign:PackIcon Kind="CalendarClock"
+                                             Width="30"
+                                             Height="30"
+                                             Foreground="White"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                </Border>
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock Text="Latest Attendance Records"
                                Foreground="White"
                                FontSize="28"
                                FontWeight="Bold" />
                     <TextBlock Text="Recent employee time entries from the attendance database."
-                               Foreground="#B7D7E2"
+                               Foreground="#D8F3F0"
                                Margin="0,4,0,0" />
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <!-- Summary badges -->
                     <Border Background="#064E3B"
                             CornerRadius="999"
@@ -144,15 +167,17 @@
                                 Width="140"
                                 FontSize="13"
                                 SelectedDateChanged="DateFilter_Changed" />
-                    <Button Content="✕"
-                            Width="28" Height="28"
-                            FontSize="12"
+                    <Button Width="30" Height="30"
                             Padding="0"
                             Margin="4,0,0,0"
                             ToolTip="Clear date filter"
                             Click="ClearDateFilter_Click"
                             Style="{StaticResource ModernButton}"
-                            Background="#64748B" />
+                            Background="#64748B">
+                        <materialDesign:PackIcon Kind="CalendarRemove"
+                                                 Width="16" Height="16"
+                                                 Foreground="White" />
+                    </Button>
                 </StackPanel>
 
                 <!-- Right-side record count -->
@@ -174,8 +199,45 @@
                       ItemsSource="{Binding LatestAttendances}"
                       Style="{StaticResource ModernDataGrid}"
                       Margin="0"
+                      RowHeight="40"
+                      ColumnHeaderHeight="42"
+                      VerticalGridLinesBrush="Transparent"
+                      HorizontalGridLinesBrush="#EEF2F7"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                        <Setter Property="Background" Value="#F1F5F9" />
+                        <Setter Property="Foreground" Value="#334155" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="Padding" Value="10,0" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="BorderBrush" Value="#E2E8F0" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="Padding" Value="8,0" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="FontSize" Value="13" />
+                    </Style>
+                </DataGrid.CellStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EFF6FF" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#DBEAFE" />
+                                <Setter Property="Foreground" Value="#0F172A" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="80" />
                     <DataGridTextColumn Header="Employee Name" Binding="{Binding FullName}" Width="160" />
@@ -186,50 +248,13 @@
                     <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="65" />
                     <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="75" />
                     <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="90" />
-                    <DataGridTemplateColumn Header="Status" Width="120">
+                    <DataGridTemplateColumn Header="Status" Width="140" SortMemberPath="Status">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="10" Padding="8,3" HorizontalAlignment="Left">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#E2E8F0" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Status}" Value="Present">
-                                                    <Setter Property="Background" Value="#D1FAE5" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Late">
-                                                    <Setter Property="Background" Value="#FEE2E2" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="On Leave">
-                                                    <Setter Property="Background" Value="#DBEAFE" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Absent">
-                                                    <Setter Property="Background" Value="#FEF3C7" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding Status}" FontSize="12" FontWeight="SemiBold">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="#475569" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Present">
-                                                        <Setter Property="Foreground" Value="#065F46" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Late">
-                                                        <Setter Property="Foreground" Value="#991B1B" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="On Leave">
-                                                        <Setter Property="Foreground" Value="#1E40AF" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Absent">
-                                                        <Setter Property="Foreground" Value="#92400E" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                <Border Style="{StaticResource AttendanceStatusPillStyle}">
+                                    <TextBlock Text="{Binding Status}"
+                                               FontSize="12"
+                                               Style="{StaticResource AttendanceStatusTextStyle}" />
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -249,22 +274,46 @@
             <StackPanel DockPanel.Dock="Right"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right">
-                <Button Content="Export CSV"
-                        Width="110"
+                <Button Width="120"
                         Style="{StaticResource ModernButton}"
                         Background="#0F766E"
-                        Click="ExportCsv_Click" />
-                <Button Content="Refresh"
-                        Width="110"
+                        Click="ExportCsv_Click">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="FileDelimitedOutline"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Export CSV" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Width="110"
                         Style="{StaticResource ModernButton}"
                         Click="Refresh_Click"
-                        Margin="8,0,0,0" />
-                <Button Content="Close"
-                        Width="110"
+                        Margin="8,0,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Refresh"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Refresh" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Width="110"
                         Style="{StaticResource ModernButton}"
                         Background="#475569"
                         Click="Close_Click"
-                        Margin="8,0,0,0" />
+                        Margin="8,0,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Close"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Close" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </DockPanel>
     </Grid>

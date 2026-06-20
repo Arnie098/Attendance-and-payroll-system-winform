@@ -12,6 +12,100 @@
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:ByteArrayToImageConverter x:Key="ByteToImage" />
             <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibility" />
+
+            <Style x:Key="StatusTextBaseStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#475569" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
+            <Style x:Key="AttendanceStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatusTextBaseStyle}">
+                <Style.Triggers>
+                    <Trigger Property="Text" Value="Present">
+                        <Setter Property="Foreground" Value="#065F46" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Late">
+                        <Setter Property="Foreground" Value="#991B1B" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="On Leave">
+                        <Setter Property="Foreground" Value="#1D4ED8" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Leave Without Pay">
+                        <Setter Property="Foreground" Value="#B45309" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Absent">
+                        <Setter Property="Foreground" Value="#92400E" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Attendance complete.">
+                        <Setter Property="Foreground" Value="#065F46" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="In progress.">
+                        <Setter Property="Foreground" Value="#1D4ED8" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="No attendance yet.">
+                        <Setter Property="Foreground" Value="#92400E" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Pill background for attendance status badges (pairs with AttendanceStatusTextStyle foreground) -->
+            <Style x:Key="AttendanceStatusPillStyle" TargetType="Border">
+                <Setter Property="CornerRadius" Value="999" />
+                <Setter Property="Padding" Value="11,3" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Background" Value="#EEF2F7" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Status}" Value="Present">
+                        <Setter Property="Background" Value="#D1FAE5" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Status}" Value="Late">
+                        <Setter Property="Background" Value="#FEE2E2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Status}" Value="On Leave">
+                        <Setter Property="Background" Value="#DBEAFE" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Status}" Value="Leave Without Pay">
+                        <Setter Property="Background" Value="#FEF3C7" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Status}" Value="Absent">
+                        <Setter Property="Background" Value="#FDE6D3" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="PayrollStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatusTextBaseStyle}">
+                <Style.Triggers>
+                    <Trigger Property="Text" Value="Pending">
+                        <Setter Property="Foreground" Value="#92400E" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Processed">
+                        <Setter Property="Foreground" Value="#1E40AF" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Paid">
+                        <Setter Property="Foreground" Value="#065F46" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Cancelled">
+                        <Setter Property="Foreground" Value="#991B1B" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="LeaveStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource StatusTextBaseStyle}">
+                <Style.Triggers>
+                    <Trigger Property="Text" Value="Pending">
+                        <Setter Property="Foreground" Value="#92400E" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Approved">
+                        <Setter Property="Foreground" Value="#065F46" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Rejected">
+                        <Setter Property="Foreground" Value="#991B1B" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="Cancelled">
+                        <Setter Property="Foreground" Value="#475569" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

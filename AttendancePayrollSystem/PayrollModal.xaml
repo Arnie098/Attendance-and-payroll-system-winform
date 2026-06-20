@@ -23,73 +23,207 @@
 
             <!-- Header -->
             <Border Grid.Row="0"
-                    Background="#123C47"
-                    BorderBrush="#2D7082"
-                    BorderThickness="1"
                     CornerRadius="18"
-                    Padding="20"
+                    Padding="22,20"
                     Margin="0,0,0,14">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0B1220" Offset="0" />
+                        <GradientStop Color="#14532D" Offset="0.55" />
+                        <GradientStop Color="#155E75" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.22" Color="#0F172A" />
+                </Border.Effect>
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Left">
+                    <Border DockPanel.Dock="Left"
+                            Width="56"
+                            Height="56"
+                            Background="#1FFFFFFF"
+                            BorderBrush="#33FFFFFF"
+                            BorderThickness="1"
+                            CornerRadius="16"
+                            VerticalAlignment="Center"
+                            Margin="0,0,16,0">
+                        <materialDesign:PackIcon Kind="CashMultiple"
+                                                 Width="30"
+                                                 Height="30"
+                                                 Foreground="White"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="Payroll Processing"
                                    Foreground="White"
                                    FontSize="26"
                                    FontWeight="Bold" />
-                        <TextBlock Text="{Binding EmployeeDisplay}"
-                                   Foreground="#B7D7E2"
-                                   FontSize="14"
-                                   Margin="0,4,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <materialDesign:PackIcon Kind="AccountCircleOutline"
+                                                     Width="15"
+                                                     Height="15"
+                                                     Foreground="#B7D7E2"
+                                                     VerticalAlignment="Center"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding EmployeeDisplay}"
+                                       Foreground="#D8F3F0"
+                                       FontSize="14"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
                     </StackPanel>
                 </DockPanel>
             </Border>
 
             <!-- Calculate Section -->
-            <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="16">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="1.5*" />
-                    </Grid.ColumnDefinitions>
+            <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="20">
+                <StackPanel>
+                    <!-- Pay Period -->
+                    <DockPanel Margin="0,0,0,10">
+                        <materialDesign:PackIcon Kind="CalendarRange"
+                                                 Width="20" Height="20"
+                                                 Foreground="#0F766E"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Pay Period"
+                                   Style="{StaticResource SectionTitle}"
+                                   FontWeight="Bold"
+                                   Margin="0"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="Pay Period Start" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
-                        <DatePicker x:Name="PayPeriodStartPicker" SelectedDate="{Binding PeriodStart}" />
-                    </StackPanel>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,0">
-                        <TextBlock Text="Pay Period End" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
-                        <DatePicker x:Name="PayPeriodEndPicker" SelectedDate="{Binding PeriodEnd}" />
-                    </StackPanel>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Start Date" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <DatePicker x:Name="PayPeriodStartPicker" SelectedDate="{Binding PeriodStart}" />
+                        </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,0">
-                        <TextBlock Text="Manual Deduction (₱)" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
-                        <TextBox x:Name="ManualDeductionAmountTextBox"
-                                 Style="{StaticResource ModernTextBox}"
-                                 Text="0.00" />
-                    </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                            <TextBlock Text="End Date" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <DatePicker x:Name="PayPeriodEndPicker" SelectedDate="{Binding PeriodEnd}" />
+                        </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,0">
-                        <TextBlock Text="Deduction Note" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
-                        <TextBox x:Name="ManualDeductionNoteTextBox"
-                                 Style="{StaticResource ModernTextBox}"
-                                 MaxLength="255" />
-                    </StackPanel>
+                        <Border Grid.Column="2"
+                                Background="#EFF6FF"
+                                CornerRadius="10"
+                                Padding="12,10"
+                                VerticalAlignment="Bottom">
+                            <DockPanel>
+                                <materialDesign:PackIcon Kind="InformationOutline"
+                                                         Width="18" Height="18"
+                                                         Foreground="#1D4ED8"
+                                                         VerticalAlignment="Top"
+                                                         Margin="0,1,8,0" />
+                                <TextBlock Text="Leave SSS, PhilHealth, Pag-IBIG, or tax blank to auto-calculate from the current payroll settings."
+                                           Foreground="#334155"
+                                           FontSize="12"
+                                           LineHeight="17"
+                                           TextWrapping="Wrap" />
+                            </DockPanel>
+                        </Border>
+                    </Grid>
 
-                    <Button Grid.Row="1" Grid.Column="3"
-                            Content="Calculate Payroll"
-                            Width="160"
-                            Height="38"
-                            Style="{StaticResource ModernButton}"
-                            HorizontalAlignment="Right"
-                            Margin="0,12,0,0"
-                            Click="CalculatePayroll_Click" />
-                </Grid>
+                    <Border Height="1" Background="#E2E8F0" Margin="0,0,0,14" />
+
+                    <!-- Deductions -->
+                    <DockPanel Margin="0,0,0,10">
+                        <materialDesign:PackIcon Kind="CashMinus"
+                                                 Width="20" Height="20"
+                                                 Foreground="#9A3412"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Deductions"
+                                   Style="{StaticResource SectionTitle}"
+                                   FontWeight="Bold"
+                                   Margin="0"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
+                            <TextBlock Text="SSS" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="SssDeductionTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:TextFieldAssist.PrefixText="₱"
+                                     materialDesign:HintAssist.Hint="Auto" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
+                            <TextBlock Text="PhilHealth" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="PhilHealthDeductionTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:TextFieldAssist.PrefixText="₱"
+                                     materialDesign:HintAssist.Hint="Auto" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,8">
+                            <TextBlock Text="Pag-IBIG" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="PagIbigDeductionTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:TextFieldAssist.PrefixText="₱"
+                                     materialDesign:HintAssist.Hint="Auto" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,8">
+                            <TextBlock Text="Tax" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="WithholdingTaxTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:TextFieldAssist.PrefixText="₱"
+                                     materialDesign:HintAssist.Hint="Auto" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Manual Deduction" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="ManualDeductionAmountTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:TextFieldAssist.PrefixText="₱"
+                                     materialDesign:HintAssist.Hint="0.00"
+                                     Text="0.00" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,12,0">
+                            <TextBlock Text="Deduction Note" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                            <TextBox x:Name="ManualDeductionNoteTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     materialDesign:HintAssist.Hint="Reason (optional)"
+                                     MaxLength="255" />
+                        </StackPanel>
+
+                        <Button Grid.Row="1" Grid.Column="3"
+                                Height="44"
+                                Style="{StaticResource ModernButton}"
+                                VerticalAlignment="Bottom"
+                                Margin="0,0,0,8"
+                                Click="CalculatePayroll_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="Calculator"
+                                                         Width="18" Height="18"
+                                                         Foreground="White"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0" />
+                                <TextBlock Text="Calculate Payroll"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
             </Border>
 
             <!-- Statutory Deduction Rates Reference -->
@@ -216,54 +350,10 @@
                             <DataGridTextColumn Header="Manual" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="75" />
                             <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="90" />
                             <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=₱{0:N2}}" Width="95" />
-                            <DataGridTemplateColumn Header="Status" Width="90">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="10" Padding="6,3" HorizontalAlignment="Left">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#E2E8F0" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                            <Setter Property="Background" Value="#FEF3C7" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Processed">
-                                                            <Setter Property="Background" Value="#DBEAFE" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Paid">
-                                                            <Setter Property="Background" Value="#D1FAE5" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                                            <Setter Property="Background" Value="#FEE2E2" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#475569" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                                <Setter Property="Foreground" Value="#92400E" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Processed">
-                                                                <Setter Property="Foreground" Value="#1E40AF" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Paid">
-                                                                <Setter Property="Foreground" Value="#065F46" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                                                <Setter Property="Foreground" Value="#991B1B" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding Status}"
+                                                Width="90"
+                                                ElementStyle="{StaticResource PayrollStatusTextStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -281,7 +371,19 @@
 
             <!-- Footer Actions -->
             <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-                <Button Content="Close" Width="100" Style="{StaticResource ModernButton}" Background="#475569" Click="Close_Click" />
+                <Button Width="110"
+                        Style="{StaticResource ModernButton}"
+                        Background="#475569"
+                        Click="Close_Click">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Close"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Close" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
     </ScrollViewer>

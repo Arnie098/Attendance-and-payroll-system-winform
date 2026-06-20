@@ -64,7 +64,19 @@ namespace AttendancePayrollSystem
 
             try
             {
-                var payroll = _payrollCalculator.CalculatePayroll(_employee, _viewModel.PeriodStart.Value, _viewModel.PeriodEnd.Value, manualDeduction, manualDeductionNote);
+                var deductionOverrides = TryBuildDeductionOverrides();
+                if (deductionOverrides == null)
+                {
+                    return;
+                }
+
+                var payroll = _payrollCalculator.CalculatePayroll(
+                    _employee,
+                    _viewModel.PeriodStart.Value,
+                    _viewModel.PeriodEnd.Value,
+                    manualDeduction,
+                    manualDeductionNote,
+                    deductionOverrides);
                 var existingPayroll = _payrollRepository.GetPayrollByEmployeeAndPeriod(
                     _employee.EmployeeId,
                     payroll.PayPeriodStart,
@@ -155,6 +167,41 @@ namespace AttendancePayrollSystem
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private PayrollDeductionOverrides? TryBuildDeductionOverrides()
+        {
+            if (!TryParseOptionalNonNegativeDecimal(SssDeductionTextBox.Text, "SSS deduction", out var sssDeduction) ||
+                !TryParseOptionalNonNegativeDecimal(PhilHealthDeductionTextBox.Text, "PhilHealth deduction", out var philHealthDeduction) ||
+                !TryParseOptionalNonNegativeDecimal(PagIbigDeductionTextBox.Text, "Pag-IBIG deduction", out var pagIbigDeduction) ||
+                !TryParseOptionalNonNegativeDecimal(WithholdingTaxTextBox.Text, "tax deduction", out var withholdingTax))
+            {
+                return null;
+            }
+
+            return new PayrollDeductionOverrides(
+                sssDeduction,
+                philHealthDeduction,
+                pagIbigDeduction,
+                withholdingTax);
+        }
+
+        private static bool TryParseOptionalNonNegativeDecimal(string rawValue, string label, out decimal? value)
+        {
+            value = null;
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return true;
+            }
+
+            if (!decimal.TryParse(rawValue.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed) || parsed < 0)
+            {
+                MessageBox.Show($"{label} must be a valid non-negative number.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            value = parsed;
+            return true;
         }
 
         private void PayrollSearchBox_TextChanged(object sender, TextChangedEventArgs e)

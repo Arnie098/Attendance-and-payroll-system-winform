@@ -63,6 +63,11 @@ namespace AttendancePayrollSystem.DataAccess
                     RegularHours DECIMAL(10, 2) NOT NULL,
                     OvertimeHours DECIMAL(10, 2) NOT NULL,
                     GrossPay DECIMAL(18, 2) NOT NULL,
+                    SssDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    PhilHealthDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    PagIbigDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    WithholdingTax DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    TardinessDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
                     Deductions DECIMAL(18, 2) NOT NULL,
                     NetPay DECIMAL(18, 2) NOT NULL,
                     ManualDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
@@ -149,6 +154,11 @@ namespace AttendancePayrollSystem.DataAccess
                     RegularHours REAL NOT NULL,
                     OvertimeHours REAL NOT NULL,
                     GrossPay REAL NOT NULL,
+                    SssDeduction REAL NOT NULL DEFAULT 0,
+                    PhilHealthDeduction REAL NOT NULL DEFAULT 0,
+                    PagIbigDeduction REAL NOT NULL DEFAULT 0,
+                    WithholdingTax REAL NOT NULL DEFAULT 0,
+                    TardinessDeduction REAL NOT NULL DEFAULT 0,
                     Deductions REAL NOT NULL,
                     NetPay REAL NOT NULL,
                     ManualDeduction REAL NOT NULL DEFAULT 0,
@@ -218,7 +228,11 @@ namespace AttendancePayrollSystem.DataAccess
             {
                 EnsureEmployeeIntegrationColumns(connection, transaction);
                 EnsureAttendanceTwoSessionColumns(connection, transaction);
-                EnsurePayrollManualDeductionColumns(connection, transaction);
+                EnsurePayrollDeductionColumns(connection, transaction);
+            }
+            else
+            {
+                EnsurePayrollDeductionColumns(connection, transaction);
             }
 
             EnsureBrandingSeedRow(connection, transaction);
@@ -477,19 +491,32 @@ namespace AttendancePayrollSystem.DataAccess
             migrateCommand.ExecuteNonQuery();
         }
 
-        private static void EnsurePayrollManualDeductionColumns(MySqlConnection connection, MySqlTransaction transaction)
+        private static void EnsurePayrollDeductionColumns(MySqlConnection connection, MySqlTransaction transaction)
         {
-            if (ColumnExists(connection, "PayrollRecords", "ManualDeduction", transaction))
+            EnsurePayrollColumnExists(connection, transaction, "SssDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "PhilHealthDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "PagIbigDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "WithholdingTax", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "TardinessDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "ManualDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "ManualDeductionNote", connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(255) NOT NULL DEFAULT ''");
+        }
+
+        private static void EnsurePayrollColumnExists(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            string columnName,
+            string definition)
+        {
+            if (ColumnExists(connection, "PayrollRecords", columnName, transaction))
             {
                 return;
             }
 
-            const string alterSql = @"
-                ALTER TABLE PayrollRecords
-                    ADD COLUMN ManualDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0 AFTER NetPay,
-                    ADD COLUMN ManualDeductionNote VARCHAR(255) NOT NULL DEFAULT '' AFTER ManualDeduction";
-
-            using var alterCommand = new MySqlCommand(alterSql, connection, transaction);
+            using var alterCommand = new MySqlCommand(
+                $"ALTER TABLE PayrollRecords ADD COLUMN {columnName} {definition}",
+                connection,
+                transaction);
             alterCommand.ExecuteNonQuery();
         }
 

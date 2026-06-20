@@ -41,8 +41,15 @@ create table if not exists public.payrollrecords
     regularhours numeric(10, 2) not null,
     overtimehours numeric(10, 2) not null,
     grosspay numeric(18, 2) not null,
+    sssdeduction numeric(18, 2) not null default 0,
+    philhealthdeduction numeric(18, 2) not null default 0,
+    pagibigdeduction numeric(18, 2) not null default 0,
+    withholdingtax numeric(18, 2) not null default 0,
+    tardinessdeduction numeric(18, 2) not null default 0,
     deductions numeric(18, 2) not null,
     netpay numeric(18, 2) not null,
+    manualdeduction numeric(18, 2) not null default 0,
+    manualdeductionnote text not null default '',
     status varchar(30) not null default 'Pending',
     createdat timestamp with time zone not null default timezone('utc', now())
 );

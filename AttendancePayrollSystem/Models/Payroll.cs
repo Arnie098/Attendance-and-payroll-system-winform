@@ -14,6 +14,10 @@ namespace AttendancePayrollSystem.Models
         public decimal Deductions { get; set; }
         public decimal NetPay { get; set; }
         public string Status { get; set; } = string.Empty;
+        public decimal SssDeduction { get; set; }
+        public decimal PhilHealthDeduction { get; set; }
+        public decimal PagIbigDeduction { get; set; }
+        public decimal WithholdingTax { get; set; }
 
         public string EmployeeName { get; set; } = string.Empty;
         public string EmployeeCode { get; set; } = string.Empty;

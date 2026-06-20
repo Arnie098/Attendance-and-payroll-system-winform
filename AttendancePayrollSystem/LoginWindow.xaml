@@ -2,14 +2,15 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        Title="Login"
+        Title="Sign in - Attendance Payroll System"
         Height="760"
         MinHeight="720"
-        Width="960"
-        MinWidth="960"
+        Width="980"
+        MinWidth="900"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource AppBackgroundBrush}">
+        Background="{StaticResource AppBackgroundBrush}"
+        TextOptions.TextFormattingMode="Display">
     <Grid Margin="24">
         <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
@@ -17,166 +18,133 @@
             <Border Style="{StaticResource ModernCard}" Padding="0" CornerRadius="24">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.12*" />
-                        <ColumnDefinition Width="0.88*" />
+                        <ColumnDefinition Width="1.05*" MinWidth="430" />
+                        <ColumnDefinition Width="0.95*" MinWidth="400" />
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" CornerRadius="24,0,0,24">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#0F172A" Offset="0" />
-                                <GradientStop Color="#1E3A8A" Offset="0.55" />
-                                <GradientStop Color="#0F766E" Offset="1" />
+                                <GradientStop Color="#0B1220" Offset="0" />
+                                <GradientStop Color="#14532D" Offset="0.58" />
+                                <GradientStop Color="#155E75" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
 
-                        <Grid Margin="38">
+                        <Grid Margin="40">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                        <Border Width="74"
-                                Height="74"
-                                HorizontalAlignment="Left"
-                                Background="#1FFFFFFF"
-                                CornerRadius="22"
-                                Padding="8">
-                            <Grid>
-                                <Grid x:Name="BrandLogoFallbackPanel">
-                                    <materialDesign:PackIcon Kind="ShieldAccountVariant"
-                                                             Width="42"
-                                                             Height="42"
-                                                             Foreground="White"
-                                                             HorizontalAlignment="Center"
-                                                             VerticalAlignment="Center" />
-                                </Grid>
-                                <Image x:Name="BrandLogoImage"
-                                       Stretch="Uniform"
-                                       Visibility="Collapsed" />
-                            </Grid>
-                        </Border>
-
-                        <StackPanel Grid.Row="1" Margin="0,26,0,0">
-                            <TextBlock Text="Attendance Payroll System"
-                                       Foreground="White"
-                                       FontSize="34"
-                                       FontWeight="Bold"
-                                       TextWrapping="Wrap" />
-                            <TextBlock Text="A split sign-in workspace for administrators and employees."
-                                       Margin="0,12,0,0"
-                                       Foreground="#DBEAFE"
-                                       FontSize="15"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Row="2" Margin="0,30,0,0">
-                            <Border Margin="0,0,0,12"
-                                    Padding="14"
-                                    Background="#14000000"
-                                    BorderBrush="#24FFFFFF"
-                                    BorderThickness="1"
-                                    CornerRadius="16">
-                                <DockPanel LastChildFill="True">
-                                    <materialDesign:PackIcon Kind="AccountTie"
-                                                             Width="20"
-                                                             Height="20"
-                                                             Foreground="#BFDBFE"
-                                                             Margin="0,2,12,0" />
-                                    <StackPanel>
-                                        <TextBlock Text="Shared access flow"
-                                                   Foreground="White"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Text="Admin and employee accounts use the same entry point."
-                                                   Margin="0,4,0,0"
-                                                   Foreground="#DBEAFE"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-
-                            <Border Margin="0,0,0,12"
-                                    Padding="14"
-                                    Background="#14000000"
-                                    BorderBrush="#24FFFFFF"
-                                    BorderThickness="1"
-                                    CornerRadius="16">
-                                <DockPanel LastChildFill="True">
-                                    <materialDesign:PackIcon Kind="DatabaseCheckOutline"
-                                                             Width="20"
-                                                             Height="20"
-                                                             Foreground="#99F6E4"
-                                                             Margin="0,2,12,0" />
-                                    <StackPanel>
-                                        <TextBlock Text="Runtime awareness"
-                                                   Foreground="White"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Text="Connection details stay visible before anyone signs in."
-                                                   Margin="0,4,0,0"
-                                                   Foreground="#DBEAFE"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-
-                            <Border Padding="14"
-                                    Background="#14000000"
-                                    BorderBrush="#24FFFFFF"
-                                    BorderThickness="1"
-                                    CornerRadius="16">
-                                <DockPanel LastChildFill="True">
-                                    <materialDesign:PackIcon Kind="TuneVariant"
-                                                             Width="20"
-                                                             Height="20"
-                                                             Foreground="#FDE68A"
-                                                             Margin="0,2,12,0" />
-                                    <StackPanel>
-                                        <TextBlock Text="Quick recovery path"
-                                                   Foreground="White"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Text="Database settings remain one click away if the target needs to change."
-                                                   Margin="0,4,0,0"
-                                                   Foreground="#DBEAFE"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <Border Grid.Row="4"
-                                Background="#F8FBFF"
-                                BorderBrush="#D7E1EF"
-                                BorderThickness="1"
-                                CornerRadius="18"
-                                Padding="18">
                             <StackPanel>
-                                <TextBlock Text="Current Database Target"
-                                           FontWeight="SemiBold"
-                                           Foreground="#1E3A8A" />
-                                <TextBlock x:Name="DatabaseTargetTextBlock"
-                                           Margin="0,8,0,0"
-                                           Foreground="#1F2937"
+                                <Border Width="76"
+                                        Height="76"
+                                        HorizontalAlignment="Left"
+                                        Background="#1FFFFFFF"
+                                        BorderBrush="#33FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="20"
+                                        Padding="9">
+                                    <Grid>
+                                        <Grid x:Name="BrandLogoFallbackPanel">
+                                            <materialDesign:PackIcon Kind="ShieldAccountVariant"
+                                                                     Width="42"
+                                                                     Height="42"
+                                                                     Foreground="White"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Image x:Name="BrandLogoImage"
+                                               Stretch="Uniform"
+                                               Visibility="Collapsed" />
+                                    </Grid>
+                                </Border>
+
+                                <TextBlock Text="Attendance Payroll System"
+                                           Margin="0,28,0,0"
+                                           Foreground="White"
+                                           FontSize="34"
+                                           FontWeight="Bold"
+                                           LineHeight="39"
                                            TextWrapping="Wrap" />
-                                <TextBlock x:Name="DatabaseStatusTextBlock"
-                                           Margin="0,12,0,0"
-                                           Visibility="Collapsed"
+                                <TextBlock Text="Fast, role-aware access for administrators and employees, with database settings available when the connection needs attention."
+                                           Margin="0,14,0,0"
+                                           Foreground="#D8F3F0"
+                                           FontSize="15"
+                                           LineHeight="22"
                                            TextWrapping="Wrap" />
                             </StackPanel>
-                        </Border>
+
+                            <Grid Grid.Row="1" Margin="0,32,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Padding="16"
+                                        Background="#18FFFFFF"
+                                        BorderBrush="#28FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="16">
+                                    <StackPanel>
+                                        <DockPanel LastChildFill="True">
+                                            <materialDesign:PackIcon Kind="AccountTie"
+                                                                     Width="21"
+                                                                     Height="21"
+                                                                     Foreground="#BBF7D0"
+                                                                     Margin="0,1,10,0" />
+                                            <TextBlock Text="One sign-in"
+                                                       Foreground="White"
+                                                       FontWeight="SemiBold" />
+                                        </DockPanel>
+                                        <TextBlock Text="Admin and employee users continue through the same secure entry point."
+                                                   Margin="0,8,0,0"
+                                                   Foreground="#D8F3F0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2"
+                                        Padding="16"
+                                        Background="#18FFFFFF"
+                                        BorderBrush="#28FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="16">
+                                    <StackPanel>
+                                        <DockPanel LastChildFill="True">
+                                            <materialDesign:PackIcon Kind="DatabaseCheckOutline"
+                                                                     Width="21"
+                                                                     Height="21"
+                                                                     Foreground="#A5F3FC"
+                                                                     Margin="0,1,10,0" />
+                                            <TextBlock Text="Live target"
+                                                       Foreground="White"
+                                                       FontWeight="SemiBold" />
+                                        </DockPanel>
+                                        <TextBlock Text="Connection mode stays easy to switch before credentials are submitted."
+                                                   Margin="0,8,0,0"
+                                                   Foreground="#D8F3F0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel Grid.Row="3" Visibility="Collapsed">
+                                <TextBlock x:Name="DatabaseTargetTextBlock" />
+                                <TextBlock x:Name="DatabaseStatusTextBlock" />
+                            </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border Grid.Column="1"
                             Background="{StaticResource CardBackgroundBrush}"
                             CornerRadius="0,24,24,0">
-                        <Grid Margin="38">
+                        <Grid Margin="40">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -185,116 +153,201 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0">
-                            <TextBlock Text="Sign In"
-                                       FontSize="30"
-                                       FontWeight="Bold"
-                                       Foreground="{StaticResource HeaderBrush}" />
-                            <TextBlock Text="Use your admin or employee credentials to continue."
-                                       Margin="0,10,0,0"
-                                       Foreground="{StaticResource SubHeaderBrush}"
-                                       FontSize="14"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <Border Grid.Row="1"
-                                Margin="0,24,0,20"
-                                Background="#F8FAFC"
-                                BorderBrush="#D7E1EF"
-                                BorderThickness="1"
-                                CornerRadius="16"
-                                Padding="14">
-                            <DockPanel LastChildFill="True">
-                                <materialDesign:PackIcon Kind="InformationOutline"
-                                                         Width="18"
-                                                         Height="18"
-                                                         Foreground="#1D4ED8"
-                                                         Margin="0,1,10,0" />
-                                <TextBlock Text="Confirm the database target on the left before signing in."
-                                           Foreground="{StaticResource BodyBrush}"
+                            <!-- Welcome heading -->
+                            <StackPanel Grid.Row="0" Margin="0,0,0,28">
+                                <TextBlock Text="Welcome back"
+                                           FontSize="30"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource HeaderBrush}" />
+                                <TextBlock Text="Sign in with your assigned admin or employee account."
+                                           Margin="0,8,0,0"
+                                           Foreground="{StaticResource SubHeaderBrush}"
+                                           FontSize="14"
+                                           LineHeight="20"
                                            TextWrapping="Wrap" />
-                            </DockPanel>
-                        </Border>
+                            </StackPanel>
 
-                        <TextBlock Grid.Row="2"
-                                   Text="Username"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,6" />
-                        <TextBox Grid.Row="3"
-                                 x:Name="UsernameTextBox"
-                                 Style="{StaticResource ModernTextBox}"
-                                 Height="44"
-                                 Margin="0,0,0,16" />
+                            <!-- Credential fields -->
+                            <StackPanel Grid.Row="1">
+                                <DockPanel Margin="0,0,0,6">
+                                    <materialDesign:PackIcon Kind="AccountOutline"
+                                                             Width="17"
+                                                             Height="17"
+                                                             Foreground="#64748B"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="Username"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               Foreground="{StaticResource HeaderBrush}"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBox x:Name="UsernameTextBox"
+                                         Style="{StaticResource ModernTextBox}"
+                                         Height="46"
+                                         Margin="0,0,0,18"
+                                         TabIndex="0"
+                                         TextChanged="CredentialInput_Changed"
+                                         KeyDown="UsernameTextBox_KeyDown"
+                                         materialDesign:HintAssist.Hint="Username" />
 
-                        <TextBlock Grid.Row="4"
-                                   Text="Password"
-                                   FontWeight="SemiBold"
-                                   Margin="0,0,0,6" />
-                            <PasswordBox Grid.Row="5"
-                                         x:Name="PasswordBox"
-                                         Style="{StaticResource ModernPasswordBox}"
-                                         Height="44"
-                                         Margin="0,0,0,14"
-                                         KeyDown="PasswordBox_KeyDown" />
+                                <DockPanel Margin="0,0,0,6">
+                                    <materialDesign:PackIcon Kind="LockOutline"
+                                                             Width="17"
+                                                             Height="17"
+                                                             Foreground="#64748B"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="Password"
+                                               FontWeight="SemiBold"
+                                               FontSize="13"
+                                               Foreground="{StaticResource HeaderBrush}"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                                <!-- Password row: overlays PasswordBox + plain TextBox for show/hide -->
+                                <Grid Margin="0,0,0,4">
+                                    <PasswordBox x:Name="PasswordBox"
+                                                 Style="{StaticResource ModernPasswordBox}"
+                                                 Height="46"
+                                                 Margin="0"
+                                                 Padding="12,0,46,0"
+                                                 TabIndex="1"
+                                                 PasswordChanged="CredentialInput_Changed"
+                                                 KeyDown="PasswordBox_KeyDown"
+                                                 materialDesign:HintAssist.Hint="Password" />
+                                    <TextBox x:Name="PasswordTextBox"
+                                             Style="{StaticResource ModernTextBox}"
+                                             Height="46"
+                                             Margin="0"
+                                             Padding="12,0,46,0"
+                                             Visibility="Collapsed"
+                                             TabIndex="1"
+                                             TextChanged="CredentialInput_Changed"
+                                             KeyDown="PasswordTextBox_KeyDown"
+                                             materialDesign:HintAssist.Hint="Password" />
+                                    <ToggleButton x:Name="ShowPasswordToggle"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,8,0"
+                                                  Width="32"
+                                                  Height="32"
+                                                  Padding="0"
+                                                  Style="{StaticResource MaterialDesignIconToggleButton}"
+                                                  Click="ShowPasswordToggle_Click"
+                                                  ToolTip="Show / hide password">
+                                        <materialDesign:PackIcon x:Name="ShowPasswordIcon"
+                                                                 Kind="EyeOutline"
+                                                                 Width="18"
+                                                                 Height="18" />
+                                    </ToggleButton>
+                                </Grid>
+                            </StackPanel>
 
-                        <TextBlock Grid.Row="6"
-                                   x:Name="StatusTextBlock"
-                                   Foreground="#B91C1C"
-                                   Visibility="Collapsed"
-                                   Margin="0,0,0,10"
-                                   TextWrapping="Wrap" />
+                            <!-- Error / status message -->
+                            <Border Grid.Row="2"
+                                    x:Name="StatusBorder"
+                                    Margin="0,4,0,12"
+                                    Padding="12"
+                                    Background="#FEF2F2"
+                                    BorderBrush="#FCA5A5"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Visibility="Collapsed">
+                                <DockPanel LastChildFill="True">
+                                    <materialDesign:PackIcon Kind="AlertCircleOutline"
+                                                             Width="18"
+                                                             Height="18"
+                                                             Foreground="#B91C1C"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,10,0" />
+                                    <TextBlock x:Name="StatusTextBlock"
+                                               Foreground="#B91C1C"
+                                               FontWeight="SemiBold"
+                                               LineHeight="19"
+                                               TextWrapping="Wrap" />
+                                </DockPanel>
+                            </Border>
 
-                            <StackPanel Grid.Row="8">
-                                <!-- Database Mode Toggle -->
-                                <Border Margin="0,0,0,14"
-                                        Padding="12"
-                                        Background="#F1F5F9"
-                                        BorderBrush="#CBD5E1"
-                                        BorderThickness="1"
-                                        CornerRadius="12">
-                                    <DockPanel>
-                                        <materialDesign:PackIcon Kind="DatabaseSyncOutline"
-                                                                 Width="20"
-                                                                 Height="20"
-                                                                 Foreground="#1E3A8A"
-                                                                 VerticalAlignment="Center"
-                                                                 Margin="0,0,10,0" />
-                                        <ToggleButton x:Name="DatabaseModeToggle"
-                                                      DockPanel.Dock="Right"
-                                                      Style="{StaticResource MaterialDesignSwitchToggleButton}"
-                                                      IsChecked="False"
-                                                      VerticalAlignment="Center"
-                                                      Checked="DatabaseModeToggle_Changed"
-                                                      Unchecked="DatabaseModeToggle_Changed" />
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock x:Name="DatabaseModeLabel"
-                                                       Text="Online Database"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="13"
-                                                       Foreground="#1E293B" />
-                                            <TextBlock x:Name="DatabaseModeDescription"
-                                                       Text="Using Hostinger MySQL (remote)"
-                                                       FontSize="11"
-                                                       Foreground="#64748B"
-                                                       Margin="0,2,0,0" />
-                                        </StackPanel>
-                                    </DockPanel>
-                                </Border>
+                            <!-- Database mode toggle -->
+                            <Border Grid.Row="3"
+                                    Padding="14"
+                                    Background="#F8FAFC"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="14">
+                                <DockPanel LastChildFill="True">
+                                    <ToggleButton x:Name="DatabaseModeToggle"
+                                                  DockPanel.Dock="Right"
+                                                  Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                                  IsChecked="False"
+                                                  VerticalAlignment="Center"
+                                                  Checked="DatabaseModeToggle_Changed"
+                                                  Unchecked="DatabaseModeToggle_Changed" />
+                                    <materialDesign:PackIcon Kind="DatabaseSyncOutline"
+                                                             Width="20"
+                                                             Height="20"
+                                                             Foreground="#1E3A8A"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,12,0" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="DatabaseModeLabel"
+                                                   Text="Online Database"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="13"
+                                                   Foreground="#1E293B" />
+                                        <TextBlock x:Name="DatabaseModeDescription"
+                                                   Text="Using Hostinger MySQL (remote)"
+                                                   FontSize="11"
+                                                   Foreground="#64748B"
+                                                   Margin="0,2,12,0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
 
+                            <!-- Row 4: spacer -->
+
+                            <!-- Action buttons -->
+                            <StackPanel Grid.Row="5">
                                 <Button x:Name="LoginButton"
-                                        Content="Sign In"
-                                        Height="44"
+                                        Height="46"
                                         Style="{StaticResource ModernButton}"
                                         Margin="0,0,0,10"
-                                        Click="LoginButton_Click" />
+                                        TabIndex="2"
+                                        Click="LoginButton_Click">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="LoginVariant"
+                                                                 Width="18"
+                                                                 Height="18"
+                                                                 Foreground="White"
+                                                                 VerticalAlignment="Center"
+                                                                 Margin="0,0,8,0" />
+                                        <TextBlock x:Name="LoginButtonText"
+                                                   Text="Sign In"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
 
                                 <Button x:Name="DatabaseSettingsButton"
-                                        Content="Database Settings"
-                                        Height="44"
-                                        Style="{StaticResource ModernButton}"
-                                        Background="#0F766E"
+                                        Height="40"
+                                        Style="{StaticResource ModernSecondaryButton}"
                                         Margin="0"
-                                        Click="DatabaseSettingsButton_Click" />
+                                        TabIndex="3"
+                                        Click="DatabaseSettingsButton_Click">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="TuneVariant"
+                                                                 Width="16"
+                                                                 Height="16"
+                                                                 VerticalAlignment="Center"
+                                                                 Margin="0,0,8,0" />
+                                        <TextBlock x:Name="DatabaseSettingsButtonText"
+                                                   Text="Database Settings"
+                                                   FontWeight="Medium"
+                                                   FontSize="13"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </Grid>
                     </Border>

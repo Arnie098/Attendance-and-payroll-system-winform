@@ -29,37 +29,61 @@
                 BorderBrush="#E2E8F0"
                 BorderThickness="1"
                 CornerRadius="10"
-                Padding="8,6"
+                Padding="8,4"
                 Margin="0,0,0,10">
-            <DockPanel>
+            <DockPanel LastChildFill="True">
                 <materialDesign:PackIcon Kind="Magnify"
                                          Width="20"
                                          Height="20"
                                          Foreground="#94A3B8"
+                                         DockPanel.Dock="Left"
                                          VerticalAlignment="Center"
                                          Margin="4,0,8,0" />
-                <TextBox x:Name="SearchTextBox"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         FontSize="14"
-                         VerticalAlignment="Center"
-                         TextChanged="SearchTextBox_TextChanged" />
-                <TextBlock Text="Search by name, code, position, department, or email..."
-                           Foreground="#94A3B8"
-                           FontSize="14"
-                           VerticalAlignment="Center"
-                           IsHitTestVisible="False">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Text, ElementName=SearchTextBox}" Value="">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <Button x:Name="ClearSearchButton"
+                        DockPanel.Dock="Right"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        ToolTip="Clear search"
+                        Visibility="Collapsed"
+                        Click="ClearSearch_Click">
+                    <materialDesign:PackIcon Kind="Close"
+                                             Width="18"
+                                             Height="18"
+                                             Foreground="#64748B"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                </Button>
+                <Grid>
+                    <TextBox x:Name="SearchTextBox"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             FontSize="14"
+                             MinHeight="34"
+                             Padding="0,7,0,5"
+                             VerticalContentAlignment="Center"
+                             TextChanged="SearchTextBox_TextChanged"
+                             KeyDown="SearchTextBox_KeyDown" />
+                    <TextBlock Text="Search by name, code, position, department, email, phone, or status..."
+                               Foreground="#94A3B8"
+                               FontSize="14"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchTextBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
             </DockPanel>
         </Border>
 
@@ -80,21 +104,29 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,14,0,0">
-            <Button x:Name="SelectButton"
-                    Content="Select Employee"
-                    Width="140"
-                    Margin="0,0,8,0"
-                    Style="{StaticResource ModernButton}"
-                    Click="Select_Click" />
-            <Button Content="Cancel"
-                    Width="100"
-                    Style="{StaticResource ModernButton}"
-                    Background="#64748B"
-                    Click="Cancel_Click" />
-        </StackPanel>
+        <Grid Grid.Row="3" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="SearchResultCountTextBlock"
+                       VerticalAlignment="Center"
+                       Foreground="#64748B" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button x:Name="SelectButton"
+                        Content="Select Employee"
+                        Width="140"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource ModernButton}"
+                        Click="Select_Click" />
+                <Button Content="Cancel"
+                        Width="100"
+                        Style="{StaticResource ModernButton}"
+                        Background="#64748B"
+                        Click="Cancel_Click" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

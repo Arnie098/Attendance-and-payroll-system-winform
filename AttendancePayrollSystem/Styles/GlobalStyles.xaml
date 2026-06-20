@@ -79,6 +79,16 @@
         <Setter Property="Margin" Value="4" />
     </Style>
 
+    <Style x:Key="ModernSecondaryButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="BorderBrush" Value="#CBD5E1" />
+        <Setter Property="Foreground" Value="#64748B" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
     <Style x:Key="ModernDataGrid" TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}">
         <Setter Property="AutoGenerateColumns" Value="False" />
         <Setter Property="CanUserAddRows" Value="False" />
@@ -97,18 +107,58 @@
 
     <Style x:Key="ModernTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="Margin" Value="0,8,0,8" />
-        <Setter Property="Height" Value="38" />
-        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
-    <Style x:Key="ModernPasswordBox" TargetType="PasswordBox">
+    <Style x:Key="ModernPasswordBox" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
         <Setter Property="Margin" Value="0,8,0,8" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Background" Value="White" />
-        <Setter Property="Foreground" Value="{StaticResource BodyBrush}" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- Local fallback for v5 theme packages where this key is not included. -->
+    <Style x:Key="MaterialDesignIconToggleButton" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="#64748B" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="16">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#E2E8F0" />
+                            <Setter Property="Foreground" Value="#0F172A" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#CBD5E1" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#DBEAFE" />
+                            <Setter Property="Foreground" Value="#1D4ED8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

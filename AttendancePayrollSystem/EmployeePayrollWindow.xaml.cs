@@ -112,7 +112,7 @@ namespace AttendancePayrollSystem
         private void ShowPayslipDetail(Payroll p)
         {
             DetailPeriod.Text = $"{p.PayPeriodStart:MMM dd} – {p.PayPeriodEnd:MMM dd, yyyy}";
-            DetailStatus.Text = $"Status: {p.Status}";
+            DetailStatus.Text = p.Status;
 
             DetailRegular.Text = $"Regular: {p.RegularHours:N2} hrs × rate = ₱{p.GrossPay - (p.OvertimeHours > 0 ? p.OvertimeHours * (_employee.HourlyRate * 1.25m) : 0):N2}";
             DetailOvertime.Text = p.OvertimeHours > 0

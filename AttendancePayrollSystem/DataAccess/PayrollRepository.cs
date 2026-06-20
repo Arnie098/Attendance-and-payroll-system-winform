@@ -18,9 +18,13 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 INSERT INTO PayrollRecords
-                (EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status)
+                (EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay,
+                 SssDeduction, PhilHealthDeduction, PagIbigDeduction, WithholdingTax, TardinessDeduction,
+                 Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status)
                 VALUES
-                (@EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status)";
+                (@EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay,
+                 @SssDeduction, @PhilHealthDeduction, @PagIbigDeduction, @WithholdingTax, @TardinessDeduction,
+                 @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status)";
 
             using var connection = DatabaseHelper.GetConnection();
             using var command = new MySqlCommand(sql, connection);
@@ -30,6 +34,11 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@RegularHours", payroll.RegularHours);
             command.Parameters.AddWithValue("@OvertimeHours", payroll.OvertimeHours);
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
+            command.Parameters.AddWithValue("@SssDeduction", payroll.SssDeduction);
+            command.Parameters.AddWithValue("@PhilHealthDeduction", payroll.PhilHealthDeduction);
+            command.Parameters.AddWithValue("@PagIbigDeduction", payroll.PagIbigDeduction);
+            command.Parameters.AddWithValue("@WithholdingTax", payroll.WithholdingTax);
+            command.Parameters.AddWithValue("@TardinessDeduction", payroll.TardinessDeduction);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
             command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
@@ -50,7 +59,9 @@ namespace AttendancePayrollSystem.DataAccess
             var payrollList = new List<Payroll>();
             const string sql = @"
                 SELECT p.PayrollId, p.EmployeeId, p.PayPeriodStart, p.PayPeriodEnd,
-                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay,
+                       p.RegularHours, p.OvertimeHours, p.GrossPay,
+                       p.SssDeduction, p.PhilHealthDeduction, p.PagIbigDeduction, p.WithholdingTax, p.TardinessDeduction,
+                       p.Deductions, p.NetPay,
                        p.ManualDeduction, p.ManualDeductionNote, p.Status,
                        e.FullName, e.EmployeeCode
                 FROM PayrollRecords p
@@ -81,7 +92,9 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 SELECT p.PayrollId, p.EmployeeId, p.PayPeriodStart, p.PayPeriodEnd,
-                       p.RegularHours, p.OvertimeHours, p.GrossPay, p.Deductions, p.NetPay,
+                       p.RegularHours, p.OvertimeHours, p.GrossPay,
+                       p.SssDeduction, p.PhilHealthDeduction, p.PagIbigDeduction, p.WithholdingTax, p.TardinessDeduction,
+                       p.Deductions, p.NetPay,
                        p.ManualDeduction, p.ManualDeductionNote, p.Status,
                        e.FullName, e.EmployeeCode
                 FROM PayrollRecords p
@@ -123,6 +136,11 @@ namespace AttendancePayrollSystem.DataAccess
                     RegularHours = @RegularHours,
                     OvertimeHours = @OvertimeHours,
                     GrossPay = @GrossPay,
+                    SssDeduction = @SssDeduction,
+                    PhilHealthDeduction = @PhilHealthDeduction,
+                    PagIbigDeduction = @PagIbigDeduction,
+                    WithholdingTax = @WithholdingTax,
+                    TardinessDeduction = @TardinessDeduction,
                     Deductions = @Deductions,
                     NetPay = @NetPay,
                     ManualDeduction = @ManualDeduction,
@@ -138,6 +156,11 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@RegularHours", payroll.RegularHours);
             command.Parameters.AddWithValue("@OvertimeHours", payroll.OvertimeHours);
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
+            command.Parameters.AddWithValue("@SssDeduction", payroll.SssDeduction);
+            command.Parameters.AddWithValue("@PhilHealthDeduction", payroll.PhilHealthDeduction);
+            command.Parameters.AddWithValue("@PagIbigDeduction", payroll.PagIbigDeduction);
+            command.Parameters.AddWithValue("@WithholdingTax", payroll.WithholdingTax);
+            command.Parameters.AddWithValue("@TardinessDeduction", payroll.TardinessDeduction);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
             command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
@@ -183,7 +206,7 @@ namespace AttendancePayrollSystem.DataAccess
                 "payrollrecords",
                 new Dictionary<string, string>
                 {
-                    ["select"] = "payrollid,employeeid,payperiodstart,payperiodend,regularhours,overtimehours,grosspay,deductions,netpay,status",
+                    ["select"] = "payrollid,employeeid,payperiodstart,payperiodend,regularhours,overtimehours,grosspay,sssdeduction,philhealthdeduction,pagibigdeduction,withholdingtax,tardinessdeduction,deductions,netpay,manualdeduction,manualdeductionnote,status",
                     ["employeeid"] = $"eq.{employeeId}",
                     ["order"] = "payperiodend.desc"
                 });
@@ -204,7 +227,7 @@ namespace AttendancePayrollSystem.DataAccess
                 "payrollrecords",
                 new Dictionary<string, string>
                 {
-                    ["select"] = "payrollid,employeeid,payperiodstart,payperiodend,regularhours,overtimehours,grosspay,deductions,netpay,status",
+                    ["select"] = "payrollid,employeeid,payperiodstart,payperiodend,regularhours,overtimehours,grosspay,sssdeduction,philhealthdeduction,pagibigdeduction,withholdingtax,tardinessdeduction,deductions,netpay,manualdeduction,manualdeductionnote,status",
                     ["employeeid"] = $"eq.{employeeId}",
                     ["payperiodstart"] = $"eq.{payPeriodStart:yyyy-MM-dd}",
                     ["payperiodend"] = $"eq.{payPeriodEnd:yyyy-MM-dd}",
@@ -232,6 +255,11 @@ namespace AttendancePayrollSystem.DataAccess
                 regularhours = payroll.RegularHours,
                 overtimehours = payroll.OvertimeHours,
                 grosspay = payroll.GrossPay,
+                sssdeduction = payroll.SssDeduction,
+                philhealthdeduction = payroll.PhilHealthDeduction,
+                pagibigdeduction = payroll.PagIbigDeduction,
+                withholdingtax = payroll.WithholdingTax,
+                tardinessdeduction = payroll.TardinessDeduction,
                 deductions = payroll.Deductions,
                 netpay = payroll.NetPay,
                 manualdeduction = payroll.ManualDeduction,
@@ -251,6 +279,11 @@ namespace AttendancePayrollSystem.DataAccess
                 RegularHours = Convert.ToDecimal(reader["RegularHours"]),
                 OvertimeHours = Convert.ToDecimal(reader["OvertimeHours"]),
                 GrossPay = Convert.ToDecimal(reader["GrossPay"]),
+                SssDeduction = reader["SssDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["SssDeduction"]),
+                PhilHealthDeduction = reader["PhilHealthDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PhilHealthDeduction"]),
+                PagIbigDeduction = reader["PagIbigDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PagIbigDeduction"]),
+                WithholdingTax = reader["WithholdingTax"] is DBNull ? 0m : Convert.ToDecimal(reader["WithholdingTax"]),
+                TardinessDeduction = reader["TardinessDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["TardinessDeduction"]),
                 Deductions = Convert.ToDecimal(reader["Deductions"]),
                 NetPay = Convert.ToDecimal(reader["NetPay"]),
                 ManualDeduction = reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]),

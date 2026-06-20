@@ -710,7 +710,8 @@ namespace AttendancePayrollSystem.Services
         {
             using var selectCommand = new MySqlCommand(@"
                 SELECT PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours,
-                       GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
+                       GrossPay, SssDeduction, PhilHealthDeduction, PagIbigDeduction, WithholdingTax, TardinessDeduction,
+                       Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
                 FROM PayrollRecords
                 ORDER BY PayrollId", onlineConnection);
 
@@ -719,9 +720,13 @@ namespace AttendancePayrollSystem.Services
             {
                 using var insertCommand = new MySqlCommand(@"
                     INSERT INTO PayrollRecords
-                    (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
+                    (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay,
+                     SssDeduction, PhilHealthDeduction, PagIbigDeduction, WithholdingTax, TardinessDeduction,
+                     Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
                     VALUES
-                    (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)",
+                    (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay,
+                     @SssDeduction, @PhilHealthDeduction, @PagIbigDeduction, @WithholdingTax, @TardinessDeduction,
+                     @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)",
                     offlineConnection,
                     transaction);
 
@@ -732,6 +737,11 @@ namespace AttendancePayrollSystem.Services
                 insertCommand.Parameters.AddWithValue("@RegularHours", Convert.ToDecimal(reader["RegularHours"]));
                 insertCommand.Parameters.AddWithValue("@OvertimeHours", Convert.ToDecimal(reader["OvertimeHours"]));
                 insertCommand.Parameters.AddWithValue("@GrossPay", Convert.ToDecimal(reader["GrossPay"]));
+                insertCommand.Parameters.AddWithValue("@SssDeduction", reader["SssDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["SssDeduction"]));
+                insertCommand.Parameters.AddWithValue("@PhilHealthDeduction", reader["PhilHealthDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PhilHealthDeduction"]));
+                insertCommand.Parameters.AddWithValue("@PagIbigDeduction", reader["PagIbigDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PagIbigDeduction"]));
+                insertCommand.Parameters.AddWithValue("@WithholdingTax", reader["WithholdingTax"] is DBNull ? 0m : Convert.ToDecimal(reader["WithholdingTax"]));
+                insertCommand.Parameters.AddWithValue("@TardinessDeduction", reader["TardinessDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["TardinessDeduction"]));
                 insertCommand.Parameters.AddWithValue("@Deductions", Convert.ToDecimal(reader["Deductions"]));
                 insertCommand.Parameters.AddWithValue("@NetPay", Convert.ToDecimal(reader["NetPay"]));
                 insertCommand.Parameters.AddWithValue("@ManualDeduction", reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]));
@@ -1013,9 +1023,13 @@ namespace AttendancePayrollSystem.Services
 
             using var command = new MySqlCommand(@"
                 INSERT INTO PayrollRecords
-                (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
+                (PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours, GrossPay,
+                 SssDeduction, PhilHealthDeduction, PagIbigDeduction, WithholdingTax, TardinessDeduction,
+                 Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt)
                 VALUES
-                (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay, @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)
+                (@PayrollId, @EmployeeId, @PayPeriodStart, @PayPeriodEnd, @RegularHours, @OvertimeHours, @GrossPay,
+                 @SssDeduction, @PhilHealthDeduction, @PagIbigDeduction, @WithholdingTax, @TardinessDeduction,
+                 @Deductions, @NetPay, @ManualDeduction, @ManualDeductionNote, @Status, @CreatedAt)
                 ON DUPLICATE KEY UPDATE
                     EmployeeId = VALUES(EmployeeId),
                     PayPeriodStart = VALUES(PayPeriodStart),
@@ -1023,6 +1037,11 @@ namespace AttendancePayrollSystem.Services
                     RegularHours = VALUES(RegularHours),
                     OvertimeHours = VALUES(OvertimeHours),
                     GrossPay = VALUES(GrossPay),
+                    SssDeduction = VALUES(SssDeduction),
+                    PhilHealthDeduction = VALUES(PhilHealthDeduction),
+                    PagIbigDeduction = VALUES(PagIbigDeduction),
+                    WithholdingTax = VALUES(WithholdingTax),
+                    TardinessDeduction = VALUES(TardinessDeduction),
                     Deductions = VALUES(Deductions),
                     NetPay = VALUES(NetPay),
                     ManualDeduction = VALUES(ManualDeduction),
@@ -1161,7 +1180,8 @@ namespace AttendancePayrollSystem.Services
         {
             using var command = new MySqlCommand(@"
                 SELECT PayrollId, EmployeeId, PayPeriodStart, PayPeriodEnd, RegularHours, OvertimeHours,
-                       GrossPay, Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
+                       GrossPay, SssDeduction, PhilHealthDeduction, PagIbigDeduction, WithholdingTax, TardinessDeduction,
+                       Deductions, NetPay, ManualDeduction, ManualDeductionNote, Status, CreatedAt
                 FROM PayrollRecords
                 WHERE PayrollId = @PayrollId
                 LIMIT 1", connection);
@@ -1182,6 +1202,11 @@ namespace AttendancePayrollSystem.Services
                 RegularHours = Convert.ToDecimal(reader["RegularHours"]),
                 OvertimeHours = Convert.ToDecimal(reader["OvertimeHours"]),
                 GrossPay = Convert.ToDecimal(reader["GrossPay"]),
+                SssDeduction = reader["SssDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["SssDeduction"]),
+                PhilHealthDeduction = reader["PhilHealthDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PhilHealthDeduction"]),
+                PagIbigDeduction = reader["PagIbigDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["PagIbigDeduction"]),
+                WithholdingTax = reader["WithholdingTax"] is DBNull ? 0m : Convert.ToDecimal(reader["WithholdingTax"]),
+                TardinessDeduction = reader["TardinessDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["TardinessDeduction"]),
                 Deductions = Convert.ToDecimal(reader["Deductions"]),
                 NetPay = Convert.ToDecimal(reader["NetPay"]),
                 ManualDeduction = reader["ManualDeduction"] is DBNull ? 0m : Convert.ToDecimal(reader["ManualDeduction"]),
@@ -1340,6 +1365,11 @@ namespace AttendancePayrollSystem.Services
             command.Parameters.AddWithValue("@RegularHours", payroll.RegularHours);
             command.Parameters.AddWithValue("@OvertimeHours", payroll.OvertimeHours);
             command.Parameters.AddWithValue("@GrossPay", payroll.GrossPay);
+            command.Parameters.AddWithValue("@SssDeduction", payroll.SssDeduction);
+            command.Parameters.AddWithValue("@PhilHealthDeduction", payroll.PhilHealthDeduction);
+            command.Parameters.AddWithValue("@PagIbigDeduction", payroll.PagIbigDeduction);
+            command.Parameters.AddWithValue("@WithholdingTax", payroll.WithholdingTax);
+            command.Parameters.AddWithValue("@TardinessDeduction", payroll.TardinessDeduction);
             command.Parameters.AddWithValue("@Deductions", payroll.Deductions);
             command.Parameters.AddWithValue("@NetPay", payroll.NetPay);
             command.Parameters.AddWithValue("@ManualDeduction", payroll.ManualDeduction);
@@ -1401,6 +1431,11 @@ namespace AttendancePayrollSystem.Services
             public decimal RegularHours { get; init; }
             public decimal OvertimeHours { get; init; }
             public decimal GrossPay { get; init; }
+            public decimal SssDeduction { get; init; }
+            public decimal PhilHealthDeduction { get; init; }
+            public decimal PagIbigDeduction { get; init; }
+            public decimal WithholdingTax { get; init; }
+            public decimal TardinessDeduction { get; init; }
             public decimal Deductions { get; init; }
             public decimal NetPay { get; init; }
             public decimal ManualDeduction { get; init; }

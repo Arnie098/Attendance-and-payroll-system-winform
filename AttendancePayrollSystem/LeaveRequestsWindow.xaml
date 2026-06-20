@@ -100,27 +100,36 @@
                                Style="{StaticResource SectionTitle}"
                                FontWeight="Bold" />
 
-                    <DataGrid x:Name="LeaveRequestsDataGrid"
-                              Grid.Row="1"
-                              Style="{StaticResource ModernDataGrid}"
-                              Margin="0,8,0,0"
-                              SelectionChanged="LeaveRequestsDataGrid_SelectionChanged"
-                              MinHeight="340"
-                              ScrollViewer.VerticalScrollBarVisibility="Auto"
-                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="90" />
-                            <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="170" />
-                            <DataGridTextColumn Header="Type" Binding="{Binding LeaveType}" Width="145" />
-                            <DataGridTextColumn Header="Paid" Binding="{Binding PaymentLabel}" Width="90" />
-                            <DataGridTextColumn Header="Start" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="115" />
-                            <DataGridTextColumn Header="End" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="115" />
-                            <DataGridTextColumn Header="Days" Binding="{Binding ChargeableDays}" Width="70" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
-                            <DataGridTextColumn Header="Submitted" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="145" />
-                            <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,8,0,0"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  CanContentScroll="False">
+                        <DataGrid x:Name="LeaveRequestsDataGrid"
+                                  Width="1320"
+                                  HorizontalAlignment="Left"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  SelectionChanged="LeaveRequestsDataGrid_SelectionChanged"
+                                  MinHeight="340"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="90" />
+                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="170" />
+                                <DataGridTextColumn Header="Type" Binding="{Binding LeaveType}" Width="145" />
+                                <DataGridTextColumn Header="Paid" Binding="{Binding PaymentLabel}" Width="90" />
+                                <DataGridTextColumn Header="Start" Binding="{Binding StartDate, StringFormat=yyyy-MM-dd}" Width="115" />
+                                <DataGridTextColumn Header="End" Binding="{Binding EndDate, StringFormat=yyyy-MM-dd}" Width="115" />
+                                <DataGridTextColumn Header="Days" Binding="{Binding ChargeableDays}" Width="70" />
+                                <DataGridTextColumn Header="Status"
+                                                    Binding="{Binding Status}"
+                                                    Width="100"
+                                                    ElementStyle="{StaticResource LeaveStatusTextStyle}" />
+                                <DataGridTextColumn Header="Submitted" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="145" />
+                                <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="280" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
@@ -142,7 +151,10 @@
                         <TextBlock x:Name="SelectedLeaveDatesTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
 
                         <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveStatusTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                        <TextBlock x:Name="SelectedLeaveStatusTextBlock"
+                                   Margin="0,4,0,12"
+                                   TextWrapping="Wrap"
+                                   Style="{StaticResource LeaveStatusTextStyle}" />
 
                         <TextBlock Text="Payment Rule" Style="{StaticResource SectionTitle}" />
                         <TextBlock x:Name="SelectedLeavePaymentTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />

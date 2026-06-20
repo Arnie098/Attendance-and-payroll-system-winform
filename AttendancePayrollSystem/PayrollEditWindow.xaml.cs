@@ -28,11 +28,15 @@ namespace AttendancePayrollSystem
             ManualRegularHoursTextBox.Text = payroll.RegularHours.ToString("N2", CultureInfo.InvariantCulture);
             ManualOvertimeHoursTextBox.Text = payroll.OvertimeHours.ToString("N2", CultureInfo.InvariantCulture);
             ManualGrossPayTextBox.Text = payroll.GrossPay.ToString("N2", CultureInfo.InvariantCulture);
-            ManualDeductionsTextBox.Text = payroll.Deductions.ToString("N2", CultureInfo.InvariantCulture);
-            ManualNetPayTextBox.Text = payroll.NetPay.ToString("N2", CultureInfo.InvariantCulture);
+            ManualSssDeductionTextBox.Text = payroll.SssDeduction.ToString("N2", CultureInfo.InvariantCulture);
+            ManualPhilHealthDeductionTextBox.Text = payroll.PhilHealthDeduction.ToString("N2", CultureInfo.InvariantCulture);
+            ManualPagIbigDeductionTextBox.Text = payroll.PagIbigDeduction.ToString("N2", CultureInfo.InvariantCulture);
+            ManualWithholdingTaxTextBox.Text = payroll.WithholdingTax.ToString("N2", CultureInfo.InvariantCulture);
+            ManualTardinessDeductionTextBox.Text = payroll.TardinessDeduction.ToString("N2", CultureInfo.InvariantCulture);
             ManualManualDeductionTextBox.Text = payroll.ManualDeduction.ToString("N2", CultureInfo.InvariantCulture);
             ManualManualDeductionNoteTextBox.Text = payroll.ManualDeductionNote;
             SelectStatus(payroll.Status);
+            RecalculateTotals();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -90,8 +94,11 @@ namespace AttendancePayrollSystem
             if (!TryParseNonNegativeDecimal(ManualRegularHoursTextBox.Text, "Regular hours", out var regularHours) ||
                 !TryParseNonNegativeDecimal(ManualOvertimeHoursTextBox.Text, "Overtime hours", out var overtimeHours) ||
                 !TryParseNonNegativeDecimal(ManualGrossPayTextBox.Text, "Gross pay", out var grossPay) ||
-                !TryParseNonNegativeDecimal(ManualDeductionsTextBox.Text, "Deductions", out var deductions) ||
-                !TryParseNonNegativeDecimal(ManualNetPayTextBox.Text, "Net pay", out var netPay))
+                !TryParseNonNegativeDecimal(ManualSssDeductionTextBox.Text, "SSS deduction", out var sssDeduction) ||
+                !TryParseNonNegativeDecimal(ManualPhilHealthDeductionTextBox.Text, "PhilHealth deduction", out var philHealthDeduction) ||
+                !TryParseNonNegativeDecimal(ManualPagIbigDeductionTextBox.Text, "Pag-IBIG deduction", out var pagIbigDeduction) ||
+                !TryParseNonNegativeDecimal(ManualWithholdingTaxTextBox.Text, "tax deduction", out var withholdingTax) ||
+                !TryParseNonNegativeDecimal(ManualTardinessDeductionTextBox.Text, "tardiness deduction", out var tardinessDeduction))
             {
                 return false;
             }
@@ -119,12 +126,54 @@ namespace AttendancePayrollSystem
             payroll.RegularHours = regularHours;
             payroll.OvertimeHours = overtimeHours;
             payroll.GrossPay = grossPay;
-            payroll.Deductions = deductions;
-            payroll.NetPay = netPay;
+            payroll.SssDeduction = sssDeduction;
+            payroll.PhilHealthDeduction = philHealthDeduction;
+            payroll.PagIbigDeduction = pagIbigDeduction;
+            payroll.WithholdingTax = withholdingTax;
+            payroll.TardinessDeduction = tardinessDeduction;
             payroll.ManualDeduction = manualDeduction;
+            payroll.Deductions = RoundCurrency(
+                sssDeduction +
+                philHealthDeduction +
+                pagIbigDeduction +
+                withholdingTax +
+                tardinessDeduction +
+                manualDeduction);
+            payroll.NetPay = RoundCurrency(Math.Max(0m, grossPay - payroll.Deductions));
             payroll.ManualDeductionNote = ManualManualDeductionNoteTextBox.Text.Trim();
             payroll.Status = GetSelectedStatus();
             return true;
+        }
+
+        private void DeductionInput_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            RecalculateTotals();
+        }
+
+        private void RecalculateTotals()
+        {
+            if (!TryParseDecimalForCalculation(ManualGrossPayTextBox.Text, out var grossPay) ||
+                !TryParseDecimalForCalculation(ManualSssDeductionTextBox.Text, out var sssDeduction) ||
+                !TryParseDecimalForCalculation(ManualPhilHealthDeductionTextBox.Text, out var philHealthDeduction) ||
+                !TryParseDecimalForCalculation(ManualPagIbigDeductionTextBox.Text, out var pagIbigDeduction) ||
+                !TryParseDecimalForCalculation(ManualWithholdingTaxTextBox.Text, out var withholdingTax) ||
+                !TryParseDecimalForCalculation(ManualTardinessDeductionTextBox.Text, out var tardinessDeduction) ||
+                !TryParseDecimalForCalculation(ManualManualDeductionTextBox.Text, out var manualDeduction))
+            {
+                return;
+            }
+
+            var totalDeductions = RoundCurrency(
+                sssDeduction +
+                philHealthDeduction +
+                pagIbigDeduction +
+                withholdingTax +
+                tardinessDeduction +
+                manualDeduction);
+            var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
+
+            ManualDeductionsTextBox.Text = totalDeductions.ToString("N2", CultureInfo.InvariantCulture);
+            ManualNetPayTextBox.Text = netPay.ToString("N2", CultureInfo.InvariantCulture);
         }
 
         private static bool TryParseNonNegativeDecimal(string rawValue, string label, out decimal value)
@@ -136,6 +185,22 @@ namespace AttendancePayrollSystem
             }
 
             return true;
+        }
+
+        private static bool TryParseDecimalForCalculation(string rawValue, out decimal value)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                value = 0m;
+                return true;
+            }
+
+            return decimal.TryParse(rawValue, NumberStyles.Number, CultureInfo.InvariantCulture, out value) && value >= 0;
+        }
+
+        private static decimal RoundCurrency(decimal amount)
+        {
+            return Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         }
 
         private void SelectStatus(string status)

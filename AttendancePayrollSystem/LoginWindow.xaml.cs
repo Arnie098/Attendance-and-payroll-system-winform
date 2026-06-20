@@ -6,6 +6,7 @@ using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
 using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
 
 namespace AttendancePayrollSystem
 {
@@ -71,6 +72,66 @@ namespace AttendancePayrollSystem
             }
         }
 
+        private async void PasswordTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                await TryLoginAsync();
+            }
+        }
+
+        private void ShowPasswordToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (ShowPasswordToggle.IsChecked == true)
+            {
+                PasswordTextBox.Text = PasswordBox.Password;
+                PasswordBox.Visibility = Visibility.Collapsed;
+                PasswordTextBox.Visibility = Visibility.Visible;
+                ShowPasswordIcon.Kind = PackIconKind.EyeOffOutline;
+                PasswordTextBox.CaretIndex = PasswordTextBox.Text.Length;
+                PasswordTextBox.Focus();
+            }
+            else
+            {
+                PasswordBox.Password = PasswordTextBox.Text;
+                PasswordTextBox.Visibility = Visibility.Collapsed;
+                PasswordBox.Visibility = Visibility.Visible;
+                ShowPasswordIcon.Kind = PackIconKind.EyeOutline;
+                PasswordBox.Focus();
+            }
+        }
+
+        private void ClearPasswordFields()
+        {
+            PasswordBox.Clear();
+            PasswordTextBox.Clear();
+            if (ShowPasswordToggle.IsChecked == true)
+            {
+                ShowPasswordToggle.IsChecked = false;
+                PasswordTextBox.Visibility = Visibility.Collapsed;
+                PasswordBox.Visibility = Visibility.Visible;
+                ShowPasswordIcon.Kind = PackIconKind.EyeOutline;
+            }
+        }
+
+        private void UsernameTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                PasswordBox.Focus();
+            }
+        }
+
+        private void CredentialInput_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!_isInitializingDatabase && !_isAuthenticating && StatusBorder.Visibility == Visibility.Visible)
+            {
+                SetStatus(string.Empty);
+            }
+        }
+
         private async Task TryLoginAsync()
         {
             if (_isInitializingDatabase || _isAuthenticating)
@@ -81,6 +142,8 @@ namespace AttendancePayrollSystem
             SetStatus(string.Empty);
 
             var username = UsernameTextBox.Text.Trim();
+            if (ShowPasswordToggle.IsChecked == true)
+                PasswordBox.Password = PasswordTextBox.Text;
             var password = PasswordBox.Password;
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -100,7 +163,7 @@ namespace AttendancePayrollSystem
                 {
                     AppLogger.Auth($"Failed login attempt for username '{username}'.");
                     SetStatus("Invalid username or password.");
-                    PasswordBox.Clear();
+                    ClearPasswordFields();
                     return;
                 }
 
@@ -276,7 +339,7 @@ namespace AttendancePayrollSystem
         private void SetStatus(string message)
         {
             StatusTextBlock.Text = message;
-            StatusTextBlock.Visibility = string.IsNullOrWhiteSpace(message)
+            StatusBorder.Visibility = string.IsNullOrWhiteSpace(message)
                 ? Visibility.Collapsed
                 : Visibility.Visible;
         }
@@ -392,8 +455,8 @@ namespace AttendancePayrollSystem
             PasswordBox.IsEnabled = _isDatabaseReady && !isBusy;
             LoginButton.IsEnabled = _isDatabaseReady && !isBusy;
             DatabaseSettingsButton.IsEnabled = !isBusy;
-            LoginButton.Content = _isAuthenticating ? "Signing In..." : "Sign In";
-            DatabaseSettingsButton.Content = _isInitializingDatabase ? "Checking Database..." : "Database Settings";
+            LoginButtonText.Text = _isAuthenticating ? "Signing In..." : "Sign In";
+            DatabaseSettingsButtonText.Text = _isInitializingDatabase ? "Checking Database..." : "Database Settings";
             BusyStatusTextBlock.Text = _busyMessage;
             BusyOverlay.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
         }

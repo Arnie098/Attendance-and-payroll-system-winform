@@ -1,7 +1,8 @@
 Run this from the project root:
 
-dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
 
+
+dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
 
 dotnet build "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
 dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj"

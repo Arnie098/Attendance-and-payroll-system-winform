@@ -132,54 +132,10 @@
                     <DataGridTextColumn Header="Manual Ded" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="90" />
                     <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="95" />
                     <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=₱{0:N2}}" Width="100" />
-                    <DataGridTemplateColumn Header="Status" Width="95">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border CornerRadius="10" Padding="8,3" HorizontalAlignment="Left">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#E2E8F0" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                    <Setter Property="Background" Value="#FEF3C7" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Processed">
-                                                    <Setter Property="Background" Value="#DBEAFE" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Paid">
-                                                    <Setter Property="Background" Value="#D1FAE5" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                                    <Setter Property="Background" Value="#FEE2E2" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="#475569" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                        <Setter Property="Foreground" Value="#92400E" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Processed">
-                                                        <Setter Property="Foreground" Value="#1E40AF" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Paid">
-                                                        <Setter Property="Foreground" Value="#065F46" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                                        <Setter Property="Foreground" Value="#991B1B" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Status"
+                                        Binding="{Binding Status}"
+                                        Width="95"
+                                        ElementStyle="{StaticResource PayrollStatusTextStyle}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
@@ -202,7 +158,10 @@
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="PAY PERIOD" Foreground="#94A3B8" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
                     <TextBlock x:Name="DetailPeriod" FontSize="14" FontWeight="Bold" Foreground="#1E293B" />
-                    <TextBlock x:Name="DetailStatus" FontSize="12" Foreground="#64748B" Margin="0,4,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Status: " FontSize="12" Foreground="#64748B" />
+                        <TextBlock x:Name="DetailStatus" FontSize="12" Style="{StaticResource PayrollStatusTextStyle}" />
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1">

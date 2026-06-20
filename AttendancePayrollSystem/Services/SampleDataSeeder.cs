@@ -118,7 +118,11 @@ namespace AttendancePayrollSystem.Services
             var regularHours = totalWeekdays * 8m;
             var overtimeHours = employee.EmployeeId % 3 == 0 ? 4m : 1.5m;
             var grossPay = Math.Round((regularHours + overtimeHours) * employee.HourlyRate, 2);
-            var deductions = Math.Round(grossPay * 0.10m, 2);
+            var sssDeduction = Math.Round(grossPay * 0.045m, 2);
+            var philHealthDeduction = Math.Round(grossPay * 0.02m, 2);
+            var pagIbigDeduction = Math.Round(Math.Min(grossPay * 0.02m, 100m), 2);
+            var withholdingTax = Math.Round(Math.Max(0m, grossPay * 0.015m), 2);
+            var deductions = sssDeduction + philHealthDeduction + pagIbigDeduction + withholdingTax;
 
             return new Payroll
             {
@@ -128,6 +132,10 @@ namespace AttendancePayrollSystem.Services
                 RegularHours = regularHours,
                 OvertimeHours = overtimeHours,
                 GrossPay = grossPay,
+                SssDeduction = sssDeduction,
+                PhilHealthDeduction = philHealthDeduction,
+                PagIbigDeduction = pagIbigDeduction,
+                WithholdingTax = withholdingTax,
                 Deductions = deductions,
                 NetPay = grossPay - deductions,
                 ManualDeduction = 0m,
