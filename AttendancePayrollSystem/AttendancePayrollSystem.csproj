@@ -22,4 +22,8 @@
     <Page Remove="ImageSeeder\\**\\*" />
     <Resource Remove="ImageSeeder\\**\\*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Logos\Techtugon logo.jpg" />
+  </ItemGroup>
 </Project>
