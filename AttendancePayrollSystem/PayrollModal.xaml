@@ -75,7 +75,7 @@
             </Border>
 
             <!-- Calculate Section -->
-            <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="20">
+            <Border x:Name="CalculateSection" Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="20">
                 <StackPanel>
                     <!-- Pay Period -->
                     <DockPanel Margin="0,0,0,10">
@@ -227,7 +227,7 @@
             </Border>
 
             <!-- Statutory Deduction Rates Reference -->
-            <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="16">
+            <Border x:Name="StatutoryRatesSection" Grid.Row="2" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="16">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,10">
                         <materialDesign:PackIcon Kind="CalculatorVariant"
@@ -288,7 +288,57 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Payroll Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" />
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="Payroll Records" Style="{StaticResource SectionTitle}" FontWeight="Bold" VerticalAlignment="Center" />
+
+                        <StackPanel x:Name="PayrollActionsPanel" Grid.Column="1" Orientation="Horizontal">
+                            <Button Margin="0,0,8,0"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#0F766E"
+                                    Click="AddManualPayroll_Click">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Plus"
+                                                             Width="16" Height="16"
+                                                             Foreground="White"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="Add Manual" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Margin="0,0,8,0"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#1D4ED8"
+                                    Click="EditSelectedPayroll_Click">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Pencil"
+                                                             Width="16" Height="16"
+                                                             Foreground="White"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="Edit Selected" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ModernButton}"
+                                    Background="#B91C1C"
+                                    Click="DeleteSelectedPayroll_Click">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Delete"
+                                                             Width="16" Height="16"
+                                                             Foreground="White"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="Delete Selected" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
 
                     <Border Grid.Row="1"
                             Background="#F8FAFC"
@@ -298,33 +348,36 @@
                             Padding="8,6"
                             Margin="0,8,0,4">
                         <DockPanel>
-                            <materialDesign:PackIcon Kind="Magnify"
+                            <materialDesign:PackIcon DockPanel.Dock="Left"
+                                                     Kind="Magnify"
                                                      Width="20" Height="20"
                                                      Foreground="#94A3B8"
                                                      VerticalAlignment="Center"
                                                      Margin="4,0,8,0" />
-                            <TextBox x:Name="PayrollSearchBox"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     FontSize="14"
-                                     VerticalAlignment="Center"
-                                     TextChanged="PayrollSearchBox_TextChanged" />
-                            <TextBlock Text="Search by period, status, or amount..."
-                                       Foreground="#94A3B8"
-                                       FontSize="14"
-                                       VerticalAlignment="Center"
-                                       IsHitTestVisible="False">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Text, ElementName=PayrollSearchBox}" Value="">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                            <Grid>
+                                <TextBox x:Name="PayrollSearchBox"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         FontSize="14"
+                                         VerticalAlignment="Center"
+                                         TextChanged="PayrollSearchBox_TextChanged" />
+                                <TextBlock Text="Search by period, status, or amount..."
+                                           Foreground="#94A3B8"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=PayrollSearchBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
                         </DockPanel>
                     </Border>
 
@@ -339,20 +392,22 @@
                               MaxHeight="300"
                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                               ScrollViewer.VerticalScrollBarVisibility="Auto">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Period Start" Binding="{Binding PayPeriodStart, StringFormat=yyyy-MM-dd}" Width="95" />
-                            <DataGridTextColumn Header="Period End" Binding="{Binding PayPeriodEnd, StringFormat=yyyy-MM-dd}" Width="95" />
-                            <DataGridTextColumn Header="Reg Hrs" Binding="{Binding RegularHours, StringFormat=N2}" Width="65" />
-                            <DataGridTextColumn Header="OT Hrs" Binding="{Binding OvertimeHours, StringFormat=N2}" Width="60" />
-                            <DataGridTextColumn Header="Gross" Binding="{Binding GrossPay, StringFormat=₱{0:N2}}" Width="90" />
-                            <DataGridTextColumn Header="Late" Binding="{Binding TotalTardinessMinutes, StringFormat={}{0} min}" Width="60" />
-                            <DataGridTextColumn Header="Late Ded" Binding="{Binding TardinessDeduction, StringFormat=₱{0:N2}}" Width="80" />
-                            <DataGridTextColumn Header="Manual" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="75" />
-                            <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="90" />
-                            <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=₱{0:N2}}" Width="95" />
+<DataGrid.Columns>
+                            <DataGridTextColumn Header="Payroll Period Start" Binding="{Binding PayPeriodStart, StringFormat=yyyy-MM-dd}" Width="135" />
+                            <DataGridTextColumn Header="Payroll Period End" Binding="{Binding PayPeriodEnd, StringFormat=yyyy-MM-dd}" Width="135" />
+                            <DataGridTextColumn Header="Regular Hours" Binding="{Binding RegularHours, StringFormat=N2}" Width="110" />
+                            <DataGridTextColumn Header="Overtime Hours" Binding="{Binding OvertimeHours, StringFormat=N2}" Width="120" />
+                            <DataGridTextColumn Header="Gross Pay" Binding="{Binding GrossPay, StringFormat=₱{0:N2}}" Width="110" />
+                            <DataGridTextColumn Header="Total Mins of Late" Binding="{Binding TotalTardinessMinutes, StringFormat={}{0} min}" Width="130" />
+                            <DataGridTextColumn Header="Late Deduction" Binding="{Binding TardinessDeduction, StringFormat=₱{0:N2}}" Width="125" />
+                            <DataGridTextColumn Header="Absent Days" Binding="{Binding AbsentDays, StringFormat={}{0} d}" Width="95" />
+                            <DataGridTextColumn Header="Absence Deduction" Binding="{Binding AbsenceDeduction, StringFormat=₱{0:N2}}" Width="140" />
+                            <DataGridTextColumn Header="Manual Deduction" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="130" />
+                            <DataGridTextColumn Header="Total Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="130" />
+                            <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=₱{0:N2}}" Width="110" />
                             <DataGridTextColumn Header="Status"
                                                 Binding="{Binding Status}"
-                                                Width="90"
+                                                Width="110"
                                                 ElementStyle="{StaticResource PayrollStatusTextStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -361,8 +416,8 @@
 
             <Border Grid.Row="4" Style="{StaticResource ModernCard}" Margin="0,0,0,4">
                 <StackPanel Orientation="Horizontal" Margin="16">
-                    <materialDesign:PackIcon Kind="CursorDefaultClickOutline" Width="18" Height="18" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <TextBlock Text="Double-click a payroll record above to edit or delete it."
+                    <materialDesign:PackIcon Kind="PlaylistEdit" Width="18" Height="18" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="Use Add Manual, Edit Selected, or Delete Selected to manage payroll records."
                                Foreground="#64748B"
                                FontSize="13"
                                VerticalAlignment="Center" />
@@ -371,8 +426,33 @@
 
             <!-- Footer Actions -->
             <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-                <Button Width="110"
-                        Style="{StaticResource ModernButton}"
+                <Button Style="{StaticResource ModernButton}"
+                        Background="#123C47"
+                        Click="PrintPayslip_Click"
+                        Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Printer"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Print Payslip" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ModernButton}"
+                        Background="#7C2D12"
+                        Click="SavePdf_Click"
+                        Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="FilePdfBox"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Save as PDF" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ModernButton}"
                         Background="#475569"
                         Click="Close_Click">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

@@ -99,6 +99,16 @@ namespace AttendancePayrollSystem.Views
             window.ShowDialog();
         }
 
+        private void OpenDtrLedgerTile_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new DtrLedgerWindow
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            window.ShowDialog();
+        }
+
         private void LogoutTile_Click(object sender, RoutedEventArgs e)
         {
             if (Window.GetWindow(this) is MainWindow owner)

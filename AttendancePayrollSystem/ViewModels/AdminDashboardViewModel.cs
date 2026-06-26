@@ -301,6 +301,8 @@ namespace AttendancePayrollSystem.ViewModels
                         employees.TryGetValue(attendance.EmployeeId, out var employee);
                         return new LatestAttendanceItem
                         {
+                            AttendanceId = attendance.AttendanceId,
+                            EmployeeId = attendance.EmployeeId,
                             EmployeeCode = employee?.EmployeeCode ?? string.Empty,
                             FullName = employee?.FullName ?? string.Empty,
                             AttendanceDate = attendance.AttendanceDate,
@@ -321,6 +323,8 @@ namespace AttendancePayrollSystem.ViewModels
                 : string.Empty;
             using var command = new MySqlCommand($@"
                 SELECT
+                    a.AttendanceId,
+                    a.EmployeeId,
                     a.AttendanceDate,
                     a.TimeInAM,
                     a.TimeOutAM,
@@ -341,6 +345,8 @@ namespace AttendancePayrollSystem.ViewModels
             {
                 latestAttendances.Add(new LatestAttendanceItem
                 {
+                    AttendanceId = Convert.ToInt32(reader["AttendanceId"]),
+                    EmployeeId = Convert.ToInt32(reader["EmployeeId"]),
                     EmployeeCode = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty,
                     FullName = Convert.ToString(reader["FullName"]) ?? string.Empty,
                     AttendanceDate = Convert.ToDateTime(reader["AttendanceDate"]),
@@ -475,6 +481,8 @@ namespace AttendancePayrollSystem.ViewModels
 
     public class LatestAttendanceItem
     {
+        public int AttendanceId { get; set; }
+        public int EmployeeId { get; set; }
         public string EmployeeCode { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public DateTime AttendanceDate { get; set; }
@@ -528,6 +536,71 @@ namespace AttendancePayrollSystem.ViewModels
                 }
                 return total;
             }
+        }
+
+        public string TimeInAMStatus => GetPunchStatus(TimeIn, DataAccess.DatabaseConfig.MorningStartTime);
+
+        public string TimeOutAMStatus => GetPunchStatus(TimeOutAM, DataAccess.DatabaseConfig.MorningEndTime);
+
+        public string TimeInPMStatus => GetPunchStatus(TimeInPM, DataAccess.DatabaseConfig.AfternoonStartTime);
+
+        public string TimeOutPMStatus => GetPunchStatus(TimeOut, DataAccess.DatabaseConfig.AfternoonEndTime);
+
+        public string TimeInAMLabel => GetPunchLabel(
+            TimeIn,
+            DataAccess.DatabaseConfig.MorningStartTime,
+            TimeOutAM.HasValue,
+            TimeInPM.HasValue || TimeOut.HasValue);
+
+        public string TimeOutAMLabel => GetPunchLabel(
+            TimeOutAM,
+            DataAccess.DatabaseConfig.MorningEndTime,
+            TimeIn.HasValue,
+            TimeInPM.HasValue || TimeOut.HasValue);
+
+        public string TimeInPMLabel => GetPunchLabel(
+            TimeInPM,
+            DataAccess.DatabaseConfig.AfternoonStartTime,
+            TimeOut.HasValue,
+            TimeIn.HasValue || TimeOutAM.HasValue);
+
+        public string TimeOutPMLabel => GetPunchLabel(
+            TimeOut,
+            DataAccess.DatabaseConfig.AfternoonEndTime,
+            TimeInPM.HasValue,
+            TimeIn.HasValue || TimeOutAM.HasValue);
+
+        private string GetPunchStatus(DateTime? actualTime, TimeSpan scheduledTime)
+        {
+            if (!actualTime.HasValue)
+            {
+                return "-";
+            }
+
+            var scheduledMoment = AttendanceDate.Date.Add(scheduledTime);
+            return actualTime.Value > scheduledMoment ? "Late" : "On Time";
+        }
+
+        private string GetPunchLabel(DateTime? actualTime, TimeSpan scheduledTime, bool siblingPunchExists, bool otherSessionHasAnyPunch)
+        {
+            if (!actualTime.HasValue)
+            {
+                if (siblingPunchExists)
+                {
+                    return "Missing Punch";
+                }
+
+                return otherSessionHasAnyPunch ? "Missed Session" : "-";
+            }
+
+            var scheduledMoment = AttendanceDate.Date.Add(scheduledTime);
+            if (actualTime.Value <= scheduledMoment)
+            {
+                return "On Time";
+            }
+
+            var lateMinutes = (int)Math.Ceiling((actualTime.Value - scheduledMoment).TotalMinutes);
+            return $"Late by {lateMinutes} min";
         }
     }
 }

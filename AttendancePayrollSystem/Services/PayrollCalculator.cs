@@ -21,11 +21,13 @@ namespace AttendancePayrollSystem.Services
         {
             var attendances = _attendanceRepo.GetAttendanceByEmployee(employee.EmployeeId, periodStart, periodEnd);
             var approvedPaidLeaveDates = _leaveRequestRepository.GetApprovedPaidLeaveDates(employee.EmployeeId, periodStart, periodEnd);
+            var approvedAllLeaveDates = _leaveRequestRepository.GetApprovedLeaveDates(employee.EmployeeId, periodStart, periodEnd);
 
             decimal regularHours = 0;
             decimal overtimeHours = 0;
             int totalTardinessMinutes = 0;
             var attendanceDatesWithWorkedHours = new HashSet<DateTime>();
+            decimal missedSessionHours = 0m;
 
             foreach (var attendance in attendances.Where(a => (a.TimeInAM.HasValue && a.TimeOutAM.HasValue) || (a.TimeInPM.HasValue && a.TimeOutPM.HasValue)))
             {
@@ -45,6 +47,17 @@ namespace AttendancePayrollSystem.Services
 
                 // Accumulate tardiness minutes
                 totalTardinessMinutes += attendance.TardinessMinutes;
+
+                if (attendance.TimeInAM.HasValue && attendance.TimeOutAM.HasValue &&
+                    !attendance.TimeInPM.HasValue && !attendance.TimeOutPM.HasValue)
+                {
+                    missedSessionHours += GetScheduledSessionHours(DatabaseConfig.AfternoonStartTime, DatabaseConfig.AfternoonEndTime);
+                }
+                else if (!attendance.TimeInAM.HasValue && !attendance.TimeOutAM.HasValue &&
+                         attendance.TimeInPM.HasValue && attendance.TimeOutPM.HasValue)
+                {
+                    missedSessionHours += GetScheduledSessionHours(DatabaseConfig.MorningStartTime, DatabaseConfig.MorningEndTime);
+                }
             }
 
             foreach (var leaveDate in approvedPaidLeaveDates)
@@ -55,6 +68,23 @@ namespace AttendancePayrollSystem.Services
                 }
 
                 regularHours += DatabaseConfig.RegularHoursPerDay;
+            }
+
+            // Calculate absent days: expected working days minus days with work or approved leave
+            var expectedWorkingDays = LeavePolicies.GetChargeableDates(periodStart, periodEnd);
+            var coveredDays = new HashSet<DateTime>(attendanceDatesWithWorkedHours);
+            foreach (var leaveDate in approvedAllLeaveDates)
+            {
+                coveredDays.Add(leaveDate);
+            }
+
+            int absentDays = 0;
+            foreach (var workDay in expectedWorkingDays)
+            {
+                if (!coveredDays.Contains(workDay))
+                {
+                    absentDays++;
+                }
             }
 
             regularHours = RoundHours(regularHours);
@@ -68,6 +98,11 @@ namespace AttendancePayrollSystem.Services
             var minuteRate = employee.HourlyRate / 60m;
             var tardinessDeduction = RoundCurrency(totalTardinessMinutes * minuteRate);
 
+            // Calculate absence deduction: daily rate * absent days
+            var dailyRate = employee.HourlyRate * DatabaseConfig.RegularHoursPerDay;
+            var absenceDeduction = RoundCurrency(absentDays * dailyRate);
+            var missedSessionDeduction = RoundCurrency(missedSessionHours * employee.HourlyRate);
+
             var statutoryBreakdown = CalculateStatutoryDeductions(grossPay, deductionOverrides);
             var statutoryDeductions = RoundCurrency(
                 statutoryBreakdown.Sss +
@@ -75,7 +110,7 @@ namespace AttendancePayrollSystem.Services
                 statutoryBreakdown.PagIbig +
                 statutoryBreakdown.WithholdingTax);
             var manualDed = RoundCurrency(Math.Max(0m, manualDeduction));
-            var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction + manualDed);
+            var totalDeductions = RoundCurrency(statutoryDeductions + tardinessDeduction + absenceDeduction + missedSessionDeduction + manualDed);
             var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
 
             return new Payroll
@@ -97,6 +132,10 @@ namespace AttendancePayrollSystem.Services
                 EmployeeCode = employee.EmployeeCode,
                 TotalTardinessMinutes = totalTardinessMinutes,
                 TardinessDeduction = tardinessDeduction,
+                AbsentDays = absentDays,
+                AbsenceDeduction = absenceDeduction,
+                MissedSessionHours = RoundHours(missedSessionHours),
+                MissedSessionDeduction = missedSessionDeduction,
                 ManualDeduction = manualDed,
                 ManualDeductionNote = manualDeductionNote ?? string.Empty
             };
@@ -115,6 +154,11 @@ namespace AttendancePayrollSystem.Services
         private static decimal RoundHours(decimal hours)
         {
             return Math.Round(hours, 2, MidpointRounding.AwayFromZero);
+        }
+
+        private static decimal GetScheduledSessionHours(TimeSpan start, TimeSpan end)
+        {
+            return (decimal)(end - start).TotalHours;
         }
 
         private static decimal RoundCurrency(decimal amount)

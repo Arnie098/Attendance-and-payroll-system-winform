@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
+using MySqlConnector;
 
 namespace AttendancePayrollSystem.Services
 {
@@ -17,6 +18,11 @@ namespace AttendancePayrollSystem.Services
         public SampleSeedResult SeedAttendanceAndPayroll()
         {
             return SeedAttendanceAndPayroll(DefaultMinimumAttendanceRecords, DefaultMinimumPayrollRecords);
+        }
+
+        public SampleSeedResult ReseedAttendanceAndPayroll()
+        {
+            return ReseedAttendanceAndPayroll(DefaultMinimumAttendanceRecords, DefaultMinimumPayrollRecords);
         }
 
         public SampleSeedResult SeedAttendanceAndPayroll(int minimumAttendanceRecords, int minimumPayrollRecords)
@@ -85,6 +91,30 @@ namespace AttendancePayrollSystem.Services
 
             var message = $"Seeded {insertedAttendances} attendance record(s) and {insertedPayrolls} payroll record(s) for {employees.Count} active employee(s).";
             return new SampleSeedResult(employees.Count, insertedAttendances, insertedPayrolls, message);
+        }
+
+        public SampleSeedResult ReseedAttendanceAndPayroll(int minimumAttendanceRecords, int minimumPayrollRecords)
+        {
+            var employees = _employeeRepository.GetAllEmployees()
+                .Where(employee => employee.IsActive)
+                .ToList();
+
+            if (employees.Count == 0)
+            {
+                return new SampleSeedResult(0, 0, 0, "No active employees found. Nothing was re-seeded.");
+            }
+
+            minimumAttendanceRecords = Math.Max(minimumAttendanceRecords, DefaultMinimumAttendanceRecords);
+            minimumPayrollRecords = Math.Max(minimumPayrollRecords, DefaultMinimumPayrollRecords);
+
+            var attendanceDates = GetRecentBusinessDates(Math.Max(minimumAttendanceRecords, employees.Count * 10));
+            var payrollPeriods = GetRecentPayrollPeriods(Math.Max(2, (int)Math.Ceiling(minimumPayrollRecords / (double)employees.Count)));
+
+            DeleteExistingSeedWindow(employees.Select(employee => employee.EmployeeId).ToList(), attendanceDates, payrollPeriods);
+
+            var result = SeedAttendanceAndPayroll(minimumAttendanceRecords, minimumPayrollRecords);
+            var message = $"Re-seeded current attendance/payroll sample data. {result.Message}";
+            return result with { Message = message };
         }
 
         private static Attendance BuildAttendance(Employee employee, DateTime attendanceDate)
@@ -177,6 +207,50 @@ namespace AttendancePayrollSystem.Services
 
             periods.Reverse();
             return periods;
+        }
+
+        private static void DeleteExistingSeedWindow(
+            IReadOnlyCollection<int> employeeIds,
+            IReadOnlyList<DateTime> attendanceDates,
+            IReadOnlyList<(DateTime Start, DateTime End)> payrollPeriods)
+        {
+            if (employeeIds.Count == 0 || attendanceDates.Count == 0 || payrollPeriods.Count == 0)
+            {
+                return;
+            }
+
+            var attendanceStart = attendanceDates.Min().Date;
+            var attendanceEnd = attendanceDates.Max().Date;
+            var payrollStart = payrollPeriods.Min(period => period.Start).Date;
+            var payrollEnd = payrollPeriods.Max(period => period.End).Date;
+
+            using var connection = DatabaseHelper.GetConnection();
+            connection.Open();
+
+            foreach (var employeeId in employeeIds)
+            {
+                using (var deleteAttendance = new MySqlCommand(@"
+                    DELETE FROM AttendanceRecords
+                    WHERE EmployeeId = @EmployeeId
+                      AND AttendanceDate >= @AttendanceStart
+                      AND AttendanceDate <= @AttendanceEnd", connection))
+                {
+                    deleteAttendance.Parameters.AddWithValue("@EmployeeId", employeeId);
+                    deleteAttendance.Parameters.AddWithValue("@AttendanceStart", attendanceStart);
+                    deleteAttendance.Parameters.AddWithValue("@AttendanceEnd", attendanceEnd);
+                    deleteAttendance.ExecuteNonQuery();
+                }
+
+                using var deletePayroll = new MySqlCommand(@"
+                    DELETE FROM PayrollRecords
+                    WHERE EmployeeId = @EmployeeId
+                      AND PayPeriodStart <= @PayrollEnd
+                      AND PayPeriodEnd >= @PayrollStart", connection);
+                deletePayroll.Parameters.AddWithValue("@EmployeeId", employeeId);
+                deletePayroll.Parameters.AddWithValue("@PayrollStart", payrollStart);
+                deletePayroll.Parameters.AddWithValue("@PayrollEnd", payrollEnd);
+                deletePayroll.ExecuteNonQuery();
+            }
         }
     }
 

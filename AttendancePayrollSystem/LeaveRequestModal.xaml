@@ -120,13 +120,22 @@
         </Border>
 
         <StackPanel Grid.Row="5" Margin="0,0,0,16">
-            <TextBlock Text="Reason" />
-            <TextBox x:Name="ReasonTextBox"
-                     Style="{StaticResource ModernTextBox}"
-                     Height="220"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto" />
+            <TextBlock Text="Reason" Margin="0,0,0,6" />
+            <Border Background="White"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12,8">
+                <TextBox x:Name="ReasonTextBox"
+                         MinHeight="140"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         FontSize="14"
+                         VerticalContentAlignment="Top" />
+            </Border>
         </StackPanel>
 
         <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">

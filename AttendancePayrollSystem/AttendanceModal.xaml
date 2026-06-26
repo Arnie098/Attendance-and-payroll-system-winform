@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Biometric Attendance"
-        Height="760" Width="980"
-        MinHeight="550" MinWidth="750"
+        Height="820" Width="980"
+        MinHeight="600" MinWidth="750"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource AppBackgroundBrush}">
     <Grid Margin="18">
@@ -18,11 +18,13 @@
             <ColumnDefinition Width="1.95*" />
         </Grid.ColumnDefinitions>
 
+        <!-- Header -->
         <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,14">
             <TextBlock Text="{Binding HeaderText}" FontSize="24" FontWeight="SemiBold" />
             <TextBlock Text="{Binding EmployeeNameText}" FontSize="14" Foreground="#4E5968" />
         </StackPanel>
 
+        <!-- Left panel: Biometric scanner + Barcode fallback -->
         <Border Grid.Row="1" Grid.Column="0" Background="White" CornerRadius="10" Padding="16" Margin="0,0,12,0">
             <Grid>
                 <Grid.RowDefinitions>
@@ -30,8 +32,10 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <!-- Biometric scanner section -->
                 <TextBlock Grid.Row="0" Text="Biometric Scanner" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
 
                 <Border Grid.Row="1" Background="#0B172A" CornerRadius="10" Padding="16" MinHeight="170">
@@ -50,10 +54,89 @@
                 </Border>
 
                 <TextBlock Grid.Row="2" Text="{Binding ScanStateText}" FontWeight="SemiBold" Margin="0,10,0,2" />
-                <TextBlock Grid.Row="3" Text="{Binding LastScanText}" FontSize="12" Foreground="#5C6675" />
+                <TextBlock Grid.Row="3" Text="{Binding LastScanText}" FontSize="12" Foreground="#5C6675" Margin="0,0,0,12" />
+
+                <!-- Barcode fallback section -->
+                <Border Grid.Row="4"
+                        Background="#F8FAFC"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="14">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <materialDesign:PackIcon Kind="Barcode" Width="18" Height="18"
+                                                     Foreground="#1D4ED8"
+                                                     VerticalAlignment="Center"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="Barcode Fallback"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="#1D4ED8"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <TextBlock Text="Scan or type employee code if fingerprint is unavailable."
+                                   FontSize="11"
+                                   Foreground="#64748B"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="White"
+                                    BorderBrush="#CBD5E1"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="8,6"
+                                    Margin="0,0,6,0">
+                                <DockPanel>
+                                    <materialDesign:PackIcon Kind="CardAccountDetails"
+                                                             Width="16" Height="16"
+                                                             Foreground="#94A3B8"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,6,0" />
+                                    <TextBox x:Name="BarcodeTextBox"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             FontSize="13"
+                                             FontFamily="Consolas"
+                                             VerticalAlignment="Center"
+                                             KeyDown="BarcodeTextBox_KeyDown"
+                                             materialDesign:HintAssist.Hint="Employee code…"
+                                             materialDesign:HintAssist.IsFloating="False" />
+                                </DockPanel>
+                            </Border>
+
+                            <Button Grid.Column="1"
+                                    x:Name="BarcodeScanButton"
+                                    Height="36"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#1D4ED8"
+                                    IsEnabled="{Binding IsScanButtonEnabled}"
+                                    Click="BarcodeScan_Click"
+                                    ToolTip="Record attendance using barcode">
+                                <materialDesign:PackIcon Kind="QrcodeScan" Width="18" Height="18" Foreground="White" />
+                            </Button>
+                        </Grid>
+
+                        <TextBlock x:Name="BarcodeStatusText"
+                                   Text=""
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"
+                                   Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
+        <!-- Right panel: Today summary + Attendance records -->
         <Border Grid.Row="1" Grid.Column="1" Background="White" CornerRadius="10" Padding="16">
             <TabControl>
                 <TabItem Header="Today Summary">
@@ -79,9 +162,21 @@
                         <TextBlock Text="Next Action" FontWeight="SemiBold" />
                         <TextBox Text="{Binding NextActionText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
 
-                        <Border Background="#EEF2F8" CornerRadius="8" Padding="10">
+                        <Border Background="#EEF2F8" CornerRadius="8" Padding="10" Margin="0,0,0,10">
                             <TextBlock Text="{Binding StatusText}" Foreground="#2D3748" TextWrapping="Wrap" />
                         </Border>
+
+                        <!-- Admin-only: delete today's attendance record -->
+                        <Button x:Name="DeleteTodayButton"
+                                Visibility="Collapsed"
+                                Style="{StaticResource ModernButton}"
+                                Background="#B91C1C"
+                                Click="DeleteTodayAttendance_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="Delete Today's Record" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </TabItem>
 
@@ -94,8 +189,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                            <Button Content="Refresh" Style="{StaticResource ModernButton}" Width="100" Click="RefreshAttendanceCrud_Click" />
-                            <Button Content="Clear" Style="{StaticResource ModernButton}" Width="100" Margin="8,0,0,0" Click="ClearAttendanceCrud_Click" />
+                            <Button Content="Refresh" Style="{StaticResource ModernButton}" Click="RefreshAttendanceCrud_Click" />
+                            <Button Content="Clear" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="ClearAttendanceCrud_Click" />
                         </StackPanel>
 
                         <DataGrid x:Name="AttendanceCrudDataGrid"
@@ -106,17 +201,68 @@
                                   Margin="0,0,0,10">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
-                                <DataGridTextColumn Header="In AM" Binding="{Binding TimeInAM, StringFormat=HH:mm}" Width="70" />
-                                <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="70" />
-                                <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="70" />
-                                <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="70" />
-                                <DataGridTextColumn Header="Status"
-                                                    Binding="{Binding Status}"
-                                                    Width="80"
-                                                    ElementStyle="{StaticResource AttendanceStatusTextStyle}" />
-                                <DataGridCheckBoxColumn Header="Bio" Binding="{Binding IsBiometricVerified}" Width="50" />
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="60" />
-                                <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="80" />
+                                <DataGridTemplateColumn Header="AM In" Width="115">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TimeInAM, StringFormat=hh:mm tt}" />
+                                                <TextBlock Text="{Binding TimeInAMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="AM Out" Width="115">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TimeOutAM, StringFormat=hh:mm tt}" />
+                                                <TextBlock Text="{Binding TimeOutAMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="PM In" Width="115">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TimeInPM, StringFormat=hh:mm tt}" />
+                                                <TextBlock Text="{Binding TimeInPMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="PM Out" Width="115">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TimeOutPM, StringFormat=hh:mm tt}" />
+                                                <TextBlock Text="{Binding TimeOutPMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Method" Width="80" SortMemberPath="IsBiometricVerified">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <materialDesign:PackIcon Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <materialDesign:PackIcon.Style>
+                                                    <Style TargetType="materialDesign:PackIcon">
+                                                        <Setter Property="Kind" Value="Barcode" />
+                                                        <Setter Property="Foreground" Value="#1D4ED8" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsBiometricVerified}" Value="True">
+                                                                <Setter Property="Kind" Value="Fingerprint" />
+                                                                <Setter Property="Foreground" Value="#0F766E" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </materialDesign:PackIcon.Style>
+                                            </materialDesign:PackIcon>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="80" />
+                                <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="95" />
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -133,7 +279,6 @@
                             </Border.Style>
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
@@ -190,8 +335,8 @@
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,8,0,0">
-                                    <Button Content="Update" Width="90" Style="{StaticResource ModernButton}" Click="UpdateAttendanceCrud_Click" />
-                                    <Button Content="Delete" Width="90" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeleteAttendanceCrud_Click" />
+                                    <Button Content="Update" Style="{StaticResource ModernButton}" Click="UpdateAttendanceCrud_Click" />
+                                    <Button Content="Delete" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeleteAttendanceCrud_Click" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -217,14 +362,14 @@
             </TabControl>
         </Border>
 
+        <!-- Footer buttons -->
         <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="Simulate Fingerprint"
-                    Width="170"
                     Margin="0,0,8,0"
                     Style="{StaticResource ModernButton}"
                     IsEnabled="{Binding IsScanButtonEnabled}"
                     Click="BiometricSimulation_Click" />
-            <Button Content="Close" Width="100" Style="{StaticResource ModernButton}" Click="Close_Click" />
+            <Button Content="Close" Style="{StaticResource ModernButton}" Click="Close_Click" />
         </StackPanel>
     </Grid>
 </Window>

@@ -238,7 +238,7 @@
                     </StackPanel>
                 </Button>
 
-                <Border Grid.Row="0" Grid.Column="5" Grid.ColumnSpan="2"
+                <Border Grid.Row="0" Grid.Column="5"
                         Style="{StaticResource DashboardPanelStyle}"
                         Background="#0E3644"
                         BorderBrush="#0E3039">
@@ -322,6 +322,22 @@
                         </Grid>
                     </Grid>
                 </Border>
+
+                <Button Grid.Row="0" Grid.Column="6"
+                        Style="{StaticResource DashboardActionTileStyle}"
+                        Background="#1A4A7A"
+                        BorderBrush="#0E3039"
+                        Click="OpenDtrLedgerTile_Click">
+                    <StackPanel VerticalAlignment="Center">
+                        <materialDesign:PackIcon Kind="TableClock"
+                                                 Width="52"
+                                                 Height="52"
+                                                 Foreground="White"
+                                                 Margin="0,0,0,14" />
+                        <TextBlock Text="DTR LEDGER" Style="{StaticResource LauncherTileTextStyle}" />
+                        <TextBlock Text="DAILY TIME RECORD REPORT" Style="{StaticResource LauncherTileSubTextStyle}" />
+                    </StackPanel>
+                </Button>
 
                 <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
                         Style="{StaticResource DashboardPanelStyle}"

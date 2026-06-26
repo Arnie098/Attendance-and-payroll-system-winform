@@ -88,27 +88,22 @@
                            VerticalAlignment="Top"
                            ItemHeight="42">
                     <Button Content="Refresh"
-                            Width="112"
                             Style="{StaticResource ModernButton}"
                             Click="Refresh_Click" />
                     <Button Content="My Payroll"
-                            Width="120"
                             Style="{StaticResource ModernButton}"
                             Background="#0F766E"
                             Click="ViewPayroll_Click" />
                     <Button Content="File Leave"
-                            Width="120"
                             Style="{StaticResource ModernButton}"
                             Background="#7C3AED"
                             Click="FileLeave_Click" />
                     <Button Content="{Binding ClockActionButtonText}"
-                            Width="138"
                             Style="{StaticResource ModernButton}"
                             Background="#C26A12"
                             IsEnabled="{Binding IsClockActionEnabled}"
                             Click="ClockAction_Click" />
                     <Button Content="Logout"
-                            Width="106"
                             Style="{StaticResource ModernButton}"
                             Background="#475569"
                             Click="Logout_Click" />
@@ -157,11 +152,9 @@
                         </Border>
 
                         <Button Content="Change Photo"
-                                Width="124"
                                 Style="{StaticResource ModernButton}"
                                 Click="ChangePhoto_Click" />
                         <Button Content="Remove Photo"
-                                Width="124"
                                 Style="{StaticResource ModernButton}"
                                 Background="#64748B"
                                 IsEnabled="{Binding HasProfileImage}"
@@ -270,6 +263,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0"
@@ -285,17 +279,83 @@
                               Margin="0,8,0,0">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="110" />
-                            <DataGridTextColumn Header="In AM" Binding="{Binding TimeInAM, StringFormat=HH:mm}" Width="74" />
-                            <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="74" />
-                            <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="74" />
-                            <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOutPM, StringFormat=HH:mm}" Width="74" />
-                            <DataGridTextColumn Header="Status"
-                                                Binding="{Binding Status}"
-                                                Width="92"
-                                                ElementStyle="{StaticResource AttendanceStatusTextStyle}" />
-                            <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="76" />
+                            <DataGridTemplateColumn Header="AM Time In (8:30 AM)" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TimeInAM, StringFormat=hh:mm tt}" />
+                                            <TextBlock Text="{Binding TimeInAMLabel}"
+                                                       TextWrapping="Wrap"
+                                                       Style="{StaticResource AttendanceStatusTextStyle}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="AM Time Out (12:00 PM)" Width="170">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TimeOutAM, StringFormat=hh:mm tt}" />
+                                            <TextBlock Text="{Binding TimeOutAMLabel}"
+                                                       TextWrapping="Wrap"
+                                                       Style="{StaticResource AttendanceStatusTextStyle}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="PM Time In (1:00 PM)" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TimeInPM, StringFormat=hh:mm tt}" />
+                                            <TextBlock Text="{Binding TimeInPMLabel}"
+                                                       TextWrapping="Wrap"
+                                                       Style="{StaticResource AttendanceStatusTextStyle}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="PM Time Out (5:00 PM)" Width="160">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding TimeOutPM, StringFormat=hh:mm tt}" />
+                                            <TextBlock Text="{Binding TimeOutPMLabel}"
+                                                       TextWrapping="Wrap"
+                                                       Style="{StaticResource AttendanceStatusTextStyle}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="80" />
+                            <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="108" />
                         </DataGrid.Columns>
                     </DataGrid>
+
+                    <!-- Attendance pagination controls -->
+                    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+                        <Button DockPanel.Dock="Left"
+                                Content="◀ Previous"
+                                Width="96"
+                                Height="30"
+                                FontSize="12"
+                                Style="{StaticResource ModernSecondaryButton}"
+                                IsEnabled="{Binding CanAttendancePrevious}"
+                                Click="AttendancePrevious_Click" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Next ▶"
+                                Width="96"
+                                Height="30"
+                                FontSize="12"
+                                Style="{StaticResource ModernSecondaryButton}"
+                                IsEnabled="{Binding CanAttendanceNext}"
+                                Click="AttendanceNext_Click" />
+                        <TextBlock Text="{Binding AttendancePageStatus}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="#64748B" />
+                    </DockPanel>
                 </Grid>
             </Border>
 
@@ -308,6 +368,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,8">
@@ -345,6 +406,31 @@
                                                 ElementStyle="{StaticResource PayrollStatusTextStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
+
+                    <!-- Payroll pagination controls -->
+                    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+                        <Button DockPanel.Dock="Left"
+                                Content="◀ Previous"
+                                Width="96"
+                                Height="30"
+                                FontSize="12"
+                                Style="{StaticResource ModernSecondaryButton}"
+                                IsEnabled="{Binding CanPayrollPrevious}"
+                                Click="PayrollPrevious_Click" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Next ▶"
+                                Width="96"
+                                Height="30"
+                                FontSize="12"
+                                Style="{StaticResource ModernSecondaryButton}"
+                                IsEnabled="{Binding CanPayrollNext}"
+                                Click="PayrollNext_Click" />
+                        <TextBlock Text="{Binding PayrollPageStatus}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="#64748B" />
+                    </DockPanel>
                 </Grid>
             </Border>
 

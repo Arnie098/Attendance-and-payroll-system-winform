@@ -2,10 +2,11 @@ Run this from the project root:
 
 
 
-dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
+
 
 dotnet build "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
 dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj"
+dotnet run --project "AttendancePayrollSystem\AttendancePayrollSystem.csproj" -- --reseed-attendance-payroll
 
 dotnet build "AttendancePayrollSystem.Tests\AttendancePayrollSystem.Tests.csproj"
 dotnet test "AttendancePayrollSystem.Tests\AttendancePayrollSystem.Tests.csproj"

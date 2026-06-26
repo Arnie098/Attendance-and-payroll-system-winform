@@ -86,6 +86,91 @@ namespace AttendancePayrollSystem.DataAccess
             return attendanceList;
         }
 
+        public List<Models.DtrLedgerEntry> GetDtrLedger(Models.DtrLedgerQuery query)
+        {
+            var entries = new List<Models.DtrLedgerEntry>();
+
+            var sql = new System.Text.StringBuilder(@"
+                SELECT a.AttendanceId, a.EmployeeId,
+                       e.EmployeeCode, e.FullName, COALESCE(e.Department, '') AS Department,
+                       a.AttendanceDate, a.TimeInAM, a.TimeOutAM, a.TimeInPM, a.TimeOutPM,
+                       a.Status, a.IsBiometricVerified
+                FROM AttendanceRecords a
+                INNER JOIN Employees e ON e.EmployeeId = a.EmployeeId
+                WHERE 1=1");
+
+            if (query.StartDate.HasValue)
+                sql.Append(" AND a.AttendanceDate >= @StartDate");
+            if (query.EndDate.HasValue)
+                sql.Append(" AND a.AttendanceDate <= @EndDate");
+            if (!string.IsNullOrWhiteSpace(query.SearchText))
+                sql.Append(" AND (e.EmployeeCode LIKE @Search OR e.FullName LIKE @Search)");
+            if (!string.Equals(query.Department, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(query.Department))
+                sql.Append(" AND e.Department = @Department");
+            if (!string.Equals(query.Status, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(query.Status))
+                sql.Append(" AND a.Status = @Status");
+            if (query.MissingPunchOnly)
+                sql.Append(@" AND (
+                    (a.TimeInAM IS NOT NULL AND a.TimeOutAM IS NULL) OR
+                    (a.TimeInAM IS NULL  AND a.TimeOutAM IS NOT NULL) OR
+                    (a.TimeInPM IS NOT NULL AND a.TimeOutPM IS NULL) OR
+                    (a.TimeInPM IS NULL  AND a.TimeOutPM IS NOT NULL))");
+
+            sql.Append(" ORDER BY a.AttendanceDate DESC, e.FullName ASC");
+            sql.Append(" LIMIT @Limit");
+
+            using var connection = DatabaseHelper.GetConnection();
+            using var command = new MySqlCommand(sql.ToString(), connection);
+
+            if (query.StartDate.HasValue)
+                command.Parameters.AddWithValue("@StartDate", query.StartDate.Value.Date);
+            if (query.EndDate.HasValue)
+                command.Parameters.AddWithValue("@EndDate", query.EndDate.Value.Date);
+            if (!string.IsNullOrWhiteSpace(query.SearchText))
+                command.Parameters.AddWithValue("@Search", $"%{query.SearchText.Trim()}%");
+            if (!string.Equals(query.Department, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(query.Department))
+                command.Parameters.AddWithValue("@Department", query.Department);
+            if (!string.Equals(query.Status, "All", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(query.Status))
+                command.Parameters.AddWithValue("@Status", query.Status);
+            command.Parameters.AddWithValue("@Limit", query.Limit);
+
+            connection.Open();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                entries.Add(new Models.DtrLedgerEntry
+                {
+                    AttendanceId      = Convert.ToInt32(reader["AttendanceId"]),
+                    EmployeeId        = Convert.ToInt32(reader["EmployeeId"]),
+                    EmployeeCode      = Convert.ToString(reader["EmployeeCode"]) ?? string.Empty,
+                    FullName          = Convert.ToString(reader["FullName"]) ?? string.Empty,
+                    Department        = Convert.ToString(reader["Department"]) ?? string.Empty,
+                    AttendanceDate    = Convert.ToDateTime(reader["AttendanceDate"]),
+                    TimeInAM          = reader["TimeInAM"]  is DBNull ? null : Convert.ToDateTime(reader["TimeInAM"]),
+                    TimeOutAM         = reader["TimeOutAM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutAM"]),
+                    TimeInPM          = reader["TimeInPM"]  is DBNull ? null : Convert.ToDateTime(reader["TimeInPM"]),
+                    TimeOutPM         = reader["TimeOutPM"] is DBNull ? null : Convert.ToDateTime(reader["TimeOutPM"]),
+                    Status            = Convert.ToString(reader["Status"]) ?? string.Empty,
+                    IsBiometricVerified = Convert.ToBoolean(reader["IsBiometricVerified"])
+                });
+            }
+
+            return entries;
+        }
+
+        public List<string> GetDistinctDepartments()
+        {
+            var departments = new List<string> { "All" };
+            const string sql = "SELECT DISTINCT Department FROM Employees WHERE Department IS NOT NULL AND Department <> '' ORDER BY Department";
+            using var connection = DatabaseHelper.GetConnection();
+            using var command = new MySqlCommand(sql, connection);
+            connection.Open();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+                departments.Add(Convert.ToString(reader["Department"]) ?? string.Empty);
+            return departments;
+        }
+
         public List<Attendance> GetRecentAttendances(int limit)
         {
             if (SupabaseConfig.UseApi)
@@ -160,7 +245,7 @@ namespace AttendancePayrollSystem.DataAccess
         /// </summary>
         public void RecordTimeIn(int employeeId, bool biometricVerified)
         {
-            var now = DateTime.Now;
+            var now = TruncateToMinute(DateTime.Now);
             bool isMorning = now.Hour < 12;
             var timeColumn = isMorning ? "TimeInAM" : "TimeInPM";
 
@@ -277,7 +362,7 @@ namespace AttendancePayrollSystem.DataAccess
         /// </summary>
         public void RecordTimeOut(int attendanceId)
         {
-            var now = DateTime.Now;
+            var now = TruncateToMinute(DateTime.Now);
             bool isMorning = now.Hour < 13 || (now.Hour == 12 && now.Minute < 30);
             var timeColumn = isMorning ? "TimeOutAM" : "TimeOutPM";
 
@@ -534,6 +619,16 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@AttendanceId", attendanceId);
             var result = command.ExecuteScalar();
             return result == null || result is DBNull ? null : Convert.ToInt32(result);
+        }
+
+        /// <summary>
+        /// Strips seconds and sub-second precision so clock-in/out times are stored
+        /// at minute granularity, matching manual CRUD entry and the minute-based
+        /// tardiness calculation.
+        /// </summary>
+        private static DateTime TruncateToMinute(DateTime value)
+        {
+            return new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0);
         }
     }
 

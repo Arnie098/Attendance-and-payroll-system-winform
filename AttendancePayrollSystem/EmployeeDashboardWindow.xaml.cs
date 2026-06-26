@@ -273,25 +273,36 @@ namespace AttendancePayrollSystem
 
         private void ApplyAttendanceHistory(IEnumerable<Attendance> records)
         {
-            _viewModel.AttendanceHistory.Clear();
-            foreach (var record in records)
-            {
-                _viewModel.AttendanceHistory.Add(record);
-            }
+            _viewModel.SetAttendanceData(records);
         }
 
         private void ApplyPayrollHistory(IReadOnlyList<Payroll> records)
         {
-            _viewModel.PayrollHistory.Clear();
-            foreach (var payroll in records)
-            {
-                _viewModel.PayrollHistory.Add(payroll);
-            }
+            _viewModel.SetPayrollData(records);
+        }
 
-            var latest = records.FirstOrDefault();
-            _viewModel.LatestPayrollText = latest == null
-                ? "No payroll records yet."
-                : $"{latest.PayPeriodStart:yyyy-MM-dd} to {latest.PayPeriodEnd:yyyy-MM-dd} | Net Pay: PHP {latest.NetPay:N2} ({latest.Status})";
+        // ── Attendance pagination handlers ──
+
+        private void AttendancePrevious_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.AttendancePreviousPage();
+        }
+
+        private void AttendanceNext_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.AttendanceNextPage();
+        }
+
+        // ── Payroll pagination handlers ──
+
+        private void PayrollPrevious_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.PayrollPreviousPage();
+        }
+
+        private void PayrollNext_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.PayrollNextPage();
         }
 
         private void ApplyLeaveRequests(IReadOnlyList<LeaveRequest> records)
@@ -354,7 +365,7 @@ namespace AttendancePayrollSystem
 
         private void ViewPayroll_Click(object sender, RoutedEventArgs e)
         {
-            var modal = new PayrollModal(_employee)
+            var modal = new PayrollModal(_employee, isAdminView: false)
             {
                 Owner = this
             };

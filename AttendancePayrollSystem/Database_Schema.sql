@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS PayrollRecords
     RegularHours DECIMAL(10, 2) NOT NULL,
     OvertimeHours DECIMAL(10, 2) NOT NULL,
     GrossPay DECIMAL(18, 2) NOT NULL,
+    AbsentDays INT NOT NULL DEFAULT 0,
+    AbsenceDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
     Deductions DECIMAL(18, 2) NOT NULL,
     NetPay DECIMAL(18, 2) NOT NULL,
     Status VARCHAR(30) NOT NULL DEFAULT 'Pending',

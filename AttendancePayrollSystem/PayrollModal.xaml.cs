@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
@@ -21,7 +23,7 @@ namespace AttendancePayrollSystem
         private Payroll? _selectedPayroll;
         private System.Collections.Generic.List<Payroll> _allPayrolls = new();
 
-        public PayrollModal(Employee employee)
+        public PayrollModal(Employee employee, bool isAdminView = true)
         {
             InitializeComponent();
             _employee = employee;
@@ -29,6 +31,14 @@ namespace AttendancePayrollSystem
             _viewModel.PeriodEnd = DateTime.Today;
             _viewModel.PeriodStart = DateTime.Today.AddDays(-14);
             DataContext = _viewModel;
+
+            if (!isAdminView)
+            {
+                CalculateSection.Visibility = Visibility.Collapsed;
+                StatutoryRatesSection.Visibility = Visibility.Collapsed;
+                PayrollActionsPanel.Visibility = Visibility.Collapsed;
+            }
+
             LoadPayrolls();
         }
 
@@ -122,34 +132,73 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            var editWindow = new PayrollEditWindow(_employee, _selectedPayroll)
+            EditPayroll(_selectedPayroll);
+        }
+
+        private void AddManualPayroll_Click(object sender, RoutedEventArgs e)
+        {
+            var draftPayroll = BuildManualDraftPayroll();
+            var editWindow = new PayrollEditWindow(_employee, draftPayroll)
             {
                 Owner = this
             };
 
-            if (editWindow.ShowDialog() != true)
+            if (editWindow.ShowDialog() != true || editWindow.ResultPayroll == null)
             {
                 return;
             }
 
             try
             {
-                if (editWindow.DeleteRequested)
-                {
-                    _payrollRepository.DeletePayroll(_selectedPayroll.PayrollId);
-                    MessageBox.Show("Payroll record deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else if (editWindow.ResultPayroll != null)
-                {
-                    _payrollRepository.UpdatePayroll(editWindow.ResultPayroll);
-                    MessageBox.Show("Payroll record updated successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-
+                _payrollRepository.AddPayroll(editWindow.ResultPayroll);
                 LoadPayrolls();
+                MessageBox.Show("Payroll record added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Failed to add payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void EditSelectedPayroll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Edit Payroll", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            EditPayroll(_selectedPayroll);
+        }
+
+        private void DeleteSelectedPayroll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Delete Payroll", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                "Delete selected payroll record?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                _payrollRepository.DeletePayroll(_selectedPayroll.PayrollId);
+                LoadPayrolls();
+                MessageBox.Show("Payroll record deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to delete payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -167,6 +216,42 @@ namespace AttendancePayrollSystem
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void PrintPayslip_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Print Payslip", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                PayslipDocument.Print(_employee, _selectedPayroll);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to print payslip.\n{ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SavePdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Save as PDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                PayslipDocument.SaveAsPdf(_employee, _selectedPayroll);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save payslip as PDF.\n{ex.Message}", "Save as PDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private PayrollDeductionOverrides? TryBuildDeductionOverrides()
@@ -223,6 +308,56 @@ namespace AttendancePayrollSystem
                 _viewModel.Payrolls.Add(payroll);
             }
         }
+
+        private void EditPayroll(Payroll payroll)
+        {
+            var editWindow = new PayrollEditWindow(_employee, payroll)
+            {
+                Owner = this
+            };
+
+            if (editWindow.ShowDialog() != true)
+            {
+                return;
+            }
+
+            try
+            {
+                if (editWindow.DeleteRequested)
+                {
+                    _payrollRepository.DeletePayroll(payroll.PayrollId);
+                    MessageBox.Show("Payroll record deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else if (editWindow.ResultPayroll != null)
+                {
+                    _payrollRepository.UpdatePayroll(editWindow.ResultPayroll);
+                    MessageBox.Show("Payroll record updated successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                LoadPayrolls();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save payroll record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private Payroll BuildManualDraftPayroll()
+        {
+            var periodStart = _viewModel.PeriodStart?.Date ?? DateTime.Today.AddDays(-14);
+            var periodEnd = _viewModel.PeriodEnd?.Date ?? DateTime.Today;
+
+            return new Payroll
+            {
+                EmployeeId = _employee.EmployeeId,
+                EmployeeName = _employee.FullName,
+                EmployeeCode = _employee.EmployeeCode,
+                PayPeriodStart = periodStart,
+                PayPeriodEnd = periodEnd,
+                Status = "Pending"
+            };
+        }
+
     }
 
     public class PayrollModalViewModel : BaseViewModel

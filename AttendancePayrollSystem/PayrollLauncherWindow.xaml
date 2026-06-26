@@ -58,12 +58,10 @@
                             VerticalAlignment="Center">
                     <Button Content="Refresh"
                             Style="{StaticResource ModernButton}"
-                            Width="110"
                             Click="RefreshEmployees_Click" />
                     <Button Content="Close"
                             Style="{StaticResource ModernButton}"
                             Background="#475569"
-                            Width="110"
                             Click="Close_Click" />
                 </StackPanel>
             </DockPanel>

@@ -23,6 +23,9 @@
                     <Trigger Property="Text" Value="Present">
                         <Setter Property="Foreground" Value="#065F46" />
                     </Trigger>
+                    <Trigger Property="Text" Value="On Time">
+                        <Setter Property="Foreground" Value="#065F46" />
+                    </Trigger>
                     <Trigger Property="Text" Value="Late">
                         <Setter Property="Foreground" Value="#991B1B" />
                     </Trigger>

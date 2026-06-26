@@ -174,6 +174,21 @@ namespace AttendancePayrollSystem.DataAccess
             return dates;
         }
 
+        public HashSet<DateTime> GetApprovedLeaveDates(int employeeId, DateTime periodStart, DateTime periodEnd)
+        {
+            var dates = new HashSet<DateTime>();
+            foreach (var request in GetApprovedLeaveRequestsByEmployee(employeeId, periodStart, periodEnd))
+            {
+                foreach (var date in LeavePolicies.GetChargeableDates(request.StartDate, request.EndDate)
+                             .Where(date => date >= periodStart.Date && date <= periodEnd.Date))
+                {
+                    dates.Add(date);
+                }
+            }
+
+            return dates;
+        }
+
         public int SubmitLeaveRequest(LeaveRequest leaveRequest)
         {
             ArgumentNullException.ThrowIfNull(leaveRequest);
@@ -267,11 +282,60 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        public void ApproveLeaveRequest(int leaveRequestId, string reviewer, string reviewerNotes)
+        /// <summary>
+        /// Returns the chargeable dates that have existing attendance records with time punches.
+        /// Used to warn the admin before approving — they can choose to override.
+        /// </summary>
+        public List<DateTime> GetAttendanceConflictDates(int employeeId, DateTime startDate, DateTime endDate)
+        {
+            var conflicts = new List<DateTime>();
+            var chargeableDates = LeavePolicies.GetChargeableDates(startDate, endDate).ToHashSet();
+            if (chargeableDates.Count == 0) return conflicts;
+
+            if (SupabaseConfig.UseApi)
+            {
+                var records = new AttendanceRepository().GetAttendanceByEmployee(employeeId, startDate, endDate);
+                foreach (var a in records)
+                {
+                    if (!chargeableDates.Contains(a.AttendanceDate.Date)) continue;
+                    if (a.TimeInAM.HasValue || a.TimeOutAM.HasValue || a.TimeInPM.HasValue || a.TimeOutPM.HasValue
+                        || !LeavePolicies.IsLeaveAttendanceStatus(a.Status))
+                        conflicts.Add(a.AttendanceDate.Date);
+                }
+                return conflicts;
+            }
+
+            using var connection = DatabaseHelper.GetConnection();
+            using var command = new MySqlCommand(@"
+                SELECT AttendanceDate, TimeInAM, TimeOutAM, TimeInPM, TimeOutPM, Status
+                FROM AttendanceRecords
+                WHERE EmployeeId = @EmployeeId
+                  AND AttendanceDate >= @StartDate
+                  AND AttendanceDate <= @EndDate",
+                connection);
+            command.Parameters.AddWithValue("@EmployeeId", employeeId);
+            command.Parameters.AddWithValue("@StartDate", startDate.Date);
+            command.Parameters.AddWithValue("@EndDate", endDate.Date);
+            connection.Open();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var date = Convert.ToDateTime(reader["AttendanceDate"]).Date;
+                if (!chargeableDates.Contains(date)) continue;
+                var hasTime = reader["TimeInAM"] is not DBNull || reader["TimeOutAM"] is not DBNull
+                           || reader["TimeInPM"] is not DBNull || reader["TimeOutPM"] is not DBNull;
+                var status = Convert.ToString(reader["Status"]) ?? string.Empty;
+                if (hasTime || !LeavePolicies.IsLeaveAttendanceStatus(status))
+                    conflicts.Add(date);
+            }
+            return conflicts;
+        }
+
+        public void ApproveLeaveRequest(int leaveRequestId, string reviewer, string reviewerNotes, bool overrideAttendance = false)
         {
             if (SupabaseConfig.UseApi)
             {
-                ApproveLeaveRequestViaApi(leaveRequestId, reviewer, reviewerNotes);
+                ApproveLeaveRequestViaApi(leaveRequestId, reviewer, reviewerNotes, overrideAttendance);
                 return;
             }
 
@@ -286,9 +350,10 @@ namespace AttendancePayrollSystem.DataAccess
 
                 EnsurePendingLeaveRequest(leaveRequest);
                 EnsureNoOverlappingLeave(connection, transaction, leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate, leaveRequest.LeaveRequestId);
-                EnsureNoAttendanceConflict(connection, transaction, leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
+                if (!overrideAttendance)
+                    EnsureNoAttendanceConflict(connection, transaction, leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
 
-                var attendanceIds = ApplyLeaveAttendanceRecords(connection, transaction, leaveRequest);
+                var attendanceIds = ApplyLeaveAttendanceRecords(connection, transaction, leaveRequest, overrideAttendance);
 
                 using var command = new MySqlCommand(@"
                     UPDATE LeaveRequests
@@ -485,7 +550,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        private static List<int> ApplyLeaveAttendanceRecords(MySqlConnection connection, MySqlTransaction transaction, LeaveRequest leaveRequest)
+        private static List<int> ApplyLeaveAttendanceRecords(MySqlConnection connection, MySqlTransaction transaction, LeaveRequest leaveRequest, bool overrideAttendance = false)
         {
             var affectedAttendanceIds = new List<int>();
             var attendanceStatus = LeavePolicies.GetAttendanceStatus(leaveRequest.IsPaid);
@@ -518,14 +583,14 @@ namespace AttendancePayrollSystem.DataAccess
 
                 reader.Close();
 
-                if (hasTime)
+                if (hasTime && !overrideAttendance)
                 {
                     throw new InvalidOperationException($"Attendance already exists for {attendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                 }
 
                 if (attendanceId.HasValue)
                 {
-                    if (!string.IsNullOrWhiteSpace(existingStatus) && !LeavePolicies.IsLeaveAttendanceStatus(existingStatus))
+                    if (!string.IsNullOrWhiteSpace(existingStatus) && !LeavePolicies.IsLeaveAttendanceStatus(existingStatus) && !overrideAttendance)
                     {
                         throw new InvalidOperationException($"Attendance already exists for {attendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                     }
@@ -705,18 +770,19 @@ namespace AttendancePayrollSystem.DataAccess
                 BuildLeaveRequestIdFilter(leaveRequestId));
         }
 
-        private void ApproveLeaveRequestViaApi(int leaveRequestId, string reviewer, string reviewerNotes)
+        private void ApproveLeaveRequestViaApi(int leaveRequestId, string reviewer, string reviewerNotes, bool overrideAttendance = false)
         {
             var leaveRequest = GetLeaveRequestByIdViaApi(leaveRequestId)
                 ?? throw new InvalidOperationException("Leave request was not found.");
 
             EnsurePendingLeaveRequest(leaveRequest);
             EnsureNoOverlappingLeaveViaApi(leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate, leaveRequest.LeaveRequestId);
-            EnsureNoAttendanceConflictViaApi(leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
+            if (!overrideAttendance)
+                EnsureNoAttendanceConflictViaApi(leaveRequest.EmployeeId, leaveRequest.StartDate, leaveRequest.EndDate);
 
             foreach (var attendanceDate in LeavePolicies.GetChargeableDates(leaveRequest.StartDate, leaveRequest.EndDate))
             {
-                UpsertLeaveAttendanceViaApi(leaveRequest.EmployeeId, attendanceDate, LeavePolicies.GetAttendanceStatus(leaveRequest.IsPaid));
+                UpsertLeaveAttendanceViaApi(leaveRequest.EmployeeId, attendanceDate, LeavePolicies.GetAttendanceStatus(leaveRequest.IsPaid), overrideAttendance);
             }
 
             SupabaseRestClient.Update(
@@ -818,7 +884,7 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
-        private static void UpsertLeaveAttendanceViaApi(int employeeId, DateTime attendanceDate, string status)
+        private static void UpsertLeaveAttendanceViaApi(int employeeId, DateTime attendanceDate, string status, bool overrideAttendance = false)
         {
             var existing = SupabaseRestClient.GetSingleOrDefault<ApiAttendanceRecord>(
                 "attendancerecords",
@@ -832,12 +898,12 @@ namespace AttendancePayrollSystem.DataAccess
 
             if (existing != null)
             {
-                if (existing.TimeInAM.HasValue || existing.TimeOutAM.HasValue || existing.TimeInPM.HasValue || existing.TimeOutPM.HasValue)
+                if (!overrideAttendance && (existing.TimeInAM.HasValue || existing.TimeOutAM.HasValue || existing.TimeInPM.HasValue || existing.TimeOutPM.HasValue))
                 {
                     throw new InvalidOperationException($"Attendance already exists for {attendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                 }
 
-                if (!LeavePolicies.IsLeaveAttendanceStatus(existing.Status))
+                if (!overrideAttendance && !LeavePolicies.IsLeaveAttendanceStatus(existing.Status))
                 {
                     throw new InvalidOperationException($"Attendance already exists for {attendanceDate:yyyy-MM-dd}. Resolve the attendance record before approving leave.");
                 }

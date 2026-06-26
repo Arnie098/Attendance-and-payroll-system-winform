@@ -34,6 +34,29 @@ namespace AttendancePayrollSystem.Models
         public decimal TardinessDeduction { get; set; }
 
         /// <summary>
+        /// Number of absent working days during the pay period.
+        /// </summary>
+        public int AbsentDays { get; set; }
+
+        /// <summary>
+        /// Amount deducted from pay due to absences (daily-rate based).
+        /// This is already included in Deductions.
+        /// </summary>
+        public decimal AbsenceDeduction { get; set; }
+
+        /// <summary>
+        /// Number of scheduled session hours missed during partially attended workdays.
+        /// Example: employee attended AM but skipped the full PM session.
+        /// </summary>
+        public decimal MissedSessionHours { get; set; }
+
+        /// <summary>
+        /// Amount deducted from pay due to missed scheduled session hours.
+        /// This is already included in Deductions.
+        /// </summary>
+        public decimal MissedSessionDeduction { get; set; }
+
+        /// <summary>
         /// Manual/additional deduction amount entered by the admin.
         /// This is already included in Deductions.
         /// </summary>

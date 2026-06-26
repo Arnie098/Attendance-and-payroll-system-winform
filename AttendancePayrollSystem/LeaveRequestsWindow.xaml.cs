@@ -131,6 +131,41 @@ namespace AttendancePayrollSystem
 
             var reviewerNotes = LeaveReviewNotesTextBox.Text.Trim();
 
+            // For approvals, check if existing attendance records will be overridden.
+            bool overrideAttendance = false;
+            if (approve)
+            {
+                List<DateTime> conflicts;
+                try
+                {
+                    Mouse.OverrideCursor = Cursors.Wait;
+                    var empId = _selectedLeaveRequest.EmployeeId;
+                    var start  = _selectedLeaveRequest.StartDate;
+                    var end    = _selectedLeaveRequest.EndDate;
+                    conflicts = await Task.Run(() => _leaveRequestRepository.GetAttendanceConflictDates(empId, start, end));
+                }
+                finally
+                {
+                    Mouse.OverrideCursor = null;
+                }
+
+                if (conflicts.Count > 0)
+                {
+                    var dateList = string.Join("\n  • ", conflicts.Select(d => d.ToString("yyyy-MM-dd")));
+                    var overrideResult = MessageBox.Show(
+                        $"The following date(s) already have attendance records with time punches:\n\n  • {dateList}\n\n" +
+                        $"Approving will wipe those time records and replace them with leave status.\n\nProceed anyway?",
+                        "Attendance Conflict — Override?",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (overrideResult != MessageBoxResult.Yes)
+                        return;
+
+                    overrideAttendance = true;
+                }
+            }
+
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
@@ -139,7 +174,7 @@ namespace AttendancePayrollSystem
                 {
                     if (approve)
                     {
-                        _leaveRequestRepository.ApproveLeaveRequest(leaveRequestId, _currentUsername, reviewerNotes);
+                        _leaveRequestRepository.ApproveLeaveRequest(leaveRequestId, _currentUsername, reviewerNotes, overrideAttendance);
                     }
                     else
                     {

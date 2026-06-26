@@ -68,6 +68,8 @@ namespace AttendancePayrollSystem.DataAccess
                     PagIbigDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
                     WithholdingTax DECIMAL(18, 2) NOT NULL DEFAULT 0,
                     TardinessDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                    AbsentDays INT NOT NULL DEFAULT 0,
+                    AbsenceDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
                     Deductions DECIMAL(18, 2) NOT NULL,
                     NetPay DECIMAL(18, 2) NOT NULL,
                     ManualDeduction DECIMAL(18, 2) NOT NULL DEFAULT 0,
@@ -159,6 +161,8 @@ namespace AttendancePayrollSystem.DataAccess
                     PagIbigDeduction REAL NOT NULL DEFAULT 0,
                     WithholdingTax REAL NOT NULL DEFAULT 0,
                     TardinessDeduction REAL NOT NULL DEFAULT 0,
+                    AbsentDays INTEGER NOT NULL DEFAULT 0,
+                    AbsenceDeduction REAL NOT NULL DEFAULT 0,
                     Deductions REAL NOT NULL,
                     NetPay REAL NOT NULL,
                     ManualDeduction REAL NOT NULL DEFAULT 0,
@@ -498,6 +502,8 @@ namespace AttendancePayrollSystem.DataAccess
             EnsurePayrollColumnExists(connection, transaction, "PagIbigDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "WithholdingTax", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "TardinessDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "AbsentDays", connection.Provider == DatabaseProvider.Sqlite ? "INTEGER NOT NULL DEFAULT 0" : "INT NOT NULL DEFAULT 0");
+            EnsurePayrollColumnExists(connection, transaction, "AbsenceDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "ManualDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "ManualDeductionNote", connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(255) NOT NULL DEFAULT ''");
         }

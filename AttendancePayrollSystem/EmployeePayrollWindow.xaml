@@ -66,29 +66,31 @@
                         Padding="8,6"
                         Width="280">
                     <DockPanel>
-                        <materialDesign:PackIcon Kind="Magnify" Width="20" Height="20" Foreground="#94A3B8" VerticalAlignment="Center" Margin="4,0,8,0" />
-                        <TextBox x:Name="SearchBox"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 FontSize="14"
-                                 VerticalAlignment="Center"
-                                 TextChanged="SearchBox_TextChanged" />
-                        <TextBlock Text="Search by period or status..."
-                                   Foreground="#94A3B8"
-                                   FontSize="14"
-                                   VerticalAlignment="Center"
-                                   IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <materialDesign:PackIcon DockPanel.Dock="Left" Kind="Magnify" Width="20" Height="20" Foreground="#94A3B8" VerticalAlignment="Center" Margin="4,0,8,0" />
+                        <Grid>
+                            <TextBox x:Name="SearchBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="14"
+                                     VerticalAlignment="Center"
+                                     TextChanged="SearchBox_TextChanged" />
+                            <TextBlock Text="Search by period or status..."
+                                       Foreground="#94A3B8"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
                     </DockPanel>
                 </Border>
 
@@ -124,13 +126,15 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Period Start" Binding="{Binding PayPeriodStart, StringFormat=yyyy-MM-dd}" Width="100" />
                     <DataGridTextColumn Header="Period End" Binding="{Binding PayPeriodEnd, StringFormat=yyyy-MM-dd}" Width="100" />
-                    <DataGridTextColumn Header="Reg Hrs" Binding="{Binding RegularHours, StringFormat=N2}" Width="70" />
-                    <DataGridTextColumn Header="OT Hrs" Binding="{Binding OvertimeHours, StringFormat=N2}" Width="65" />
-                    <DataGridTextColumn Header="Gross Pay" Binding="{Binding GrossPay, StringFormat=₱{0:N2}}" Width="100" />
-                    <DataGridTextColumn Header="Late (min)" Binding="{Binding TotalTardinessMinutes, StringFormat={}{0} min}" Width="75" />
-                    <DataGridTextColumn Header="Late Ded" Binding="{Binding TardinessDeduction, StringFormat=₱{0:N2}}" Width="85" />
-                    <DataGridTextColumn Header="Manual Ded" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="90" />
-                    <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="95" />
+                    <DataGridTextColumn Header="Reg Hrs" Binding="{Binding RegularHours, StringFormat=N2}" Width="95" />
+                    <DataGridTextColumn Header="OT Hrs" Binding="{Binding OvertimeHours, StringFormat=N2}" Width="90" />
+                    <DataGridTextColumn Header="Gross Pay" Binding="{Binding GrossPay, StringFormat=₱{0:N2}}" Width="110" />
+                    <DataGridTextColumn Header="Total Mins of Late" Binding="{Binding TotalTardinessMinutes, StringFormat={}{0} min}" Width="145" />
+                    <DataGridTextColumn Header="Late Ded" Binding="{Binding TardinessDeduction, StringFormat=₱{0:N2}}" Width="100" />
+                    <DataGridTextColumn Header="Absent" Binding="{Binding AbsentDays, StringFormat={}{0} d}" Width="85" />
+                    <DataGridTextColumn Header="Absent Ded" Binding="{Binding AbsenceDeduction, StringFormat=₱{0:N2}}" Width="115" />
+                    <DataGridTextColumn Header="Manual Ded" Binding="{Binding ManualDeduction, StringFormat=₱{0:N2}}" Width="115" />
+                    <DataGridTextColumn Header="Deductions" Binding="{Binding Deductions, StringFormat=₱{0:N2}}" Width="110" />
                     <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, StringFormat=₱{0:N2}}" Width="100" />
                     <DataGridTextColumn Header="Status"
                                         Binding="{Binding Status}"
@@ -174,6 +178,7 @@
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="DEDUCTIONS" Foreground="#94A3B8" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" />
                     <TextBlock x:Name="DetailLate" FontSize="13" Foreground="#1E293B" />
+                    <TextBlock x:Name="DetailAbsent" FontSize="13" Foreground="#1E293B" Margin="0,2,0,0" />
                     <TextBlock x:Name="DetailManual" FontSize="13" Foreground="#1E293B" Margin="0,2,0,0" />
                     <TextBlock x:Name="DetailTotalDed" FontSize="14" FontWeight="Bold" Foreground="#991B1B" Margin="0,6,0,0" />
                 </StackPanel>
@@ -196,17 +201,24 @@
                        VerticalAlignment="Center" />
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Export CSV"
-                        Width="110"
                         Style="{StaticResource ModernButton}"
                         Background="#0F766E"
                         Click="ExportCsv_Click" />
+                <Button Content="Print Payslip"
+                        Style="{StaticResource ModernButton}"
+                        Background="#123C47"
+                        Click="PrintPayslip_Click"
+                        Margin="8,0,0,0" />
+                <Button Content="Save as PDF"
+                        Style="{StaticResource ModernButton}"
+                        Background="#7C2D12"
+                        Click="SavePdf_Click"
+                        Margin="8,0,0,0" />
                 <Button Content="Refresh"
-                        Width="110"
                         Style="{StaticResource ModernButton}"
                         Click="Refresh_Click"
                         Margin="8,0,0,0" />
                 <Button Content="Close"
-                        Width="110"
                         Style="{StaticResource ModernButton}"
                         Background="#475569"
                         Click="Close_Click"

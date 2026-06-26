@@ -15,143 +15,90 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header Banner -->
-        <Border Grid.Row="0"
-                CornerRadius="18"
-                Padding="22,20"
-                Margin="0,0,0,12">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#0B1220" Offset="0" />
-                    <GradientStop Color="#14532D" Offset="0.55" />
-                    <GradientStop Color="#155E75" Offset="1" />
-                </LinearGradientBrush>
-            </Border.Background>
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.22" Color="#0F172A" />
-            </Border.Effect>
-            <DockPanel>
-                <Border DockPanel.Dock="Left"
-                        Width="56"
-                        Height="56"
-                        Background="#1FFFFFFF"
-                        BorderBrush="#33FFFFFF"
-                        BorderThickness="1"
-                        CornerRadius="16"
-                        VerticalAlignment="Center"
-                        Margin="0,0,16,0">
-                    <materialDesign:PackIcon Kind="CalendarClock"
-                                             Width="30"
-                                             Height="30"
-                                             Foreground="White"
-                                             HorizontalAlignment="Center"
-                                             VerticalAlignment="Center" />
-                </Border>
-                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <TextBlock Text="Latest Attendance Records"
-                               Foreground="White"
-                               FontSize="28"
-                               FontWeight="Bold" />
-                    <TextBlock Text="Recent employee time entries from the attendance database."
-                               Foreground="#D8F3F0"
-                               Margin="0,4,0,0" />
-                </StackPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Summary badges -->
-                    <Border Background="#064E3B"
-                            CornerRadius="999"
-                            Padding="12,6"
-                            Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="AccountCheck" Width="14" Height="14" Foreground="#6EE7B7" VerticalAlignment="Center" Margin="0,0,4,0" />
-                            <TextBlock x:Name="PresentCountText"
-                                       Text="0 Present"
-                                       Foreground="#6EE7B7"
-                                       FontSize="12"
-                                       FontWeight="SemiBold" />
-                        </StackPanel>
-                    </Border>
-                    <Border Background="#7C2D12"
-                            CornerRadius="999"
-                            Padding="12,6"
-                            Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="ClockAlert" Width="14" Height="14" Foreground="#FCA5A5" VerticalAlignment="Center" Margin="0,0,4,0" />
-                            <TextBlock x:Name="LateCountText"
-                                       Text="0 Late"
-                                       Foreground="#FCA5A5"
-                                       FontSize="12"
-                                       FontWeight="SemiBold" />
-                        </StackPanel>
-                    </Border>
-                    <Border Background="#0A2534"
-                            CornerRadius="999"
-                            Padding="12,6">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FormatListBulleted" Width="14" Height="14" Foreground="#D4FBF8" VerticalAlignment="Center" Margin="0,0,4,0" />
-                            <TextBlock x:Name="TotalCountText"
-                                       Text="0 records"
-                                       Foreground="#D4FBF8"
-                                       FontSize="12"
-                                       FontWeight="SemiBold" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </DockPanel>
-        </Border>
+        <!-- Minimal professional header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <!-- Left: title + subtitle -->
+            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                <TextBlock Text="Latest Attendance Records"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#0F172A" />
+                <TextBlock Text="Recent time entries — up to 50 records, newest first."
+                           FontSize="12"
+                           Foreground="#94A3B8"
+                           Margin="0,2,0,0" />
+            </StackPanel>
 
-        <!-- Search and Filter Bar -->
+            <!-- Right: summary pills -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="10,4" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountCheck" Width="14" Height="14" Foreground="#16A34A" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <TextBlock x:Name="PresentCountText" Text="0 Present" FontSize="12" FontWeight="SemiBold" Foreground="#16A34A" />
+                    </StackPanel>
+                </Border>
+                <Border Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="6" Padding="10,4" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ClockAlert" Width="14" Height="14" Foreground="#DC2626" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <TextBlock x:Name="LateCountText" Text="0 Late" FontSize="12" FontWeight="SemiBold" Foreground="#DC2626" />
+                    </StackPanel>
+                </Border>
+                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,4">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FormatListBulleted" Width="14" Height="14" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <TextBlock x:Name="TotalCountText" Text="0 records" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Filter Bar -->
         <Border Grid.Row="1"
                 Style="{StaticResource ModernCard}"
                 Padding="12,10"
                 Margin="0,0,0,12">
             <DockPanel>
-                <!-- Search Box -->
+                <!-- Search -->
                 <Border DockPanel.Dock="Left"
                         Background="#F8FAFC"
                         BorderBrush="#E2E8F0"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="8,6"
-                        Width="320">
+                        Width="300">
                     <DockPanel>
-                        <materialDesign:PackIcon Kind="Magnify"
-                                                 Width="20" Height="20"
-                                                 Foreground="#94A3B8"
-                                                 VerticalAlignment="Center"
-                                                 Margin="4,0,8,0" />
-                        <TextBox x:Name="SearchBox"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 FontSize="14"
-                                 VerticalAlignment="Center"
-                                 TextChanged="SearchBox_TextChanged" />
-                        <TextBlock Text="Search by name, code, or status..."
-                                   Foreground="#94A3B8"
-                                   FontSize="14"
-                                   VerticalAlignment="Center"
-                                   IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <materialDesign:PackIcon DockPanel.Dock="Left" Kind="Magnify" Width="18" Height="18" Foreground="#94A3B8" VerticalAlignment="Center" Margin="4,0,8,0" />
+                        <Grid>
+                            <TextBox x:Name="SearchBox"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="13"
+                                     VerticalAlignment="Center"
+                                     TextChanged="SearchBox_TextChanged" />
+                            <TextBlock Text="Search by name, code, or status..."
+                                       Foreground="#94A3B8"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
                     </DockPanel>
                 </Border>
 
-                <!-- Status Filter -->
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Status:" Foreground="#64748B" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <ComboBox x:Name="StatusFilterCombo"
-                              Width="130"
-                              FontSize="13"
-                              SelectionChanged="StatusFilter_Changed">
+                <!-- Status -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Status:" Foreground="#64748B" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0" />
+                    <ComboBox x:Name="StatusFilterCombo" Width="130" FontSize="13" SelectionChanged="StatusFilter_Changed">
                         <ComboBoxItem Content="All" IsSelected="True" />
                         <ComboBoxItem Content="Present" />
                         <ComboBoxItem Content="Late" />
@@ -160,13 +107,10 @@
                     </ComboBox>
                 </StackPanel>
 
-                <!-- Date Filter -->
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Date:" Foreground="#64748B" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <DatePicker x:Name="DateFilterPicker"
-                                Width="140"
-                                FontSize="13"
-                                SelectedDateChanged="DateFilter_Changed" />
+                <!-- Date -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Date:" Foreground="#64748B" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0" />
+                    <DatePicker x:Name="DateFilterPicker" Width="140" FontSize="13" SelectedDateChanged="DateFilter_Changed" />
                     <Button Width="30" Height="30"
                             Padding="0"
                             Margin="4,0,0,0"
@@ -174,13 +118,11 @@
                             Click="ClearDateFilter_Click"
                             Style="{StaticResource ModernButton}"
                             Background="#64748B">
-                        <materialDesign:PackIcon Kind="CalendarRemove"
-                                                 Width="16" Height="16"
-                                                 Foreground="White" />
+                        <materialDesign:PackIcon Kind="CalendarRemove" Width="16" Height="16" Foreground="White" />
                     </Button>
                 </StackPanel>
 
-                <!-- Right-side record count -->
+                <!-- Filtered count -->
                 <TextBlock DockPanel.Dock="Right"
                            x:Name="FilteredCountText"
                            Text="Showing all records"
@@ -192,78 +134,134 @@
         </Border>
 
         <!-- Data Grid -->
-        <Border Grid.Row="2"
-                Style="{StaticResource ModernCard}"
-                Margin="0">
-            <DataGrid x:Name="AttendanceGrid"
-                      ItemsSource="{Binding LatestAttendances}"
-                      Style="{StaticResource ModernDataGrid}"
-                      Margin="0"
-                      RowHeight="40"
-                      ColumnHeaderHeight="42"
-                      VerticalGridLinesBrush="Transparent"
-                      HorizontalGridLinesBrush="#EEF2F7"
-                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                        <Setter Property="Background" Value="#F1F5F9" />
-                        <Setter Property="Foreground" Value="#334155" />
-                        <Setter Property="FontWeight" Value="SemiBold" />
-                        <Setter Property="FontSize" Value="12" />
-                        <Setter Property="Padding" Value="10,0" />
-                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                        <Setter Property="BorderBrush" Value="#E2E8F0" />
-                        <Setter Property="BorderThickness" Value="0,0,0,1" />
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-                <DataGrid.CellStyle>
-                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                        <Setter Property="Padding" Value="8,0" />
-                        <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="FontSize" Value="13" />
-                    </Style>
-                </DataGrid.CellStyle>
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#EFF6FF" />
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#DBEAFE" />
-                                <Setter Property="Foreground" Value="#0F172A" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Code" Binding="{Binding EmployeeCode}" Width="80" />
-                    <DataGridTextColumn Header="Employee Name" Binding="{Binding FullName}" Width="160" />
-                    <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="95" />
-                    <DataGridTextColumn Header="In AM" Binding="{Binding TimeIn, StringFormat=HH:mm}" Width="60" />
-                    <DataGridTextColumn Header="Out AM" Binding="{Binding TimeOutAM, StringFormat=HH:mm}" Width="65" />
-                    <DataGridTextColumn Header="In PM" Binding="{Binding TimeInPM, StringFormat=HH:mm}" Width="60" />
-                    <DataGridTextColumn Header="Out PM" Binding="{Binding TimeOut, StringFormat=HH:mm}" Width="65" />
-                    <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="75" />
-                    <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="90" />
-                    <DataGridTemplateColumn Header="Status" Width="140" SortMemberPath="Status">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource AttendanceStatusPillStyle}">
-                                    <TextBlock Text="{Binding Status}"
-                                               FontSize="12"
-                                               Style="{StaticResource AttendanceStatusTextStyle}" />
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Margin="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Schedule legend -->
+                <DockPanel Grid.Row="0" Margin="2,2,2,10">
+                    <materialDesign:PackIcon Kind="ClockOutline" Width="14" Height="14" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center">
+                        <Run Text="Schedule —" FontWeight="SemiBold" />
+                        <Run Text="AM 8:30 AM–12:00 PM · PM 1:00 PM–5:00 PM · 15 min grace" />
+                    </TextBlock>
+                </DockPanel>
+
+                <DataGrid x:Name="AttendanceGrid"
+                          Grid.Row="1"
+                          ItemsSource="{Binding LatestAttendances}"
+                          Style="{StaticResource ModernDataGrid}"
+                          Margin="0"
+                          RowHeight="42"
+                          VerticalGridLinesBrush="Transparent"
+                          HorizontalGridLinesBrush="#EEF2F7"
+                          SelectionChanged="AttendanceGrid_SelectionChanged"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                            <Setter Property="Padding" Value="8,4" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="FontSize" Value="13" />
+                        </Style>
+                    </DataGrid.CellStyle>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#EFF6FF" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#DBEAFE" />
+                                    <Setter Property="Foreground" Value="#0F172A" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Code"          Binding="{Binding EmployeeCode}"                            Width="85" />
+                        <DataGridTextColumn Header="Employee Name" Binding="{Binding FullName}"                                Width="160" />
+                        <DataGridTemplateColumn Header="Status" Width="115" SortMemberPath="Status">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource AttendanceStatusPillStyle}">
+                                        <TextBlock Text="{Binding Status}" FontSize="11" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Date"          Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
+                        <DataGridTemplateColumn Header="AM In" Width="115" SortMemberPath="TimeIn">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TimeIn, StringFormat=hh:mm tt}" FontSize="13" />
+                                        <TextBlock Text="{Binding TimeInAMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="AM Out" Width="115" SortMemberPath="TimeOutAM">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TimeOutAM, StringFormat=hh:mm tt}" FontSize="13" />
+                                        <TextBlock Text="{Binding TimeOutAMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="PM In" Width="115" SortMemberPath="TimeInPM">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TimeInPM, StringFormat=hh:mm tt}" FontSize="13" />
+                                        <TextBlock Text="{Binding TimeInPMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="PM Out" Width="115" SortMemberPath="TimeOut">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TimeOut, StringFormat=hh:mm tt}" FontSize="13" />
+                                        <TextBlock Text="{Binding TimeOutPMLabel}" FontSize="10" TextWrapping="Wrap" Style="{StaticResource AttendanceStatusTextStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Hours"     Binding="{Binding TotalHours, StringFormat=N2}"  Width="75" />
+                        <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}"           Width="90" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Empty state -->
+                <StackPanel x:Name="EmptyStatePanel"
+                            Grid.Row="1"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="CalendarSearch" Width="52" Height="52" Foreground="#CBD5E1" HorizontalAlignment="Center" />
+                    <TextBlock Text="No records match your filters"
+                               Foreground="#64748B"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,4" />
+                    <TextBlock Text="Try adjusting the search, status, or date filter."
+                               Foreground="#94A3B8"
+                               FontSize="12"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Footer Actions -->
+        <!-- Footer -->
         <DockPanel Grid.Row="3" Margin="0,14,0,0">
             <TextBlock DockPanel.Dock="Left"
                        x:Name="LastRefreshedText"
@@ -271,46 +269,40 @@
                        Foreground="#94A3B8"
                        FontSize="12"
                        VerticalAlignment="Center" />
-            <StackPanel DockPanel.Dock="Right"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right">
-                <Button Width="120"
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="DeleteSelectedButton"
                         Style="{StaticResource ModernButton}"
-                        Background="#0F766E"
-                        Click="ExportCsv_Click">
+                        Background="#B91C1C"
+                        IsEnabled="False"
+                        Click="DeleteSelected_Click">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <materialDesign:PackIcon Kind="FileDelimitedOutline"
-                                                 Width="17" Height="17"
-                                                 Foreground="White"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,8,0" />
+                        <materialDesign:PackIcon Kind="DeleteOutline" Width="17" Height="17" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="Delete Selected" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ModernButton}"
+                        Background="#0F766E"
+                        Click="ExportCsv_Click"
+                        Margin="8,0,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="FileDelimitedOutline" Width="17" Height="17" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <TextBlock Text="Export CSV" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <Button Width="110"
-                        Style="{StaticResource ModernButton}"
+                <Button Style="{StaticResource ModernButton}"
                         Click="Refresh_Click"
                         Margin="8,0,0,0">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <materialDesign:PackIcon Kind="Refresh"
-                                                 Width="17" Height="17"
-                                                 Foreground="White"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,8,0" />
+                        <materialDesign:PackIcon Kind="Refresh" Width="17" Height="17" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <TextBlock Text="Refresh" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <Button Width="110"
-                        Style="{StaticResource ModernButton}"
+                <Button Style="{StaticResource ModernButton}"
                         Background="#475569"
                         Click="Close_Click"
                         Margin="8,0,0,0">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <materialDesign:PackIcon Kind="Close"
-                                                 Width="17" Height="17"
-                                                 Foreground="White"
-                                                 VerticalAlignment="Center"
-                                                 Margin="0,0,8,0" />
+                        <materialDesign:PackIcon Kind="Close" Width="17" Height="17" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <TextBlock Text="Close" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>

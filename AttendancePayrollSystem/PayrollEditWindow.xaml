@@ -1,7 +1,7 @@
 <Window x:Class="AttendancePayrollSystem.PayrollEditWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Edit Payroll Record"
+        Title="Payroll Record"
         Height="760"
         Width="760"
         MinHeight="680"
@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,14">
-            <TextBlock Text="Edit Payroll Record" Style="{StaticResource HeaderText}" />
+            <TextBlock x:Name="WindowTitleTextBlock" Text="Edit Payroll Record" Style="{StaticResource HeaderText}" />
             <TextBlock x:Name="EmployeeTextBlock"
                        Foreground="#64748B"
                        Margin="0,4,0,0" />
@@ -88,11 +88,16 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,12,10">
+                    <TextBlock Text="Absence Deduction" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                    <TextBox x:Name="ManualAbsenceDeductionTextBox" Style="{StaticResource ModernTextBox}" TextChanged="DeductionInput_TextChanged" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="3" Margin="0,0,0,10">
                     <TextBlock Text="Manual Deduction" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
                     <TextBox x:Name="ManualManualDeductionTextBox" Style="{StaticResource ModernTextBox}" TextChanged="DeductionInput_TextChanged" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="2" Grid.Column="3" Margin="0,0,0,10">
+                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,12,0">
                     <TextBlock Text="Status" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
                     <ComboBox x:Name="ManualStatusComboBox">
                         <ComboBoxItem Content="Pending" />
@@ -102,17 +107,17 @@
                     </ComboBox>
                 </StackPanel>
 
-                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,12,0">
+                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,12,0">
                     <TextBlock Text="Total Deductions" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
                     <TextBox x:Name="ManualDeductionsTextBox" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,12,0">
+                <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,12,0">
                     <TextBlock Text="Net Pay" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
                     <TextBox x:Name="ManualNetPayTextBox" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2">
+                <StackPanel Grid.Row="3" Grid.Column="3">
                     <TextBlock Text="Manual Deduction Note" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
                     <TextBox x:Name="ManualManualDeductionNoteTextBox" Style="{StaticResource ModernTextBox}" MaxLength="255" />
                 </StackPanel>
@@ -125,7 +130,8 @@
                     Margin="0,0,8,0"
                     Style="{StaticResource ModernButton}"
                     Click="Save_Click" />
-            <Button Content="Delete"
+            <Button x:Name="DeleteButton"
+                    Content="Delete"
                     Width="100"
                     Margin="0,0,8,0"
                     Background="#DC2626"

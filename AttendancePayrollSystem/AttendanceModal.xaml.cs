@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
@@ -35,6 +37,7 @@ namespace AttendancePayrollSystem
 
             DataContext = _viewModel;
             AttendanceCrudTab.Visibility = _allowCrud ? Visibility.Visible : Visibility.Collapsed;
+            DeleteTodayButton.Visibility = _allowCrud ? Visibility.Visible : Visibility.Collapsed;
             if (_allowCrud)
             {
                 CrudStatusComboBox.SelectedIndex = 0;
@@ -44,6 +47,8 @@ namespace AttendancePayrollSystem
 
             LoadTodayAttendance();
         }
+
+        // ── Biometric ────────────────────────────────────────────────────────────
 
         private async void BiometricSimulation_Click(object sender, RoutedEventArgs e)
         {
@@ -79,58 +84,137 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            _viewModel.ScanStateText = "Verification successful";
-            todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            _viewModel.ScanStateText = "Fingerprint verified";
+            RecordAttendance(biometricVerified: true);
+        }
 
+        // ── Barcode fallback ─────────────────────────────────────────────────────
+
+        private void BarcodeTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Return)
+            {
+                e.Handled = true;
+                ProcessBarcodeInput();
+            }
+        }
+
+        private void BarcodeScan_Click(object sender, RoutedEventArgs e)
+        {
+            ProcessBarcodeInput();
+        }
+
+        private void ProcessBarcodeInput()
+        {
+            var code = BarcodeTextBox.Text?.Trim() ?? string.Empty;
+            BarcodeTextBox.Text = string.Empty;
+            BarcodeTextBox.Focus();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                ShowBarcodeStatus("Please scan or enter the employee barcode.", isError: true);
+                return;
+            }
+
+            if (!string.Equals(code, _employee.EmployeeCode, StringComparison.OrdinalIgnoreCase))
+            {
+                ShowBarcodeStatus($"Code \"{code}\" does not match this employee. Expected: {_employee.EmployeeCode}", isError: true);
+                return;
+            }
+
+            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            if (todayAttendance != null && LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+            {
+                ShowBarcodeStatus($"Attendance locked — leave is recorded for today ({todayAttendance.Status}).", isError: true);
+                return;
+            }
+
+            _viewModel.ScanStateText = "Barcode accepted";
+            _viewModel.LastScanText = $"Last Scan: {DateTime.Now:yyyy-MM-dd HH:mm:ss} (barcode)";
+            ShowBarcodeStatus("Barcode accepted. Recording attendance…", isError: false);
+
+            RecordAttendance(biometricVerified: false);
+            ShowBarcodeStatus("Attendance recorded via barcode.", isError: false);
+        }
+
+        private void ShowBarcodeStatus(string message, bool isError)
+        {
+            BarcodeStatusText.Text = message;
+            BarcodeStatusText.Foreground = isError
+                ? new SolidColorBrush(Color.FromRgb(0xB9, 0x1C, 0x1C))
+                : new SolidColorBrush(Color.FromRgb(0x0F, 0x76, 0x6E));
+            BarcodeStatusText.Visibility = Visibility.Visible;
+        }
+
+        // ── Shared recording logic ───────────────────────────────────────────────
+
+        private void RecordAttendance(bool biometricVerified)
+        {
+            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
             var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
+            var method = biometricVerified ? "Biometric" : "Barcode";
 
             switch (sessionState)
             {
                 case AttendanceSessionState.NeedsMorningTimeIn:
-                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, true);
-                    _viewModel.StatusText = "Morning Time In recorded (8:30 AM session).";
-                    MessageBox.Show("Morning Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, biometricVerified);
+                    _viewModel.StatusText = $"Morning Time In recorded via {method} (8:30 AM session).";
+                    if (biometricVerified)
+                        MessageBox.Show("Morning Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
 
                 case AttendanceSessionState.NeedsMorningTimeOut:
                     _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
-                    _viewModel.StatusText = "Morning Time Out recorded (12:00 PM session).";
-                    MessageBox.Show("Morning Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _viewModel.StatusText = $"Morning Time Out recorded via {method}.";
+                    if (biometricVerified)
+                        MessageBox.Show("Morning Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
 
                 case AttendanceSessionState.MorningComplete:
                     _viewModel.StatusText = "Morning session complete. Afternoon session starts at 1:00 PM.";
-                    MessageBox.Show("Morning session is complete. Please return at 1:00 PM for the afternoon session.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (biometricVerified)
+                        MessageBox.Show("Morning session is complete. Please return at 1:00 PM for the afternoon session.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        ShowBarcodeStatus("Morning session already complete. Return at 1:00 PM.", isError: false);
                     break;
 
                 case AttendanceSessionState.NeedsAfternoonTimeIn:
-                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, true);
-                    _viewModel.StatusText = "Afternoon Time In recorded (1:00 PM session).";
-                    MessageBox.Show("Afternoon Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, biometricVerified);
+                    _viewModel.StatusText = $"Afternoon Time In recorded via {method} (1:00 PM session).";
+                    if (biometricVerified)
+                        MessageBox.Show("Afternoon Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
 
                 case AttendanceSessionState.NeedsAfternoonTimeOut:
                     _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
-                    _viewModel.StatusText = "Afternoon Time Out recorded (4:30 PM session).";
-                    MessageBox.Show("Afternoon Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _viewModel.StatusText = $"Afternoon Time Out recorded via {method}.";
+                    if (biometricVerified)
+                        MessageBox.Show("Afternoon Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
 
                 case AttendanceSessionState.AllComplete:
                     _viewModel.StatusText = "Both sessions are complete for today.";
-                    MessageBox.Show("Attendance already completed for today (both AM and PM sessions).", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (biometricVerified)
+                        MessageBox.Show("Attendance already completed for today (both AM and PM sessions).", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        ShowBarcodeStatus("Attendance already completed for today.", isError: false);
                     break;
             }
 
             LoadTodayAttendance();
             if (_allowCrud)
-            {
                 LoadAttendanceRecords();
-            }
         }
 
         private void LoadTodayAttendance()
         {
             var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+
+            // Update the Delete Today button — only relevant when a record exists
+            if (_allowCrud)
+                DeleteTodayButton.IsEnabled = todayAttendance != null
+                    && !LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status);
+
             if (todayAttendance == null)
             {
                 _viewModel.TimeInAMText = "-";
@@ -140,10 +224,7 @@ namespace AttendancePayrollSystem
                 _viewModel.NextActionText = "Morning Time In (8:30 AM)";
                 _viewModel.IsScanButtonEnabled = true;
                 if (string.IsNullOrWhiteSpace(_viewModel.StatusText))
-                {
                     _viewModel.StatusText = "No attendance record yet for today.";
-                }
-
                 return;
             }
 
@@ -190,12 +271,13 @@ namespace AttendancePayrollSystem
                     break;
                 case AttendanceSessionState.AllComplete:
                     _viewModel.NextActionText = "No pending action";
-                    _viewModel.StatusText = "Attendance completed (both AM and PM sessions).";
+                    _viewModel.StatusText = "Attendance completed for today (both AM and PM sessions). Delete today's record to re-simulate.";
                     break;
             }
 
             _viewModel.ScanStateText = "Ready for fingerprint verification";
-            _viewModel.IsScanButtonEnabled = sessionState != AttendanceSessionState.AllComplete;
+            // Always keep scan enabled — AllComplete shows an informational message instead of blocking
+            _viewModel.IsScanButtonEnabled = true;
         }
 
         private void LoadAttendanceRecords()
@@ -438,6 +520,39 @@ namespace AttendancePayrollSystem
             }
 
             ResetCrudForm();
+        }
+
+        private void DeleteTodayAttendance_Click(object sender, RoutedEventArgs e)
+        {
+            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            if (todayAttendance == null)
+            {
+                MessageBox.Show("No attendance record found for today.", "Delete Today", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Delete today's attendance record for {_employee.FullName}?\n\nThis will remove all recorded times for {DateTime.Today:yyyy-MM-dd} and allow re-simulation.",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                _attendanceRepository.DeleteAttendance(todayAttendance.AttendanceId);
+                _viewModel.ScanStateText = "Ready for fingerprint verification";
+                _viewModel.StatusText = "Today's record deleted. Ready to record attendance.";
+                LoadTodayAttendance();
+                if (_allowCrud)
+                    LoadAttendanceRecords();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to delete attendance record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)

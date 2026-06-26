@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.ViewModels;
 using Microsoft.Win32;
 
@@ -16,6 +18,7 @@ namespace AttendancePayrollSystem
     public partial class LatestAttendanceWindow : Window
     {
         private readonly AdminDashboardViewModel _viewModel = new();
+        private readonly AttendanceRepository _attendanceRepository = new();
         private bool _isRefreshing;
 
         public LatestAttendanceWindow()
@@ -78,6 +81,13 @@ namespace AttendancePayrollSystem
             var view = CollectionViewSource.GetDefaultView(_viewModel.LatestAttendances);
             if (view == null) return;
 
+            // Default sort: newest date first, then employee name.
+            if (view.SortDescriptions.Count == 0)
+            {
+                view.SortDescriptions.Add(new SortDescription(nameof(LatestAttendanceItem.AttendanceDate), ListSortDirection.Descending));
+                view.SortDescriptions.Add(new SortDescription(nameof(LatestAttendanceItem.FullName), ListSortDirection.Ascending));
+            }
+
             var searchText = SearchBox.Text?.Trim() ?? string.Empty;
             var statusFilter = (StatusFilterCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "All";
             var dateFilter = DateFilterPicker.SelectedDate;
@@ -119,6 +129,8 @@ namespace AttendancePayrollSystem
             FilteredCountText.Text = filteredCount == totalCount
                 ? $"Showing all {totalCount} records"
                 : $"Showing {filteredCount} of {totalCount} records";
+
+            EmptyStatePanel.Visibility = filteredCount == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -145,6 +157,44 @@ namespace AttendancePayrollSystem
             ApplyFilters();
         }
 
+        private void AttendanceGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DeleteSelectedButton.IsEnabled = AttendanceGrid.SelectedItem is LatestAttendanceItem;
+        }
+
+        private async void DeleteSelected_Click(object sender, RoutedEventArgs e)
+        {
+            if (AttendanceGrid.SelectedItem is not LatestAttendanceItem selected)
+                return;
+
+            var confirm = MessageBox.Show(
+                $"Delete attendance record for {selected.FullName} on {selected.AttendanceDate:yyyy-MM-dd}?",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+                await Task.Run(() => _attendanceRepository.DeleteAttendance(selected.AttendanceId));
+                _viewModel.LatestAttendances.Remove(selected);
+                UpdateSummaryBadges();
+                ApplyFilters();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to delete record.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+                DeleteSelectedButton.IsEnabled = false;
+            }
+        }
+
         private void ExportCsv_Click(object sender, RoutedEventArgs e)
         {
             var view = CollectionViewSource.GetDefaultView(_viewModel.LatestAttendances);
@@ -168,7 +218,7 @@ namespace AttendancePayrollSystem
             try
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("Employee Code,Full Name,Date,In AM,Out AM,In PM,Out PM,Total Hours,Late (min),Status");
+                sb.AppendLine("Employee Code,Full Name,Date,AM Time In (8:30 AM),AM Time Out (12:00 PM),PM Time In (1:00 PM),PM Time Out (5:00 PM),AM Time In Status,AM Time Out Status,PM Time In Status,PM Time Out Status,Total Hours,Late (min)");
 
                 foreach (var item in items)
                 {
@@ -176,13 +226,16 @@ namespace AttendancePayrollSystem
                         EscapeCsv(item.EmployeeCode),
                         EscapeCsv(item.FullName),
                         item.AttendanceDate.ToString("yyyy-MM-dd"),
-                        item.TimeIn?.ToString("HH:mm") ?? "",
-                        item.TimeOutAM?.ToString("HH:mm") ?? "",
-                        item.TimeInPM?.ToString("HH:mm") ?? "",
-                        item.TimeOut?.ToString("HH:mm") ?? "",
+                        item.TimeIn?.ToString("hh:mm tt") ?? "",
+                        item.TimeOutAM?.ToString("hh:mm tt") ?? "",
+                        item.TimeInPM?.ToString("hh:mm tt") ?? "",
+                        item.TimeOut?.ToString("hh:mm tt") ?? "",
+                        EscapeCsv(item.TimeInAMStatus),
+                        EscapeCsv(item.TimeOutAMStatus),
+                        EscapeCsv(item.TimeInPMStatus),
+                        EscapeCsv(item.TimeOutPMStatus),
                         item.TotalHours.ToString("N2"),
-                        item.TardinessMinutes.ToString(),
-                        EscapeCsv(item.Status)));
+                        item.TardinessMinutes.ToString()));
                 }
 
                 File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);

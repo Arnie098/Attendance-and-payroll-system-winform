@@ -46,6 +46,8 @@ create table if not exists public.payrollrecords
     pagibigdeduction numeric(18, 2) not null default 0,
     withholdingtax numeric(18, 2) not null default 0,
     tardinessdeduction numeric(18, 2) not null default 0,
+    absentdays integer not null default 0,
+    absencededuction numeric(18, 2) not null default 0,
     deductions numeric(18, 2) not null,
     netpay numeric(18, 2) not null,
     manualdeduction numeric(18, 2) not null default 0,

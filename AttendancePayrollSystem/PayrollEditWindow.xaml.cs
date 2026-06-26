@@ -8,7 +8,9 @@ namespace AttendancePayrollSystem
 {
     public partial class PayrollEditWindow : Window
     {
+        private readonly Employee _employee;
         private readonly Payroll _originalPayroll;
+        private readonly bool _isNewRecord;
 
         public Payroll? ResultPayroll { get; private set; }
         public bool DeleteRequested { get; private set; }
@@ -16,8 +18,13 @@ namespace AttendancePayrollSystem
         public PayrollEditWindow(Employee employee, Payroll payroll)
         {
             InitializeComponent();
+            _employee = employee;
             _originalPayroll = payroll;
+            _isNewRecord = payroll.PayrollId <= 0;
             EmployeeTextBlock.Text = $"{employee.EmployeeCode} - {employee.FullName}";
+            WindowTitleTextBlock.Text = _isNewRecord ? "Add Payroll Record" : "Edit Payroll Record";
+            Title = _isNewRecord ? "Add Payroll Record" : "Edit Payroll Record";
+            DeleteButton.Visibility = _isNewRecord ? Visibility.Collapsed : Visibility.Visible;
             LoadPayroll(payroll);
         }
 
@@ -33,6 +40,7 @@ namespace AttendancePayrollSystem
             ManualPagIbigDeductionTextBox.Text = payroll.PagIbigDeduction.ToString("N2", CultureInfo.InvariantCulture);
             ManualWithholdingTaxTextBox.Text = payroll.WithholdingTax.ToString("N2", CultureInfo.InvariantCulture);
             ManualTardinessDeductionTextBox.Text = payroll.TardinessDeduction.ToString("N2", CultureInfo.InvariantCulture);
+            ManualAbsenceDeductionTextBox.Text = payroll.AbsenceDeduction.ToString("N2", CultureInfo.InvariantCulture);
             ManualManualDeductionTextBox.Text = payroll.ManualDeduction.ToString("N2", CultureInfo.InvariantCulture);
             ManualManualDeductionNoteTextBox.Text = payroll.ManualDeductionNote;
             SelectStatus(payroll.Status);
@@ -98,7 +106,8 @@ namespace AttendancePayrollSystem
                 !TryParseNonNegativeDecimal(ManualPhilHealthDeductionTextBox.Text, "PhilHealth deduction", out var philHealthDeduction) ||
                 !TryParseNonNegativeDecimal(ManualPagIbigDeductionTextBox.Text, "Pag-IBIG deduction", out var pagIbigDeduction) ||
                 !TryParseNonNegativeDecimal(ManualWithholdingTaxTextBox.Text, "tax deduction", out var withholdingTax) ||
-                !TryParseNonNegativeDecimal(ManualTardinessDeductionTextBox.Text, "tardiness deduction", out var tardinessDeduction))
+                !TryParseNonNegativeDecimal(ManualTardinessDeductionTextBox.Text, "tardiness deduction", out var tardinessDeduction) ||
+                !TryParseNonNegativeDecimal(ManualAbsenceDeductionTextBox.Text, "absence deduction", out var absenceDeduction))
             {
                 return false;
             }
@@ -119,8 +128,8 @@ namespace AttendancePayrollSystem
 
             payroll.PayrollId = _originalPayroll.PayrollId;
             payroll.EmployeeId = _originalPayroll.EmployeeId;
-            payroll.EmployeeName = _originalPayroll.EmployeeName;
-            payroll.EmployeeCode = _originalPayroll.EmployeeCode;
+            payroll.EmployeeName = string.IsNullOrWhiteSpace(_originalPayroll.EmployeeName) ? _employee.FullName : _originalPayroll.EmployeeName;
+            payroll.EmployeeCode = string.IsNullOrWhiteSpace(_originalPayroll.EmployeeCode) ? _employee.EmployeeCode : _originalPayroll.EmployeeCode;
             payroll.PayPeriodStart = ManualPeriodStartPicker.SelectedDate.Value.Date;
             payroll.PayPeriodEnd = ManualPeriodEndPicker.SelectedDate.Value.Date;
             payroll.RegularHours = regularHours;
@@ -131,6 +140,7 @@ namespace AttendancePayrollSystem
             payroll.PagIbigDeduction = pagIbigDeduction;
             payroll.WithholdingTax = withholdingTax;
             payroll.TardinessDeduction = tardinessDeduction;
+            payroll.AbsenceDeduction = absenceDeduction;
             payroll.ManualDeduction = manualDeduction;
             payroll.Deductions = RoundCurrency(
                 sssDeduction +
@@ -138,6 +148,7 @@ namespace AttendancePayrollSystem
                 pagIbigDeduction +
                 withholdingTax +
                 tardinessDeduction +
+                absenceDeduction +
                 manualDeduction);
             payroll.NetPay = RoundCurrency(Math.Max(0m, grossPay - payroll.Deductions));
             payroll.ManualDeductionNote = ManualManualDeductionNoteTextBox.Text.Trim();
@@ -158,6 +169,7 @@ namespace AttendancePayrollSystem
                 !TryParseDecimalForCalculation(ManualPagIbigDeductionTextBox.Text, out var pagIbigDeduction) ||
                 !TryParseDecimalForCalculation(ManualWithholdingTaxTextBox.Text, out var withholdingTax) ||
                 !TryParseDecimalForCalculation(ManualTardinessDeductionTextBox.Text, out var tardinessDeduction) ||
+                !TryParseDecimalForCalculation(ManualAbsenceDeductionTextBox.Text, out var absenceDeduction) ||
                 !TryParseDecimalForCalculation(ManualManualDeductionTextBox.Text, out var manualDeduction))
             {
                 return;
@@ -169,6 +181,7 @@ namespace AttendancePayrollSystem
                 pagIbigDeduction +
                 withholdingTax +
                 tardinessDeduction +
+                absenceDeduction +
                 manualDeduction);
             var netPay = RoundCurrency(Math.Max(0m, grossPay - totalDeductions));
 

@@ -6,9 +6,12 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 using AttendancePayrollSystem.DataAccess;
 using AttendancePayrollSystem.Models;
+using AttendancePayrollSystem.Services;
 using Microsoft.Win32;
 
 namespace AttendancePayrollSystem
@@ -23,7 +26,7 @@ namespace AttendancePayrollSystem
         {
             InitializeComponent();
             _employee = employee;
-            EmployeeSubtitleText.Text = $"{employee.EmployeeCode} — {employee.FullName}";
+            EmployeeSubtitleText.Text = $"{employee.EmployeeCode} - {employee.FullName}";
             Loaded += EmployeePayrollWindow_Loaded;
         }
 
@@ -59,7 +62,7 @@ namespace AttendancePayrollSystem
         private void UpdateSummaryBadges()
         {
             var totalNet = _allPayrolls.Sum(p => p.NetPay);
-            TotalNetPayText.Text = $"Net Total: ₱{totalNet:N2}";
+            TotalNetPayText.Text = $"Net Total: PHP {totalNet:N2}";
             RecordCountText.Text = $"{_allPayrolls.Count} records";
         }
 
@@ -93,7 +96,6 @@ namespace AttendancePayrollSystem
                 ? $"Showing all {totalCount} records"
                 : $"Showing {result.Count} of {totalCount} records";
 
-            // Hide payslip panel when filters change
             PayslipPanel.Visibility = Visibility.Collapsed;
         }
 
@@ -111,30 +113,39 @@ namespace AttendancePayrollSystem
 
         private void ShowPayslipDetail(Payroll p)
         {
-            DetailPeriod.Text = $"{p.PayPeriodStart:MMM dd} – {p.PayPeriodEnd:MMM dd, yyyy}";
+            DetailPeriod.Text = $"{p.PayPeriodStart:MMM dd} - {p.PayPeriodEnd:MMM dd, yyyy}";
             DetailStatus.Text = p.Status;
 
-            DetailRegular.Text = $"Regular: {p.RegularHours:N2} hrs × rate = ₱{p.GrossPay - (p.OvertimeHours > 0 ? p.OvertimeHours * (_employee.HourlyRate * 1.25m) : 0):N2}";
+            var overtimePay = p.OvertimeHours > 0
+                ? p.OvertimeHours * (_employee.HourlyRate * 1.25m)
+                : 0m;
+
+            DetailRegular.Text = $"Regular: {p.RegularHours:N2} hrs x rate = PHP {p.GrossPay - overtimePay:N2}";
             DetailOvertime.Text = p.OvertimeHours > 0
-                ? $"Overtime: {p.OvertimeHours:N2} hrs (×1.25)"
+                ? $"Overtime: {p.OvertimeHours:N2} hrs (x1.25)"
                 : "Overtime: none";
-            DetailGross.Text = $"Gross Pay: ₱{p.GrossPay:N2}";
+            DetailGross.Text = $"Gross Pay: PHP {p.GrossPay:N2}";
 
             DetailLate.Text = p.TotalTardinessMinutes > 0
-                ? $"Tardiness: {p.TotalTardinessMinutes} min (−₱{p.TardinessDeduction:N2})"
+                ? $"Tardiness: {p.TotalTardinessMinutes} min (-PHP {p.TardinessDeduction:N2})"
                 : "Tardiness: none";
+            DetailAbsent.Text = p.AbsentDays > 0
+                ? $"Absent: {p.AbsentDays} day(s) (-PHP {p.AbsenceDeduction:N2})"
+                : p.MissedSessionHours > 0
+                    ? $"Missed session: {p.MissedSessionHours:N2} hr(s) (-PHP {p.MissedSessionDeduction:N2})"
+                    : "Absent: none";
             DetailManual.Text = p.ManualDeduction > 0
-                ? $"Manual Ded: −₱{p.ManualDeduction:N2}"
+                ? $"Manual Ded: -PHP {p.ManualDeduction:N2}"
                 : "Manual Ded: none";
-            DetailTotalDed.Text = $"Total Deductions: −₱{p.Deductions:N2}";
+            DetailTotalDed.Text = $"Total Deductions: -PHP {p.Deductions:N2}";
 
-            DetailNetPay.Text = $"₱{p.NetPay:N2}";
+            DetailNetPay.Text = $"PHP {p.NetPay:N2}";
             DetailManualNote.Text = !string.IsNullOrWhiteSpace(p.ManualDeductionNote)
                 ? $"Note: {p.ManualDeductionNote}"
                 : string.Empty;
 
             PayslipPanel.Visibility = Visibility.Visible;
-            HintText.Text = $"Showing details for {p.PayPeriodStart:yyyy-MM-dd} – {p.PayPeriodEnd:yyyy-MM-dd}";
+            HintText.Text = $"Showing details for {p.PayPeriodStart:yyyy-MM-dd} - {p.PayPeriodEnd:yyyy-MM-dd}";
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -144,7 +155,11 @@ namespace AttendancePayrollSystem
 
         private void StatusFilter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (!IsLoaded) return;
+            if (!IsLoaded)
+            {
+                return;
+            }
+
             ApplyFilters();
         }
 
@@ -165,12 +180,15 @@ namespace AttendancePayrollSystem
                 DefaultExt = ".csv"
             };
 
-            if (dialog.ShowDialog() != true) return;
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
 
             try
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("Period Start,Period End,Regular Hrs,OT Hrs,Gross Pay,Late (min),Late Ded,Manual Ded,Deductions,Net Pay,Status");
+                sb.AppendLine("Period Start,Period End,Regular Hrs,OT Hrs,Gross Pay,Late (min),Late Ded,Absent Days,Absent Ded,Missed Session Hrs,Missed Session Ded,Manual Ded,Deductions,Net Pay,Status");
 
                 foreach (var p in items)
                 {
@@ -182,6 +200,10 @@ namespace AttendancePayrollSystem
                         p.GrossPay.ToString("N2"),
                         p.TotalTardinessMinutes.ToString(),
                         p.TardinessDeduction.ToString("N2"),
+                        p.AbsentDays.ToString(),
+                        p.AbsenceDeduction.ToString("N2"),
+                        p.MissedSessionHours.ToString("N2"),
+                        p.MissedSessionDeduction.ToString("N2"),
                         p.ManualDeduction.ToString("N2"),
                         p.Deductions.ToString("N2"),
                         p.NetPay.ToString("N2"),
@@ -198,6 +220,42 @@ namespace AttendancePayrollSystem
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to export.\n{ex.Message}", "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PrintPayslip_Click(object sender, RoutedEventArgs e)
+        {
+            if (PayrollGrid.SelectedItem is not Payroll selected)
+            {
+                MessageBox.Show("Select a payroll record first.", "Print Payslip", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                PayslipDocument.Print(_employee, selected);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to print payslip.\n{ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SavePdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (PayrollGrid.SelectedItem is not Payroll selected)
+            {
+                MessageBox.Show("Select a payroll record first.", "Save as PDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                PayslipDocument.SaveAsPdf(_employee, selected);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save payslip as PDF.\n{ex.Message}", "Save as PDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

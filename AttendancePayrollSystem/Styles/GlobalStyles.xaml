@@ -71,6 +71,7 @@
 
     <Style x:Key="ModernButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
         <Setter Property="Height" Value="38" />
+        <Setter Property="MinWidth" Value="100" />
         <Setter Property="Padding" Value="18,0" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="BorderThickness" Value="0" />
@@ -93,8 +94,12 @@
         <Setter Property="AutoGenerateColumns" Value="False" />
         <Setter Property="CanUserAddRows" Value="False" />
         <Setter Property="CanUserDeleteRows" Value="False" />
+        <Setter Property="CanUserResizeColumns" Value="False" />
         <Setter Property="IsReadOnly" Value="True" />
         <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
         <Setter Property="HeadersVisibility" Value="Column" />
         <Setter Property="GridLinesVisibility" Value="Horizontal" />
         <Setter Property="AlternatingRowBackground" Value="#F8FAFC" />
@@ -102,7 +107,34 @@
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="RowHeight" Value="34" />
-        <Setter Property="ColumnHeaderHeight" Value="38" />
+        <Setter Property="ColumnHeaderHeight" Value="54" />
+        <Setter Property="ColumnHeaderStyle">
+            <Setter.Value>
+                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                    <Setter Property="Background" Value="#F1F5F9" />
+                    <Setter Property="Foreground" Value="#334155" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="Padding" Value="8,0" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                    <Setter Property="BorderBrush" Value="#E2E8F0" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Setter Property="ContentTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           TextTrimming="None"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="ModernTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">

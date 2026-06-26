@@ -34,27 +34,34 @@ namespace AttendancePayrollSystem
                 return false;
             }
 
-            if (!Array.Exists(args, arg => string.Equals(arg, "--seed-attendance-payroll", StringComparison.OrdinalIgnoreCase)))
+            var shouldSeed = Array.Exists(args, arg => string.Equals(arg, "--seed-attendance-payroll", StringComparison.OrdinalIgnoreCase));
+            var shouldReseed = Array.Exists(args, arg => string.Equals(arg, "--reseed-attendance-payroll", StringComparison.OrdinalIgnoreCase));
+
+            if (!shouldSeed && !shouldReseed)
             {
                 return false;
             }
 
             try
             {
-                var result = new SampleDataSeeder().SeedAttendanceAndPayroll();
+                var seeder = new SampleDataSeeder();
+                var result = shouldReseed
+                    ? seeder.ReseedAttendanceAndPayroll()
+                    : seeder.SeedAttendanceAndPayroll();
+
                 MessageBox.Show(
                     result.Message,
-                    "Seed Attendance And Payroll",
+                    shouldReseed ? "Reseed Attendance And Payroll" : "Seed Attendance And Payroll",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
-                AppLogger.Info($"Attendance/payroll seed completed. {result.Message}");
+                AppLogger.Info($"Attendance/payroll {(shouldReseed ? "re-seed" : "seed")} completed. {result.Message}");
             }
             catch (Exception ex)
             {
-                AppLogger.Error(ex, "Attendance/payroll seed failed");
+                AppLogger.Error(ex, shouldReseed ? "Attendance/payroll re-seed failed" : "Attendance/payroll seed failed");
                 MessageBox.Show(
-                    $"Failed to seed attendance and payroll data.\n{ex.Message}",
-                    "Seed Attendance And Payroll",
+                    $"Failed to {(shouldReseed ? "re-seed" : "seed")} attendance and payroll data.\n{ex.Message}",
+                    shouldReseed ? "Reseed Attendance And Payroll" : "Seed Attendance And Payroll",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
