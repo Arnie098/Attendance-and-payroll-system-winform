@@ -131,6 +131,24 @@
                                    TextWrapping="Wrap"
                                    Margin="0,6,0,0"
                                    Visibility="Collapsed" />
+                        <Button Margin="0,10,0,0"
+                                Style="{StaticResource ModernButton}"
+                                Background="#7C3AED"
+                                HorizontalAlignment="Left"
+                                Click="ShowQrCode_Click"
+                                ToolTip="Generate and view this employee's QR code">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Qrcode"
+                                                         Width="16" Height="16"
+                                                         Foreground="White"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,6,0" />
+                                <TextBlock Text="Show QR Code"
+                                           VerticalAlignment="Center"
+                                           Foreground="White"
+                                           FontSize="13" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
             </Grid>

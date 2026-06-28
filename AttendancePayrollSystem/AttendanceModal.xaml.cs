@@ -146,6 +146,12 @@ namespace AttendancePayrollSystem
             BarcodeStatusText.Visibility = Visibility.Visible;
         }
 
+        private void ShowQrCode_Click(object sender, RoutedEventArgs e)
+        {
+            var modal = new QrCodeModal(_employee) { Owner = this };
+            modal.ShowDialog();
+        }
+
         // ── Shared recording logic ───────────────────────────────────────────────
 
         private void RecordAttendance(bool biometricVerified)
