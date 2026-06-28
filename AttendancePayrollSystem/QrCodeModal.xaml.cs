@@ -33,7 +33,11 @@ public partial class QrCodeModal : Window
         try
         {
             _pngBytes = _qrCodeService.GeneratePng(_employee.EmployeeCode);
-            QrImage.Source = _qrCodeService.Generate(_employee.EmployeeCode);
+            using var ms = new MemoryStream(_pngBytes);
+            var decoder = new System.Windows.Media.Imaging.PngBitmapDecoder(ms,
+                System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+            QrImage.Source = decoder.Frames[0];
         }
         catch (Exception ex)
         {
