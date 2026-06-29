@@ -257,6 +257,13 @@ namespace AttendancePayrollSystem.Views
             }
         }
 
+        private void PayslipSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = Window.GetWindow(this);
+            var win = new PayslipSettingsWindow { Owner = owner };
+            win.ShowDialog();
+        }
+
         private async Task LoadBrandingAsync()
         {
             try
