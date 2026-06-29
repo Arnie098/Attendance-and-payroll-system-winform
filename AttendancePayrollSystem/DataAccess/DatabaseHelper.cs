@@ -239,6 +239,9 @@ namespace AttendancePayrollSystem.DataAccess
                 EnsurePayrollDeductionColumns(connection, transaction);
             }
 
+            EnsureEmployeePayrollInfoColumns(connection, transaction);
+            EnsureBrandingCertifyingColumns(connection, transaction);
+            EnsurePayrollLineItemsTable(connection, transaction);
             EnsureBrandingSeedRow(connection, transaction);
         }
 
@@ -506,6 +509,79 @@ namespace AttendancePayrollSystem.DataAccess
             EnsurePayrollColumnExists(connection, transaction, "AbsenceDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "ManualDeduction", connection.Provider == DatabaseProvider.Sqlite ? "REAL NOT NULL DEFAULT 0" : "DECIMAL(18, 2) NOT NULL DEFAULT 0");
             EnsurePayrollColumnExists(connection, transaction, "ManualDeductionNote", connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(255) NOT NULL DEFAULT ''");
+        }
+
+        private static void EnsureEmployeePayrollInfoColumns(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var textDef = connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(100) NOT NULL DEFAULT ''";
+            EnsureEmployeeColumnExists(connection, transaction, "AgencyId", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "SalaryGrade", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "Designation", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "FundSource", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "PayrollCycle", connection.Provider == DatabaseProvider.Sqlite
+                ? "TEXT NOT NULL DEFAULT 'Monthly'"
+                : "VARCHAR(50) NOT NULL DEFAULT 'Monthly'");
+            EnsureEmployeeColumnExists(connection, transaction, "TinNumber", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "SssNumber", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "GsisNumber", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "PagIbigNumber", textDef);
+            EnsureEmployeeColumnExists(connection, transaction, "PhilHealthNumber", textDef);
+        }
+
+        private static void EnsureBrandingCertifyingColumns(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var textDef = connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(255) NOT NULL DEFAULT ''";
+            EnsureBrandingColumnExists(connection, transaction, "CertifyingOfficerName", textDef);
+            EnsureBrandingColumnExists(connection, transaction, "CertifyingOfficerTitle", textDef);
+        }
+
+        private static void EnsureBrandingColumnExists(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            string columnName,
+            string definition)
+        {
+            if (ColumnExists(connection, "AppBrandingSettings", columnName, transaction))
+            {
+                return;
+            }
+
+            using var alterCommand = new MySqlCommand(
+                $"ALTER TABLE AppBrandingSettings ADD COLUMN {columnName} {definition}",
+                connection,
+                transaction);
+            alterCommand.ExecuteNonQuery();
+        }
+
+        private static void EnsurePayrollLineItemsTable(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    CREATE TABLE IF NOT EXISTS PayrollLineItems
+                    (
+                        Id        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        PayrollId INTEGER NOT NULL,
+                        Label     TEXT    NOT NULL DEFAULT '',
+                        Amount    REAL    NOT NULL DEFAULT 0,
+                        ItemType  INTEGER NOT NULL DEFAULT 1,
+                        SortOrder INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (PayrollId) REFERENCES PayrollRecords(PayrollId) ON DELETE CASCADE
+                    );"
+                : @"
+                    CREATE TABLE IF NOT EXISTS PayrollLineItems
+                    (
+                        Id        INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        PayrollId INT NOT NULL,
+                        Label     VARCHAR(255) NOT NULL DEFAULT '',
+                        Amount    DECIMAL(18, 2) NOT NULL DEFAULT 0,
+                        ItemType  INT NOT NULL DEFAULT 1,
+                        SortOrder INT NOT NULL DEFAULT 0,
+                        CONSTRAINT FK_PayrollLineItems_PayrollRecords FOREIGN KEY (PayrollId)
+                            REFERENCES PayrollRecords(PayrollId) ON DELETE CASCADE
+                    ) ENGINE=InnoDB;";
+
+            using var command = new MySqlCommand(sql, connection, transaction);
+            command.ExecuteNonQuery();
         }
 
         private static void EnsurePayrollColumnExists(
