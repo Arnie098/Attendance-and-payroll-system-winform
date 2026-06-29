@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
 
@@ -39,6 +40,24 @@ namespace AttendancePayrollSystem
             HourlyRateTextBox.Text = _existingEmployee.HourlyRate.ToString("0.##", CultureInfo.InvariantCulture);
             HireDatePicker.SelectedDate = _existingEmployee.HireDate;
             IsActiveCheckBox.IsChecked = _existingEmployee.IsActive;
+
+            AgencyIdTextBox.Text = _existingEmployee.AgencyId;
+            SalaryGradeTextBox.Text = _existingEmployee.SalaryGrade;
+            DesignationTextBox.Text = _existingEmployee.Designation;
+            FundSourceTextBox.Text = _existingEmployee.FundSource;
+            foreach (ComboBoxItem item in PayrollCycleCombo.Items)
+            {
+                if (item.Content?.ToString() == _existingEmployee.PayrollCycle)
+                {
+                    PayrollCycleCombo.SelectedItem = item;
+                    break;
+                }
+            }
+            TinNumberTextBox.Text = _existingEmployee.TinNumber;
+            SssNumberTextBox.Text = _existingEmployee.SssNumber;
+            GsisNumberTextBox.Text = _existingEmployee.GsisNumber;
+            PagIbigNumberTextBox.Text = _existingEmployee.PagIbigNumber;
+            PhilHealthNumberTextBox.Text = _existingEmployee.PhilHealthNumber;
         }
 
         private void ConfigureSchoolLinkedState()
@@ -94,7 +113,17 @@ namespace AttendancePayrollSystem
                 SourceTeacherId = _existingEmployee?.SourceTeacherId,
                 SourceUserId = _existingEmployee?.SourceUserId,
                 ProfileImage = _existingEmployee?.ProfileImage,
-                BiometricTemplate = _existingEmployee?.BiometricTemplate
+                BiometricTemplate = _existingEmployee?.BiometricTemplate,
+                AgencyId = AgencyIdTextBox.Text.Trim(),
+                SalaryGrade = SalaryGradeTextBox.Text.Trim(),
+                Designation = DesignationTextBox.Text.Trim(),
+                FundSource = FundSourceTextBox.Text.Trim(),
+                PayrollCycle = (PayrollCycleCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Monthly",
+                TinNumber = TinNumberTextBox.Text.Trim(),
+                SssNumber = SssNumberTextBox.Text.Trim(),
+                GsisNumber = GsisNumberTextBox.Text.Trim(),
+                PagIbigNumber = PagIbigNumberTextBox.Text.Trim(),
+                PhilHealthNumber = PhilHealthNumberTextBox.Text.Trim()
             };
 
             DialogResult = true;
