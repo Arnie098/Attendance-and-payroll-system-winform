@@ -330,21 +330,52 @@
                     </Grid>
                 </Border>
 
-                <Button Grid.Row="0" Grid.Column="6"
-                        Style="{StaticResource DashboardActionTileStyle}"
-                        Background="#1A4A7A"
-                        BorderBrush="#0E3039"
-                        Click="OpenDtrLedgerTile_Click">
-                    <StackPanel VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="TableClock"
-                                                 Width="52"
-                                                 Height="52"
-                                                 Foreground="White"
-                                                 Margin="0,0,0,14" />
-                        <TextBlock Text="DTR LEDGER" Style="{StaticResource LauncherTileTextStyle}" />
-                        <TextBlock Text="DAILY TIME RECORD REPORT" Style="{StaticResource LauncherTileSubTextStyle}" />
-                    </StackPanel>
-                </Button>
+                <Grid Grid.Row="0" Grid.Column="6">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="38" />
+                    </Grid.RowDefinitions>
+
+                    <Button Grid.Row="0"
+                            Style="{StaticResource DashboardActionTileStyle}"
+                            Background="#1A4A7A"
+                            BorderBrush="#0E3039"
+                            Click="OpenDtrLedgerTile_Click">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="TableClock"
+                                                     Width="52"
+                                                     Height="52"
+                                                     Foreground="White"
+                                                     Margin="0,0,0,14" />
+                            <TextBlock Text="DTR LEDGER" Style="{StaticResource LauncherTileTextStyle}" />
+                            <TextBlock Text="DAILY TIME RECORD REPORT" Style="{StaticResource LauncherTileSubTextStyle}" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Row="1"
+                            Background="#0F4C75"
+                            BorderBrush="#0E3039"
+                            BorderThickness="0,1,0,0"
+                            Foreground="White"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Click="GenerateDtrButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0" />
+                            <TextBlock Text="GENERATE DTR" Foreground="White" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
                 <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
                         Style="{StaticResource DashboardPanelStyle}"
