@@ -20,6 +20,8 @@ namespace AttendancePayrollSystem
     {
         private readonly Employee _employee;
         private readonly PayrollRepository _payrollRepository = new();
+        private readonly PayrollLineItemRepository _lineItemRepository = new();
+        private readonly AppBrandingRepository _brandingRepository = new();
         private List<Payroll> _allPayrolls = new();
 
         public EmployeePayrollWindow(Employee employee)
@@ -233,7 +235,9 @@ namespace AttendancePayrollSystem
 
             try
             {
-                PayslipDocument.Print(_employee, selected);
+                var lineItems = _lineItemRepository.GetByPayrollId(selected.PayrollId);
+                var branding = _brandingRepository.GetBranding();
+                PayslipDocument.Print(_employee, selected, lineItems, branding.CertifyingOfficerName, branding.CertifyingOfficerTitle);
             }
             catch (Exception ex)
             {
@@ -251,7 +255,9 @@ namespace AttendancePayrollSystem
 
             try
             {
-                PayslipDocument.SaveAsPdf(_employee, selected);
+                var lineItems = _lineItemRepository.GetByPayrollId(selected.PayrollId);
+                var branding = _brandingRepository.GetBranding();
+                PayslipDocument.SaveAsPdf(_employee, selected, lineItems, branding.CertifyingOfficerName, branding.CertifyingOfficerTitle);
             }
             catch (Exception ex)
             {

@@ -77,43 +77,52 @@ namespace AttendancePayrollSystem.Tests
         [Fact]
         public void Build_DocumentContainsTwoColumnTable()
         {
-            var doc = RunOnSta(() =>
-                PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Test Officer", "HRMO III"));
-            var table = doc.Blocks.OfType<Table>().FirstOrDefault();
-            Assert.NotNull(table);
-            Assert.Equal(2, table!.Columns.Count);
+            var (columnCount, hasTable) = RunOnSta(() =>
+            {
+                var doc = PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Test Officer", "HRMO III");
+                var table = doc.Blocks.OfType<Table>().FirstOrDefault();
+                return (table?.Columns.Count ?? 0, table != null);
+            });
+            Assert.True(hasTable);
+            Assert.Equal(2, columnCount);
         }
 
         [Fact]
         public void Build_LeftCellContainsEmployeeName()
         {
-            var doc = RunOnSta(() =>
-                PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Test Officer", "HRMO III"));
-            var table = doc.Blocks.OfType<Table>().First();
-            var leftCell = table.RowGroups[0].Rows[0].Cells[0];
-            var text = GetAllText(leftCell.Blocks);
+            var text = RunOnSta(() =>
+            {
+                var doc = PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Test Officer", "HRMO III");
+                var table = doc.Blocks.OfType<Table>().First();
+                var leftCell = table.RowGroups[0].Rows[0].Cells[0];
+                return GetAllText(leftCell.Blocks);
+            });
             Assert.Contains("Juan dela Cruz", text);
         }
 
         [Fact]
         public void Build_RightCellContainsCertifyingOfficer()
         {
-            var doc = RunOnSta(() =>
-                PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Jane Smith", "HRMO III"));
-            var table = doc.Blocks.OfType<Table>().First();
-            var rightCell = table.RowGroups[0].Rows[0].Cells[1];
-            var text = GetAllText(rightCell.Blocks);
+            var text = RunOnSta(() =>
+            {
+                var doc = PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "Jane Smith", "HRMO III");
+                var table = doc.Blocks.OfType<Table>().First();
+                var rightCell = table.RowGroups[0].Rows[0].Cells[1];
+                return GetAllText(rightCell.Blocks);
+            });
             Assert.Contains("Jane Smith", text);
         }
 
         [Fact]
         public void Build_OmitsCertifyingBlockWhenNameIsEmpty()
         {
-            var doc = RunOnSta(() =>
-                PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "", "HRMO III"));
-            var table = doc.Blocks.OfType<Table>().First();
-            var rightCell = table.RowGroups[0].Rows[0].Cells[1];
-            var text = GetAllText(rightCell.Blocks);
+            var text = RunOnSta(() =>
+            {
+                var doc = PayslipDocument.Build(MakeEmployee(), MakePayroll(), MakeLineItems(), "", "HRMO III");
+                var table = doc.Blocks.OfType<Table>().First();
+                var rightCell = table.RowGroups[0].Rows[0].Cells[1];
+                return GetAllText(rightCell.Blocks);
+            });
             Assert.DoesNotContain("Certified By", text);
         }
 
