@@ -47,10 +47,35 @@ namespace AttendancePayrollSystem.DataAccess
             MySqlOfflineSyncService.QueueBrandingUpsert();
         }
 
+        public void UpdateCertifyingOfficer(string name, string title)
+        {
+            using var connection = DatabaseHelper.GetConnection();
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    INSERT INTO AppBrandingSettings (BrandingSettingsId, CertifyingOfficerName, CertifyingOfficerTitle)
+                    VALUES (@BrandingSettingsId, @Name, @Title)
+                    ON CONFLICT(BrandingSettingsId) DO UPDATE SET
+                        CertifyingOfficerName = excluded.CertifyingOfficerName,
+                        CertifyingOfficerTitle = excluded.CertifyingOfficerTitle"
+                : @"
+                    INSERT INTO AppBrandingSettings (BrandingSettingsId, CertifyingOfficerName, CertifyingOfficerTitle)
+                    VALUES (@BrandingSettingsId, @Name, @Title)
+                    ON DUPLICATE KEY UPDATE
+                        CertifyingOfficerName = VALUES(CertifyingOfficerName),
+                        CertifyingOfficerTitle = VALUES(CertifyingOfficerTitle)";
+
+            using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@BrandingSettingsId", AppBranding.DefaultBrandingSettingsId);
+            command.Parameters.AddWithValue("@Name", name.Trim());
+            command.Parameters.AddWithValue("@Title", title.Trim());
+            connection.Open();
+            command.ExecuteNonQuery();
+        }
+
         private static AppBranding GetBrandingViaDatabase()
         {
             const string sql = @"
-                SELECT BrandingSettingsId, LogoImage
+                SELECT BrandingSettingsId, LogoImage, CertifyingOfficerName, CertifyingOfficerTitle
                 FROM AppBrandingSettings
                 WHERE BrandingSettingsId = @BrandingSettingsId
                 LIMIT 1";
@@ -69,7 +94,9 @@ namespace AttendancePayrollSystem.DataAccess
             return new AppBranding
             {
                 BrandingSettingsId = Convert.ToInt32(reader["BrandingSettingsId"]),
-                LogoImage = reader["LogoImage"] is DBNull ? null : (byte[])reader["LogoImage"]
+                LogoImage = reader["LogoImage"] is DBNull ? null : (byte[])reader["LogoImage"],
+                CertifyingOfficerName = Convert.ToString(reader["CertifyingOfficerName"]) ?? string.Empty,
+                CertifyingOfficerTitle = Convert.ToString(reader["CertifyingOfficerTitle"]) ?? string.Empty
             };
         }
 
