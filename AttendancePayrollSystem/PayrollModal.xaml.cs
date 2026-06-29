@@ -272,6 +272,30 @@ namespace AttendancePayrollSystem
             Close();
         }
 
+        private void PreviewPayslip_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Preview Payslip", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                var lineItems = _lineItemRepository.GetByPayrollId(_selectedPayroll.PayrollId);
+                var branding = _brandingRepository.GetBranding();
+                var win = new PayslipPreviewWindow(_employee, _selectedPayroll, lineItems, branding.CertifyingOfficerName, branding.CertifyingOfficerTitle)
+                {
+                    Owner = this
+                };
+                win.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open preview.\n{ex.Message}", "Preview Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void PrintPayslip_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedPayroll == null)

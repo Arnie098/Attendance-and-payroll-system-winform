@@ -204,6 +204,11 @@
                         Style="{StaticResource ModernButton}"
                         Background="#0F766E"
                         Click="ExportCsv_Click" />
+                <Button Content="Preview"
+                        Style="{StaticResource ModernButton}"
+                        Background="#7E3AF2"
+                        Click="PreviewPayslip_Click"
+                        Margin="8,0,0,0" />
                 <Button Content="Print Payslip"
                         Style="{StaticResource ModernButton}"
                         Background="#123C47"

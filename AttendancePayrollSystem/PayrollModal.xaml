@@ -504,6 +504,19 @@
             <!-- Footer Actions -->
             <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button Style="{StaticResource ModernButton}"
+                        Background="#0F766E"
+                        Click="PreviewPayslip_Click"
+                        Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="FileFind"
+                                                 Width="17" Height="17"
+                                                 Foreground="White"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Preview" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ModernButton}"
                         Background="#123C47"
                         Click="PrintPayslip_Click"
                         Margin="0,0,8,0">
