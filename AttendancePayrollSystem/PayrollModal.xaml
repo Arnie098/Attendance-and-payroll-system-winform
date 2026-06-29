@@ -19,6 +19,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Header -->
@@ -414,7 +415,83 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="4" Style="{StaticResource ModernCard}" Margin="0,0,0,4">
+            <!-- Line Items Section -->
+            <Border Grid.Row="4" Style="{StaticResource ModernCard}" Margin="0,0,0,12" Padding="16">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <materialDesign:PackIcon Kind="FormatListBulleted"
+                                                 Width="20" Height="20"
+                                                 Foreground="#0F766E"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Payslip Line Items"
+                                   Style="{StaticResource SectionTitle}"
+                                   FontWeight="Bold"
+                                   Margin="0"
+                                   VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                            <Button Style="{StaticResource ModernButton}"
+                                    Background="#0F766E"
+                                    Margin="0,0,8,0"
+                                    Click="AddLineItem_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="Add" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ModernButton}"
+                                    Background="#B91C1C"
+                                    Margin="0,0,8,0"
+                                    Click="RemoveLineItem_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="Remove" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ModernButton}"
+                                    Background="#1D4ED8"
+                                    Click="SaveLineItems_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ContentSave" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="Save Items" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </DockPanel>
+                    <DataGrid x:Name="LineItemsDataGrid"
+                              ItemsSource="{Binding LineItems}"
+                              Style="{StaticResource ModernDataGrid}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              MinHeight="100"
+                              MaxHeight="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Label" Binding="{Binding Label, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            <DataGridTemplateColumn Header="Type" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ItemTypeDisplay}" VerticalAlignment="Center" Padding="4,0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox SelectedValue="{Binding ItemTypeDisplay, UpdateSourceTrigger=PropertyChanged}"
+                                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=DataGrid}, Path=DataContext.LineItemTypes}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Amount" Binding="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" Width="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="Earnings add to gross; Deductions appear in (parentheses); EmployerContribution shows in left column only."
+                               Foreground="#64748B"
+                               FontSize="11"
+                               Margin="0,6,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="5" Style="{StaticResource ModernCard}" Margin="0,0,0,4">
                 <StackPanel Orientation="Horizontal" Margin="16">
                     <materialDesign:PackIcon Kind="PlaylistEdit" Width="18" Height="18" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <TextBlock Text="Use Add Manual, Edit Selected, or Delete Selected to manage payroll records."
@@ -425,7 +502,7 @@
             </Border>
 
             <!-- Footer Actions -->
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button Style="{StaticResource ModernButton}"
                         Background="#123C47"
                         Click="PrintPayslip_Click"

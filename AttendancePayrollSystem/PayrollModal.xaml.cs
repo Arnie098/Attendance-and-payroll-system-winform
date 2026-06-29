@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -125,6 +126,57 @@ namespace AttendancePayrollSystem
         private void PayrollDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _selectedPayroll = PayrollDataGrid.SelectedItem as Payroll;
+            _viewModel.LineItems.Clear();
+            if (_selectedPayroll != null)
+            {
+                var items = _lineItemRepository.GetByPayrollId(_selectedPayroll.PayrollId);
+                foreach (var item in items)
+                    _viewModel.LineItems.Add(new PayrollLineItemRow(item));
+            }
+        }
+
+        private void AddLineItem_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.LineItems.Add(new PayrollLineItemRow(new PayrollLineItem
+            {
+                Label = "New Item",
+                Amount = 0m,
+                ItemType = PayrollLineItemType.Deduction,
+                SortOrder = _viewModel.LineItems.Count
+            }));
+        }
+
+        private void RemoveLineItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (LineItemsDataGrid.SelectedItem is PayrollLineItemRow row)
+                _viewModel.LineItems.Remove(row);
+        }
+
+        private void SaveLineItems_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPayroll == null)
+            {
+                MessageBox.Show("Select a payroll record first.", "Save Line Items", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            try
+            {
+                SaveLineItems();
+                MessageBox.Show("Line items saved.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save line items.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveLineItems()
+        {
+            if (_selectedPayroll == null) return;
+            var items = _viewModel.LineItems
+                .Select((r, i) => r.ToLineItem(_selectedPayroll.PayrollId, i))
+                .ToList();
+            _lineItemRepository.SaveLineItems(_selectedPayroll.PayrollId, items);
         }
 
         private void PayrollDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -372,6 +424,9 @@ namespace AttendancePayrollSystem
         private DateTime? _periodStart;
         private DateTime? _periodEnd;
         public ObservableCollection<Payroll> Payrolls { get; } = new();
+        public ObservableCollection<PayrollLineItemRow> LineItems { get; } = new();
+        public IReadOnlyList<string> LineItemTypes { get; } =
+            new[] { "Earning", "Deduction", "EmployerContribution" };
 
         public string EmployeeDisplay
         {
@@ -390,6 +445,50 @@ namespace AttendancePayrollSystem
             get => _periodEnd;
             set => SetProperty(ref _periodEnd, value);
         }
+    }
 
+    public class PayrollLineItemRow : INotifyPropertyChanged
+    {
+        private string _label = string.Empty;
+        private string _itemTypeDisplay = "Deduction";
+        private decimal _amount;
+
+        public PayrollLineItemRow() { }
+
+        public PayrollLineItemRow(PayrollLineItem item)
+        {
+            _label = item.Label;
+            _amount = item.Amount;
+            _itemTypeDisplay = item.ItemType.ToString();
+        }
+
+        public string Label
+        {
+            get => _label;
+            set { _label = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Label))); }
+        }
+
+        public string ItemTypeDisplay
+        {
+            get => _itemTypeDisplay;
+            set { _itemTypeDisplay = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ItemTypeDisplay))); }
+        }
+
+        public decimal Amount
+        {
+            get => _amount;
+            set { _amount = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Amount))); }
+        }
+
+        public PayrollLineItem ToLineItem(int payrollId, int sortOrder) => new()
+        {
+            PayrollId = payrollId,
+            Label = Label,
+            Amount = Amount,
+            ItemType = Enum.TryParse<PayrollLineItemType>(ItemTypeDisplay, out var t) ? t : PayrollLineItemType.Deduction,
+            SortOrder = sortOrder
+        };
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }
