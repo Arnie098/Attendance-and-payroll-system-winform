@@ -21,7 +21,9 @@ namespace AttendancePayrollSystem.DataAccess
                 : string.Empty;
             var sql = $@"
                 SELECT EmployeeId, EmployeeCode, FullName, Email, Phone, Position, Department,
-                       HourlyRate, HireDate, IsActive, SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate
+                       HourlyRate, HireDate, IsActive, SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate,
+                       AgencyId, SalaryGrade, Designation, FundSource, PayrollCycle,
+                       TinNumber, SssNumber, GsisNumber, PagIbigNumber, PhilHealthNumber
                 FROM Employees
                 {sourceFilter}
                 ORDER BY FullName";
@@ -48,7 +50,9 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 SELECT EmployeeId, EmployeeCode, FullName, Email, Phone, Position, Department,
-                       HourlyRate, HireDate, IsActive, SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate
+                       HourlyRate, HireDate, IsActive, SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate,
+                       AgencyId, SalaryGrade, Designation, FundSource, PayrollCycle,
+                       TinNumber, SssNumber, GsisNumber, PagIbigNumber, PhilHealthNumber
                 FROM Employees
                 WHERE EmployeeId = @EmployeeId";
 
@@ -72,9 +76,15 @@ namespace AttendancePayrollSystem.DataAccess
 
             const string sql = @"
                 INSERT INTO Employees
-                (EmployeeCode, FullName, Email, Phone, Position, Department, HourlyRate, HireDate, IsActive, SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate)
+                (EmployeeCode, FullName, Email, Phone, Position, Department, HourlyRate, HireDate, IsActive,
+                 SourceTeacherId, SourceUserId, ProfileImage, BiometricTemplate,
+                 AgencyId, SalaryGrade, Designation, FundSource, PayrollCycle,
+                 TinNumber, SssNumber, GsisNumber, PagIbigNumber, PhilHealthNumber)
                 VALUES
-                (@EmployeeCode, @FullName, @Email, @Phone, @Position, @Department, @HourlyRate, @HireDate, @IsActive, @SourceTeacherId, @SourceUserId, @ProfileImage, @BiometricTemplate);";
+                (@EmployeeCode, @FullName, @Email, @Phone, @Position, @Department, @HourlyRate, @HireDate, @IsActive,
+                 @SourceTeacherId, @SourceUserId, @ProfileImage, @BiometricTemplate,
+                 @AgencyId, @SalaryGrade, @Designation, @FundSource, @PayrollCycle,
+                 @TinNumber, @SssNumber, @GsisNumber, @PagIbigNumber, @PhilHealthNumber);";
 
             using var connection = DatabaseHelper.GetConnection();
             using var command = new MySqlCommand(sql, connection);
@@ -110,7 +120,17 @@ namespace AttendancePayrollSystem.DataAccess
                     SourceTeacherId = @SourceTeacherId,
                     SourceUserId = @SourceUserId,
                     ProfileImage = @ProfileImage,
-                    BiometricTemplate = @BiometricTemplate
+                    BiometricTemplate = @BiometricTemplate,
+                    AgencyId = @AgencyId,
+                    SalaryGrade = @SalaryGrade,
+                    Designation = @Designation,
+                    FundSource = @FundSource,
+                    PayrollCycle = @PayrollCycle,
+                    TinNumber = @TinNumber,
+                    SssNumber = @SssNumber,
+                    GsisNumber = @GsisNumber,
+                    PagIbigNumber = @PagIbigNumber,
+                    PhilHealthNumber = @PhilHealthNumber
                 WHERE EmployeeId = @EmployeeId";
 
             using var connection = DatabaseHelper.GetConnection();
@@ -367,6 +387,16 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@SourceUserId", employee.SourceUserId.HasValue ? employee.SourceUserId.Value : DBNull.Value);
             command.Parameters.AddWithValue("@ProfileImage", employee.ProfileImage is null ? DBNull.Value : employee.ProfileImage);
             command.Parameters.AddWithValue("@BiometricTemplate", employee.BiometricTemplate is null ? DBNull.Value : employee.BiometricTemplate);
+            command.Parameters.AddWithValue("@AgencyId", employee.AgencyId ?? string.Empty);
+            command.Parameters.AddWithValue("@SalaryGrade", employee.SalaryGrade ?? string.Empty);
+            command.Parameters.AddWithValue("@Designation", employee.Designation ?? string.Empty);
+            command.Parameters.AddWithValue("@FundSource", employee.FundSource ?? string.Empty);
+            command.Parameters.AddWithValue("@PayrollCycle", string.IsNullOrWhiteSpace(employee.PayrollCycle) ? "Monthly" : employee.PayrollCycle);
+            command.Parameters.AddWithValue("@TinNumber", employee.TinNumber ?? string.Empty);
+            command.Parameters.AddWithValue("@SssNumber", employee.SssNumber ?? string.Empty);
+            command.Parameters.AddWithValue("@GsisNumber", employee.GsisNumber ?? string.Empty);
+            command.Parameters.AddWithValue("@PagIbigNumber", employee.PagIbigNumber ?? string.Empty);
+            command.Parameters.AddWithValue("@PhilHealthNumber", employee.PhilHealthNumber ?? string.Empty);
         }
 
         private static object ToDbValue(string? value)
@@ -437,7 +467,17 @@ namespace AttendancePayrollSystem.DataAccess
                 SourceTeacherId = reader["SourceTeacherId"] is DBNull ? null : Convert.ToInt64(reader["SourceTeacherId"]),
                 SourceUserId = reader["SourceUserId"] is DBNull ? null : Convert.ToInt64(reader["SourceUserId"]),
                 ProfileImage = reader["ProfileImage"] is DBNull ? null : (byte[])reader["ProfileImage"],
-                BiometricTemplate = reader["BiometricTemplate"] is DBNull ? null : (byte[])reader["BiometricTemplate"]
+                BiometricTemplate = reader["BiometricTemplate"] is DBNull ? null : (byte[])reader["BiometricTemplate"],
+                AgencyId = Convert.ToString(reader["AgencyId"]) ?? string.Empty,
+                SalaryGrade = Convert.ToString(reader["SalaryGrade"]) ?? string.Empty,
+                Designation = Convert.ToString(reader["Designation"]) ?? string.Empty,
+                FundSource = Convert.ToString(reader["FundSource"]) ?? string.Empty,
+                PayrollCycle = Convert.ToString(reader["PayrollCycle"]) ?? "Monthly",
+                TinNumber = Convert.ToString(reader["TinNumber"]) ?? string.Empty,
+                SssNumber = Convert.ToString(reader["SssNumber"]) ?? string.Empty,
+                GsisNumber = Convert.ToString(reader["GsisNumber"]) ?? string.Empty,
+                PagIbigNumber = Convert.ToString(reader["PagIbigNumber"]) ?? string.Empty,
+                PhilHealthNumber = Convert.ToString(reader["PhilHealthNumber"]) ?? string.Empty
             };
         }
 
