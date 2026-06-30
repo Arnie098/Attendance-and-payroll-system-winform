@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,6 +16,7 @@ namespace AttendancePayrollSystem
     public partial class LeaveRequestsWindow : Window
     {
         private readonly LeaveRequestRepository _leaveRequestRepository = new();
+        private readonly LeaveDocumentRepository _leaveDocumentRepository = new();
         private readonly string _currentUsername;
         private LeaveRequest? _selectedLeaveRequest;
 
@@ -226,11 +229,53 @@ namespace AttendancePayrollSystem
             SelectedLeaveReasonTextBlock.Text = leaveRequest.Reason;
             SelectedLeaveReviewHistoryTextBlock.Text = BuildLeaveReviewHistoryText(leaveRequest);
 
+            try
+            {
+                var docs = _leaveDocumentRepository.GetByLeaveRequestId(leaveRequest.LeaveRequestId);
+                ReviewDocumentsListBox.ItemsSource = docs;
+                if (docs.Count > 0)
+                {
+                    ReviewDocumentsListBox.Visibility = Visibility.Visible;
+                    NoDocumentsTextBlock.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    ReviewDocumentsListBox.Visibility = Visibility.Collapsed;
+                    NoDocumentsTextBlock.Visibility = Visibility.Visible;
+                }
+            }
+            catch
+            {
+                ReviewDocumentsListBox.ItemsSource = null;
+                ReviewDocumentsListBox.Visibility = Visibility.Collapsed;
+                NoDocumentsTextBlock.Visibility = Visibility.Visible;
+            }
+
             var canReview = string.Equals(leaveRequest.Status, LeavePolicies.StatusPending, StringComparison.OrdinalIgnoreCase);
             ApproveLeaveRequestButton.IsEnabled = canReview;
             RejectLeaveRequestButton.IsEnabled = canReview;
             LeaveReviewNotesTextBox.IsEnabled = canReview;
             LeaveReviewNotesTextBox.Text = canReview ? string.Empty : leaveRequest.ReviewerNotes;
+        }
+
+        private void OpenDocument_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: Models.LeaveDocument doc })
+                return;
+
+            var ext = Path.GetExtension(doc.DocumentName);
+            var tempPath = Path.Combine(Path.GetTempPath(), $"leave_doc_{doc.DocumentId}{ext}");
+
+            try
+            {
+                File.WriteAllBytes(tempPath, doc.DocumentData);
+                Process.Start(new ProcessStartInfo(tempPath) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Could not open the document.\n{ex.Message}",
+                    "Document", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void ResetLeaveRequestReviewPanel()
@@ -245,6 +290,9 @@ namespace AttendancePayrollSystem
             SelectedLeaveReviewedByTextBlock.Text = "-";
             SelectedLeaveReasonTextBlock.Text = "Select a leave request from the list to review its details.";
             SelectedLeaveReviewHistoryTextBlock.Text = "No review activity yet.";
+            ReviewDocumentsListBox.ItemsSource = null;
+            ReviewDocumentsListBox.Visibility = Visibility.Collapsed;
+            NoDocumentsTextBlock.Visibility = Visibility.Visible;
             LeaveReviewNotesTextBox.IsEnabled = false;
             LeaveReviewNotesTextBox.Text = string.Empty;
             ApproveLeaveRequestButton.IsEnabled = false;
