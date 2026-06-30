@@ -31,8 +31,11 @@ namespace AttendancePayrollSystem.DataAccess
                     l.ReviewedAt,
                     l.CreatedAt,
                     l.UpdatedAt,
+                    l.SupportingDocument,
+                    l.SupportingDocumentName,
                     e.EmployeeCode,
-                    e.FullName
+                    e.FullName,
+                    (SELECT COUNT(*) FROM LeaveRequestDocuments d WHERE d.LeaveRequestId = l.LeaveRequestId) AS DocumentCount
                 FROM LeaveRequests l
                 INNER JOIN Employees e ON e.EmployeeId = l.EmployeeId
                 WHERE l.EmployeeId = @EmployeeId
@@ -75,8 +78,11 @@ namespace AttendancePayrollSystem.DataAccess
                     l.ReviewedAt,
                     l.CreatedAt,
                     l.UpdatedAt,
+                    l.SupportingDocument,
+                    l.SupportingDocumentName,
                     e.EmployeeCode,
-                    e.FullName
+                    e.FullName,
+                    (SELECT COUNT(*) FROM LeaveRequestDocuments d WHERE d.LeaveRequestId = l.LeaveRequestId) AS DocumentCount
                 FROM LeaveRequests l
                 INNER JOIN Employees e ON e.EmployeeId = l.EmployeeId
                 ORDER BY
@@ -125,6 +131,8 @@ namespace AttendancePayrollSystem.DataAccess
                     l.ReviewedAt,
                     l.CreatedAt,
                     l.UpdatedAt,
+                    l.SupportingDocument,
+                    l.SupportingDocumentName,
                     e.EmployeeCode,
                     e.FullName
                 FROM LeaveRequests l
@@ -214,9 +222,9 @@ namespace AttendancePayrollSystem.DataAccess
 
                 using var command = new MySqlCommand(@"
                     INSERT INTO LeaveRequests
-                    (EmployeeId, LeaveType, IsPaid, StartDate, EndDate, Reason, Status, ReviewerNotes, ReviewedBy, ReviewedAt)
+                    (EmployeeId, LeaveType, IsPaid, StartDate, EndDate, Reason, Status, ReviewerNotes, ReviewedBy, ReviewedAt, SupportingDocument, SupportingDocumentName)
                     VALUES
-                    (@EmployeeId, @LeaveType, @IsPaid, @StartDate, @EndDate, @Reason, @Status, NULL, NULL, NULL)",
+                    (@EmployeeId, @LeaveType, @IsPaid, @StartDate, @EndDate, @Reason, @Status, NULL, NULL, NULL, @SupportingDocument, @SupportingDocumentName)",
                     connection,
                     transaction);
 
@@ -647,6 +655,8 @@ namespace AttendancePayrollSystem.DataAccess
                     l.ReviewedAt,
                     l.CreatedAt,
                     l.UpdatedAt,
+                    l.SupportingDocument,
+                    l.SupportingDocumentName,
                     e.EmployeeCode,
                     e.FullName
                 FROM LeaveRequests l
@@ -669,6 +679,10 @@ namespace AttendancePayrollSystem.DataAccess
             command.Parameters.AddWithValue("@StartDate", leaveRequest.StartDate.Date);
             command.Parameters.AddWithValue("@EndDate", leaveRequest.EndDate.Date);
             command.Parameters.AddWithValue("@Reason", leaveRequest.Reason.Trim());
+            command.Parameters.AddWithValue("@SupportingDocument",
+                leaveRequest.SupportingDocument is null ? DBNull.Value : leaveRequest.SupportingDocument);
+            command.Parameters.AddWithValue("@SupportingDocumentName",
+                string.IsNullOrWhiteSpace(leaveRequest.SupportingDocumentName) ? DBNull.Value : leaveRequest.SupportingDocumentName);
         }
 
         private static object ToDbValue(string? value) =>
@@ -1011,8 +1025,20 @@ namespace AttendancePayrollSystem.DataAccess
                 ReviewedBy = Convert.ToString(reader["ReviewedBy"]) ?? string.Empty,
                 ReviewedAt = reader["ReviewedAt"] is DBNull ? null : Convert.ToDateTime(reader["ReviewedAt"]),
                 CreatedAt = reader["CreatedAt"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["CreatedAt"]),
-                UpdatedAt = reader["UpdatedAt"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["UpdatedAt"])
+                UpdatedAt = reader["UpdatedAt"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["UpdatedAt"]),
+                SupportingDocument = reader["SupportingDocument"] is DBNull ? null : (byte[])reader["SupportingDocument"],
+                SupportingDocumentName = reader["SupportingDocumentName"] is DBNull ? null : Convert.ToString(reader["SupportingDocumentName"]),
+                DocumentCount = HasColumn(reader, "DocumentCount") && reader["DocumentCount"] is not DBNull
+                    ? Convert.ToInt32(reader["DocumentCount"])
+                    : 0
             };
+        }
+
+        private static bool HasColumn(MySqlDataReader reader, string columnName)
+        {
+            for (var i = 0; i < reader.FieldCount; i++)
+                if (reader.GetName(i) == columnName) return true;
+            return false;
         }
 
         private static LeaveRequest MapApiLeaveRequest(ApiLeaveRequestRecord record)

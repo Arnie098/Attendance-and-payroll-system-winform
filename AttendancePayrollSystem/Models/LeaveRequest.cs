@@ -20,6 +20,13 @@ namespace AttendancePayrollSystem.Models
         public DateTime? ReviewedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public byte[]? SupportingDocument { get; set; }
+        public string? SupportingDocumentName { get; set; }
+
+        public bool HasSupportingDocument => SupportingDocument != null && SupportingDocument.Length > 0;
+
+        public int DocumentCount { get; set; }
+        public bool HasDocuments => DocumentCount > 0;
 
         public int TotalDays =>
             EndDate.Date < StartDate.Date
