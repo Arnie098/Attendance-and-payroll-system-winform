@@ -242,6 +242,9 @@ namespace AttendancePayrollSystem.DataAccess
             EnsureEmployeePayrollInfoColumns(connection, transaction);
             EnsureBrandingCertifyingColumns(connection, transaction);
             EnsurePayrollLineItemsTable(connection, transaction);
+            EnsureEmployeeLoansTable(connection, transaction);
+            EnsureLeaveRequestAttachmentColumns(connection, transaction);
+            EnsureLeaveDocumentsTable(connection, transaction);
             EnsureBrandingSeedRow(connection, transaction);
         }
 
@@ -526,11 +529,18 @@ namespace AttendancePayrollSystem.DataAccess
             EnsureEmployeeColumnExists(connection, transaction, "GsisNumber", textDef);
             EnsureEmployeeColumnExists(connection, transaction, "PagIbigNumber", textDef);
             EnsureEmployeeColumnExists(connection, transaction, "PhilHealthNumber", textDef);
+
+            var nullableDecimalDef = connection.Provider == DatabaseProvider.Sqlite ? "REAL NULL" : "DECIMAL(18,4) NULL";
+            EnsureEmployeeColumnExists(connection, transaction, "SssOverride", nullableDecimalDef);
+            EnsureEmployeeColumnExists(connection, transaction, "PhilHealthOverride", nullableDecimalDef);
+            EnsureEmployeeColumnExists(connection, transaction, "PagIbigOverride", nullableDecimalDef);
+            EnsureEmployeeColumnExists(connection, transaction, "WithholdingTaxOverride", nullableDecimalDef);
         }
 
         private static void EnsureBrandingCertifyingColumns(MySqlConnection connection, MySqlTransaction transaction)
         {
             var textDef = connection.Provider == DatabaseProvider.Sqlite ? "TEXT NOT NULL DEFAULT ''" : "VARCHAR(255) NOT NULL DEFAULT ''";
+            EnsureBrandingColumnExists(connection, transaction, "AgencyName", textDef);
             EnsureBrandingColumnExists(connection, transaction, "CertifyingOfficerName", textDef);
             EnsureBrandingColumnExists(connection, transaction, "CertifyingOfficerTitle", textDef);
         }
@@ -551,6 +561,102 @@ namespace AttendancePayrollSystem.DataAccess
                 connection,
                 transaction);
             alterCommand.ExecuteNonQuery();
+        }
+
+        private static void EnsureEmployeeLoansTable(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var sql = connection.Provider == DatabaseProvider.Sqlite
+                ? @"
+                    CREATE TABLE IF NOT EXISTS EmployeeLoans
+                    (
+                        LoanId           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        EmployeeId       INTEGER NOT NULL,
+                        LoanName         TEXT    NOT NULL DEFAULT '',
+                        MonthlyDeduction REAL    NOT NULL DEFAULT 0,
+                        RemainingBalance REAL    NOT NULL DEFAULT 0,
+                        IsActive         INTEGER NOT NULL DEFAULT 1,
+                        StartDate        TEXT    NOT NULL DEFAULT '',
+                        FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId) ON DELETE CASCADE
+                    );"
+                : @"
+                    CREATE TABLE IF NOT EXISTS EmployeeLoans
+                    (
+                        LoanId           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        EmployeeId       INT NOT NULL,
+                        LoanName         VARCHAR(200) NOT NULL DEFAULT '',
+                        MonthlyDeduction DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        RemainingBalance DECIMAL(18,2) NOT NULL DEFAULT 0,
+                        IsActive         BOOLEAN NOT NULL DEFAULT TRUE,
+                        StartDate        VARCHAR(20) NOT NULL DEFAULT '',
+                        CONSTRAINT FK_EmployeeLoans_Employees FOREIGN KEY (EmployeeId)
+                            REFERENCES Employees(EmployeeId) ON DELETE CASCADE
+                    ) ENGINE=InnoDB;";
+
+            using var command = new MySqlCommand(sql, connection, transaction);
+            command.ExecuteNonQuery();
+        }
+
+        private static void EnsureLeaveRequestAttachmentColumns(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var blobDef = connection.Provider == DatabaseProvider.Sqlite ? "BLOB NULL" : "LONGBLOB NULL";
+            var nameDef = connection.Provider == DatabaseProvider.Sqlite ? "TEXT NULL" : "VARCHAR(255) NULL";
+
+            if (!ColumnExists(connection, "LeaveRequests", "SupportingDocument", transaction))
+            {
+                using var cmd = new MySqlCommand(
+                    $"ALTER TABLE LeaveRequests ADD COLUMN SupportingDocument {blobDef}",
+                    connection, transaction);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (!ColumnExists(connection, "LeaveRequests", "SupportingDocumentName", transaction))
+            {
+                using var cmd = new MySqlCommand(
+                    $"ALTER TABLE LeaveRequests ADD COLUMN SupportingDocumentName {nameDef}",
+                    connection, transaction);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static void EnsureLeaveDocumentsTable(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            if (connection.Provider == DatabaseProvider.Sqlite)
+            {
+                using var createCmd = new MySqlCommand(@"
+                    CREATE TABLE IF NOT EXISTS LeaveRequestDocuments
+                    (
+                        DocumentId     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        LeaveRequestId INTEGER NOT NULL,
+                        DocumentName   TEXT NOT NULL,
+                        DocumentData   BLOB NOT NULL,
+                        FileSizeBytes  INTEGER NOT NULL DEFAULT 0,
+                        UploadedAt     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (LeaveRequestId) REFERENCES LeaveRequests(LeaveRequestId)
+                    );", connection, transaction);
+                createCmd.ExecuteNonQuery();
+
+                using var idxCmd = new MySqlCommand(
+                    "CREATE INDEX IF NOT EXISTS IDX_LeaveRequestDocuments_LeaveRequestId ON LeaveRequestDocuments (LeaveRequestId);",
+                    connection, transaction);
+                idxCmd.ExecuteNonQuery();
+            }
+            else
+            {
+                using var cmd = new MySqlCommand(@"
+                    CREATE TABLE IF NOT EXISTS LeaveRequestDocuments
+                    (
+                        DocumentId     INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        LeaveRequestId INT NOT NULL,
+                        DocumentName   VARCHAR(255) NOT NULL,
+                        DocumentData   LONGBLOB NOT NULL,
+                        FileSizeBytes  BIGINT NOT NULL DEFAULT 0,
+                        UploadedAt     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        INDEX IDX_LeaveRequestDocuments_LeaveRequestId (LeaveRequestId),
+                        CONSTRAINT FK_LeaveRequestDocuments_LeaveRequests
+                            FOREIGN KEY (LeaveRequestId) REFERENCES LeaveRequests(LeaveRequestId)
+                    ) ENGINE=InnoDB;", connection, transaction);
+                cmd.ExecuteNonQuery();
+            }
         }
 
         private static void EnsurePayrollLineItemsTable(MySqlConnection connection, MySqlTransaction transaction)
