@@ -19,6 +19,7 @@ namespace AttendancePayrollSystem
         private readonly PayrollRepository _payrollRepository = new();
         private readonly EmployeeRepository _employeeRepository = new();
         private readonly LeaveRequestRepository _leaveRequestRepository = new();
+        private readonly LeaveDocumentRepository _leaveDocumentRepository = new();
         private readonly EmployeeDashboardViewModel _viewModel = new();
         private Employee _employee;
         private LeaveRequest? _selectedLeaveRequest;
@@ -326,22 +327,43 @@ namespace AttendancePayrollSystem
             }
         }
 
-        private async void FileLeave_Click(object sender, RoutedEventArgs e)        {
+        private async void FileLeave_Click(object sender, RoutedEventArgs e)
+        {
             var modal = new LeaveRequestModal(_employee)
             {
                 Owner = this
             };
 
             if (modal.ShowDialog() != true || modal.ResultLeaveRequest == null)
-            {
                 return;
-            }
 
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
                 var leaveRequest = modal.ResultLeaveRequest;
-                await Task.Run(() => _leaveRequestRepository.SubmitLeaveRequest(leaveRequest));
+                var drafts = modal.ResultDocuments;
+
+                var leaveRequestId = await Task.Run(
+                    () => _leaveRequestRepository.SubmitLeaveRequest(leaveRequest));
+
+                if (drafts.Count > 0)
+                {
+                    await Task.Run(() =>
+                    {
+                        foreach (var draft in drafts)
+                        {
+                            _leaveDocumentRepository.AddDocument(new Models.LeaveDocument
+                            {
+                                LeaveRequestId = leaveRequestId,
+                                DocumentName   = draft.Name,
+                                DocumentData   = draft.Data,
+                                FileSizeBytes  = draft.Data.LongLength,
+                                UploadedAt     = DateTime.UtcNow
+                            });
+                        }
+                    });
+                }
+
                 await LoadDashboardDataAsync();
                 MessageBox.Show(
                     "Leave request filed successfully. It is now waiting for admin approval.",
