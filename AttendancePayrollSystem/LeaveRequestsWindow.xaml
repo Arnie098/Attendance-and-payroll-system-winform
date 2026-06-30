@@ -122,7 +122,8 @@
                                                     Width="100"
                                                     ElementStyle="{StaticResource LeaveStatusTextStyle}" />
                                 <DataGridTextColumn Header="Submitted" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="145" />
-                                <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="280" />
+                                <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="230" />
+                                <DataGridCheckBoxColumn Header="Docs" Binding="{Binding HasDocuments, Mode=OneWay}" Width="50" IsReadOnly="True" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </ScrollViewer>
@@ -134,37 +135,124 @@
                     <StackPanel>
                         <TextBlock Text="Review Details" Style="{StaticResource HeaderText}" Margin="0,0,0,10" />
 
-                        <TextBlock Text="Employee" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveEmployeeTextBlock"
-                                   Margin="0,4,0,12"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap" />
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                        <TextBlock Text="Leave Type" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveTypeTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <!-- Row 0: Employee | Leave Type -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Leave Type" Style="{StaticResource SectionTitle}" />
 
-                        <TextBlock Text="Date Range" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveDatesTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeaveEmployeeTextBlock"
+                                       Grid.Row="1" Grid.Column="0"
+                                       Margin="0,4,0,12"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeaveTypeTextBlock"
+                                       Grid.Row="1" Grid.Column="2"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap" />
 
-                        <TextBlock Text="Status" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveStatusTextBlock"
-                                   Margin="0,4,0,12"
-                                   TextWrapping="Wrap"
-                                   Style="{StaticResource LeaveStatusTextStyle}" />
+                            <!-- Row 2: Date Range | Status -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Date Range" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Status" Style="{StaticResource SectionTitle}" />
 
-                        <TextBlock Text="Payment Rule" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeavePaymentTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeaveDatesTextBlock"
+                                       Grid.Row="3" Grid.Column="0"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeaveStatusTextBlock"
+                                       Grid.Row="3" Grid.Column="2"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap"
+                                       Style="{StaticResource LeaveStatusTextStyle}" />
 
-                        <TextBlock Text="Chargeable Days" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveChargeableDaysTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <!-- Row 4: Payment Rule | Chargeable Days -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Payment Rule" Style="{StaticResource SectionTitle}" />
+                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Chargeable Days" Style="{StaticResource SectionTitle}" />
 
-                        <TextBlock Text="Reviewed By" Style="{StaticResource SectionTitle}" />
-                        <TextBlock x:Name="SelectedLeaveReviewedByTextBlock" Margin="0,4,0,12" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeavePaymentTextBlock"
+                                       Grid.Row="5" Grid.Column="0"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap" />
+                            <TextBlock x:Name="SelectedLeaveChargeableDaysTextBlock"
+                                       Grid.Row="5" Grid.Column="2"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap" />
+
+                            <!-- Row 6: Reviewed By (full width) -->
+                            <TextBlock Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Text="Reviewed By" Style="{StaticResource SectionTitle}" />
+                            <TextBlock x:Name="SelectedLeaveReviewedByTextBlock"
+                                       Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3"
+                                       Margin="0,4,0,12"
+                                       TextWrapping="Wrap" />
+                        </Grid>
 
                         <TextBlock Text="Reason" Style="{StaticResource SectionTitle}" />
                         <Border Background="#F8FAFC" CornerRadius="8" Padding="10" Margin="0,4,0,12">
                             <TextBlock x:Name="SelectedLeaveReasonTextBlock" TextWrapping="Wrap" />
                         </Border>
+
+                        <TextBlock Text="Supporting Documents" Style="{StaticResource SectionTitle}" />
+                        <ListBox x:Name="ReviewDocumentsListBox"
+                                 MinHeight="32"
+                                 MaxHeight="140"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="1"
+                                 BorderBrush="#E2E8F0"
+                                 Background="#F0FDF4"
+                                 Margin="0,4,0,4"
+                                 Visibility="Collapsed">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📄 " VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DocumentName}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="#166534"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding FormattedSize}"
+                                                       Foreground="#4D7C0F"
+                                                       FontSize="11"
+                                                       Margin="0,1,0,0" />
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Content="Open"
+                                                Height="26"
+                                                Padding="10,0"
+                                                Margin="8,0,0,0"
+                                                Style="{StaticResource ModernButton}"
+                                                Background="#16A34A"
+                                                Tag="{Binding}"
+                                                Click="OpenDocument_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock x:Name="NoDocumentsTextBlock"
+                                   Text="No documents attached"
+                                   Foreground="#94A3B8"
+                                   Margin="0,4,0,12"
+                                   Visibility="Visible" />
 
                         <TextBlock Text="Review History" Style="{StaticResource SectionTitle}" />
                         <Border Background="#F8FAFC" CornerRadius="8" Padding="10" Margin="0,4,0,12">
