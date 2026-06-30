@@ -1,16 +1,22 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using AttendancePayrollSystem.Models;
 using AttendancePayrollSystem.Services;
+using Microsoft.Win32;
 
 namespace AttendancePayrollSystem
 {
     public partial class LeaveRequestModal : Window
     {
         private readonly Employee _employee;
+        private readonly ObservableCollection<DocumentDraftItem> _drafts = new();
 
         public LeaveRequest? ResultLeaveRequest { get; private set; }
+        public IReadOnlyList<DocumentDraftItem> ResultDocuments => _drafts;
 
         public LeaveRequestModal(Employee employee)
         {
@@ -25,17 +31,52 @@ namespace AttendancePayrollSystem
             StartDatePicker.SelectedDate = DateTime.Today;
             EndDatePicker.SelectedDate = DateTime.Today;
 
+            DocumentsListBox.ItemsSource = _drafts;
             RefreshLeaveSummary();
         }
 
         private void LeaveTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            RefreshLeaveSummary();
-        }
+            => RefreshLeaveSummary();
 
         private void LeaveDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+            => RefreshLeaveSummary();
+
+        private void AddDocuments_Click(object sender, RoutedEventArgs e)
         {
-            RefreshLeaveSummary();
+            var dialog = new OpenFileDialog
+            {
+                Title = "Attach Supporting Documents",
+                Filter = "Documents|*.pdf;*.jpg;*.jpeg;*.png;*.doc;*.docx|All Files|*.*",
+                Multiselect = true
+            };
+
+            if (dialog.ShowDialog(this) != true)
+                return;
+
+            const long MaxBytes = 10L * 1024 * 1024;
+            var skipped = new List<string>();
+
+            foreach (var path in dialog.FileNames)
+            {
+                var info = new FileInfo(path);
+                if (info.Length > MaxBytes)
+                {
+                    skipped.Add(info.Name);
+                    continue;
+                }
+                _drafts.Add(new DocumentDraftItem(info.Name, File.ReadAllBytes(path)));
+            }
+
+            if (skipped.Count > 0)
+                MessageBox.Show(this,
+                    $"The following file(s) exceed the 10 MB limit and were skipped:\n• {string.Join("\n• ", skipped)}",
+                    "Files Too Large", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void RemoveDocument_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: DocumentDraftItem item })
+                _drafts.Remove(item);
         }
 
         private void Submit_Click(object sender, RoutedEventArgs e)
@@ -67,8 +108,7 @@ namespace AttendancePayrollSystem
                 return;
             }
 
-            var chargeableDays = LeavePolicies.GetChargeableDayCount(startDate, endDate);
-            if (chargeableDays == 0)
+            if (LeavePolicies.GetChargeableDayCount(startDate, endDate) == 0)
             {
                 MessageBox.Show("The selected date range must include at least one weekday.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -97,22 +137,15 @@ namespace AttendancePayrollSystem
             DialogResult = true;
         }
 
-        private void Cancel_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
+        private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
         private void RefreshLeaveSummary()
         {
             var leaveType = LeaveTypeComboBox.SelectedItem?.ToString() ?? string.Empty;
             var hasKnownLeaveType = LeavePolicies.TryGetPaidLeaveType(leaveType, out var isPaidLeave);
 
-            PaymentTypeTextBox.Text = !hasKnownLeaveType
-                ? "-"
-                : isPaidLeave ? "Paid leave" : "Unpaid leave";
-            AttendanceStatusTextBlock.Text = !hasKnownLeaveType
-                ? "-"
-                : LeavePolicies.GetAttendanceStatus(isPaidLeave);
+            PaymentTypeTextBox.Text = !hasKnownLeaveType ? "-" : isPaidLeave ? "Paid leave" : "Unpaid leave";
+            AttendanceStatusTextBlock.Text = !hasKnownLeaveType ? "-" : LeavePolicies.GetAttendanceStatus(isPaidLeave);
 
             if (!StartDatePicker.SelectedDate.HasValue || !EndDatePicker.SelectedDate.HasValue)
             {
@@ -125,6 +158,21 @@ namespace AttendancePayrollSystem
             ChargeableDaysTextBlock.Text = endDate < startDate
                 ? "0"
                 : LeavePolicies.GetChargeableDayCount(startDate, endDate).ToString();
+        }
+    }
+
+    public sealed class DocumentDraftItem
+    {
+        public string Name { get; }
+        public byte[] Data { get; }
+        public string SizeLabel { get; }
+
+        public DocumentDraftItem(string name, byte[] data)
+        {
+            Name = name;
+            Data = data;
+            var kb = data.Length / 1024.0;
+            SizeLabel = kb >= 1024 ? $"{kb / 1024.0:N1} MB" : $"{kb:N1} KB";
         }
     }
 }
