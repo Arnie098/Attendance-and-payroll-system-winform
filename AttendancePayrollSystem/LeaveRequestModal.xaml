@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="File Leave Request"
-        Height="660"
+        Height="720"
         Width="560"
         WindowStartupLocation="CenterOwner"
         MinHeight="450" MinWidth="420"
@@ -15,6 +15,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -138,7 +139,69 @@
             </Border>
         </StackPanel>
 
-        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+        <!-- Supporting Documents (multi-file) -->
+        <StackPanel Grid.Row="6" Margin="0,0,0,12">
+            <TextBlock Text="Supporting Documents (optional)" Margin="0,0,0,6" />
+            <Border Background="#F8FAFC"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="8">
+                <StackPanel>
+                    <ListBox x:Name="DocumentsListBox"
+                             MinHeight="40"
+                             MaxHeight="130"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Margin="0,0,0,6">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📄 " VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Name}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding SizeLabel}"
+                                               Foreground="#64748B"
+                                               FontSize="11"
+                                               Margin="8,0,8,0"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="3"
+                                            Content="✕"
+                                            Width="22" Height="22"
+                                            Padding="0"
+                                            FontSize="10"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Foreground="#DC2626"
+                                            Cursor="Hand"
+                                            Tag="{Binding}"
+                                            Click="RemoveDocument_Click" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Content="+ Add Files"
+                            HorizontalAlignment="Left"
+                            Height="28"
+                            Padding="12,0"
+                            Style="{StaticResource ModernButton}"
+                            Background="#0F766E"
+                            Click="AddDocuments_Click" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Submit"
                     Width="110"
                     Margin="0,0,8,0"
