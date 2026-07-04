@@ -3,84 +3,192 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Biometric Attendance"
-        Height="820" Width="980"
-        MinHeight="600" MinWidth="750"
+        Height="820" Width="1040"
+        MinHeight="620" MinWidth="800"
         WindowStartupLocation="CenterOwner"
         Background="{StaticResource AppBackgroundBrush}">
-    <Grid Margin="18">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1.05*" />
-            <ColumnDefinition Width="1.95*" />
+            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,14">
-            <TextBlock Text="{Binding HeaderText}" FontSize="24" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding EmployeeNameText}" FontSize="14" Foreground="#4E5968" />
-        </StackPanel>
+        <!-- ── Header ── -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2"
+                Background="#0B1929"
+                CornerRadius="16"
+                Padding="20,14"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <!-- Left panel: Biometric scanner + Barcode fallback -->
-        <Border Grid.Row="1" Grid.Column="0" Background="White" CornerRadius="10" Padding="16" Margin="0,0,12,0">
+                <Border Grid.Column="0"
+                        Background="#162840"
+                        CornerRadius="12"
+                        Width="44" Height="44"
+                        Margin="0,0,14,0">
+                    <materialDesign:PackIcon Kind="Fingerprint"
+                                             Width="26" Height="26"
+                                             Foreground="#00E5FF"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding HeaderText}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White" />
+                    <TextBlock Text="{Binding EmployeeNameText}"
+                               FontSize="13"
+                               Foreground="#7FB3CC"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <Border Grid.Column="2"
+                        Background="#0D2235"
+                        BorderBrush="#1E4A6A"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="14,8">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="CalendarToday"
+                                                 Width="16" Height="16"
+                                                 Foreground="#7FB3CC"
+                                                 VerticalAlignment="Center"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock x:Name="HeaderDateText"
+                                   FontSize="13"
+                                   Foreground="#CBD5E1"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ── Left panel: Scanner ── -->
+        <Border Grid.Row="1" Grid.Column="0"
+                Background="#0B1929"
+                CornerRadius="16"
+                Margin="0,0,10,0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Biometric scanner section -->
-                <TextBlock Grid.Row="0" Text="Biometric Scanner" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+                <!-- Scanner display -->
+                <StackPanel Grid.Row="0" Margin="20,20,20,0">
 
-                <Border Grid.Row="1" Background="#0B172A" CornerRadius="10" Padding="16" MinHeight="170">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <materialDesign:PackIcon Kind="Fingerprint" Width="92" Height="92" Foreground="#00E5FF" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <ProgressBar Grid.Row="1"
-                                     Height="6"
-                                     Margin="4,8,4,0"
-                                     IsIndeterminate="True"
-                                     Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}" />
-                    </Grid>
-                </Border>
+                    <TextBlock Text="BIOMETRIC SCANNER"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               Foreground="#4B7FA3"
+                               Margin="0,0,0,16" />
 
-                <TextBlock Grid.Row="2" Text="{Binding ScanStateText}" FontWeight="SemiBold" Margin="0,10,0,2" />
-                <TextBlock Grid.Row="3" Text="{Binding LastScanText}" FontSize="12" Foreground="#5C6675" Margin="0,0,0,12" />
+                    <!-- Fingerprint display area -->
+                    <Border Background="#0D2235"
+                            BorderBrush="#1E4A6A"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="120" Height="120"
+                                    Background="#0A1A2E"
+                                    BorderBrush="#00E5FF"
+                                    BorderThickness="2"
+                                    CornerRadius="60"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,0,0,16">
+                                <Grid>
+                                    <Border Width="120" Height="120" CornerRadius="60" ClipToBounds="True">
+                                        <Border.Background>
+                                            <RadialGradientBrush Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                                <GradientStop Color="#0D2235" Offset="0" />
+                                                <GradientStop Color="#061118" Offset="1" />
+                                            </RadialGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+                                    <materialDesign:PackIcon Kind="Fingerprint"
+                                                             Width="72" Height="72"
+                                                             Foreground="#00E5FF"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
 
-                <!-- Barcode fallback section -->
-                <Border Grid.Row="4"
-                        Background="#F8FAFC"
-                        BorderBrush="#E2E8F0"
-                        BorderThickness="1"
-                        CornerRadius="10"
-                        Padding="14">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <materialDesign:PackIcon Kind="Barcode" Width="18" Height="18"
-                                                     Foreground="#1D4ED8"
-                                                     VerticalAlignment="Center"
-                                                     Margin="0,0,6,0" />
-                            <TextBlock Text="Barcode Fallback"
-                                       FontSize="13"
+                            <ProgressBar Height="4"
+                                         Margin="0,0,0,12"
+                                         IsIndeterminate="True"
+                                         Foreground="#00E5FF"
+                                         Background="#1E4A6A"
+                                         Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}" />
+
+                            <TextBlock Text="{Binding ScanStateText}"
+                                       FontSize="14"
                                        FontWeight="SemiBold"
-                                       Foreground="#1D4ED8"
+                                       Foreground="#E2EEF7"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding LastScanText}"
+                                       FontSize="11"
+                                       Foreground="#4B7FA3"
+                                       TextAlignment="Center"
+                                       Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Simulate fingerprint button -->
+                    <Button Style="{StaticResource ModernButton}"
+                            Background="#00838F"
+                            Height="48"
+                            FontSize="14"
+                            IsEnabled="{Binding IsScanButtonEnabled}"
+                            Click="BiometricSimulation_Click"
+                            Margin="0,0,0,20">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Fingerprint"
+                                                     Width="20" Height="20"
+                                                     Foreground="White"
+                                                     VerticalAlignment="Center"
+                                                     Margin="0,0,10,0" />
+                            <TextBlock Text="Simulate Fingerprint"
+                                       FontWeight="Bold"
                                        VerticalAlignment="Center" />
                         </StackPanel>
+                    </Button>
+                </StackPanel>
 
-                        <TextBlock Text="Scan or type employee code if fingerprint is unavailable."
-                                   FontSize="11"
-                                   Foreground="#64748B"
-                                   TextWrapping="Wrap"
-                                   Margin="0,0,0,8" />
+                <!-- Barcode fallback -->
+                <Border Grid.Row="1"
+                        Background="#0D2235"
+                        BorderBrush="#1E4A6A"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="0,0,16,16"
+                        Padding="20,16">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <materialDesign:PackIcon Kind="Barcode"
+                                                     Width="16" Height="16"
+                                                     Foreground="#7FB3CC"
+                                                     VerticalAlignment="Center"
+                                                     Margin="0,0,6,0" />
+                            <TextBlock Text="Barcode / QR Fallback"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#7FB3CC"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -89,16 +197,16 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0"
-                                    Background="White"
-                                    BorderBrush="#CBD5E1"
+                                    Background="#0A1A2E"
+                                    BorderBrush="#2A4A6A"
                                     BorderThickness="1"
                                     CornerRadius="8"
-                                    Padding="8,6"
-                                    Margin="0,0,6,0">
+                                    Padding="10,8"
+                                    Margin="0,0,8,0">
                                 <DockPanel>
                                     <materialDesign:PackIcon Kind="CardAccountDetails"
-                                                             Width="16" Height="16"
-                                                             Foreground="#94A3B8"
+                                                             Width="14" Height="14"
+                                                             Foreground="#4B7FA3"
                                                              VerticalAlignment="Center"
                                                              Margin="0,0,6,0" />
                                     <TextBox x:Name="BarcodeTextBox"
@@ -106,47 +214,44 @@
                                              Background="Transparent"
                                              FontSize="13"
                                              FontFamily="Consolas"
+                                             Foreground="White"
+                                             CaretBrush="White"
                                              VerticalAlignment="Center"
                                              KeyDown="BarcodeTextBox_KeyDown"
                                              materialDesign:HintAssist.Hint="Employee code…"
-                                             materialDesign:HintAssist.IsFloating="False" />
+                                             materialDesign:HintAssist.IsFloating="False"
+                                             materialDesign:HintAssist.Foreground="#4B7FA3" />
                                 </DockPanel>
                             </Border>
 
                             <Button Grid.Column="1"
                                     x:Name="BarcodeScanButton"
-                                    Height="36"
+                                    Height="40" Width="40"
                                     Style="{StaticResource ModernButton}"
                                     Background="#1D4ED8"
                                     IsEnabled="{Binding IsScanButtonEnabled}"
                                     Click="BarcodeScan_Click"
-                                    ToolTip="Record attendance using barcode">
+                                    ToolTip="Record attendance via barcode"
+                                    Padding="0">
                                 <materialDesign:PackIcon Kind="QrcodeScan" Width="18" Height="18" Foreground="White" />
                             </Button>
                         </Grid>
 
                         <TextBlock x:Name="BarcodeStatusText"
-                                   Text=""
                                    FontSize="11"
                                    TextWrapping="Wrap"
-                                   Margin="0,6,0,0"
+                                   Margin="0,6,0,8"
                                    Visibility="Collapsed" />
-                        <Button Margin="0,10,0,0"
-                                Style="{StaticResource ModernButton}"
-                                Background="#7C3AED"
-                                HorizontalAlignment="Left"
+
+                        <Button Style="{StaticResource ModernButton}"
+                                Background="#4C1D95"
+                                HorizontalAlignment="Stretch"
+                                Height="36"
                                 Click="ShowQrCode_Click"
-                                ToolTip="Generate and view this employee's QR code">
+                                ToolTip="Generate and view employee QR code">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Qrcode"
-                                                         Width="16" Height="16"
-                                                         Foreground="White"
-                                                         VerticalAlignment="Center"
-                                                         Margin="0,0,6,0" />
-                                <TextBlock Text="Show QR Code"
-                                           VerticalAlignment="Center"
-                                           Foreground="White"
-                                           FontSize="13" />
+                                <materialDesign:PackIcon Kind="Qrcode" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="Show QR Code" Foreground="White" FontSize="12" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -154,52 +259,272 @@
             </Grid>
         </Border>
 
-        <!-- Right panel: Today summary + Attendance records -->
-        <Border Grid.Row="1" Grid.Column="1" Background="White" CornerRadius="10" Padding="16">
-            <TabControl>
+        <!-- ── Right panel: Tabs ── -->
+        <Border Grid.Row="1" Grid.Column="1"
+                Background="White"
+                CornerRadius="16"
+                Padding="0">
+            <TabControl BorderThickness="0" Background="Transparent">
+
+                <!-- ── Today Summary ── -->
                 <TabItem Header="Today Summary">
-                    <StackPanel Margin="8">
-                        <TextBlock Text="Attendance Summary" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,16">
+                        <StackPanel>
 
-                        <TextBlock Text="Morning Session (8:30 AM - 12:00 PM)" FontWeight="SemiBold" FontSize="14" Foreground="#2B6CB0" Margin="0,0,0,6" />
+                            <TextBlock Text="Today's Attendance"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="#0F172A"
+                                       Margin="0,0,0,4" />
+                            <TextBlock Text="Morning Session  ·  8:30 AM – 12:00 PM"
+                                       FontSize="12"
+                                       Foreground="#64748B"
+                                       Margin="0,0,0,14" />
 
-                        <TextBlock Text="Time In (AM)" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeInAMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                            <!-- AM session tiles -->
+                            <UniformGrid Rows="1" Columns="2" Margin="0,0,0,12">
 
-                        <TextBlock Text="Time Out (AM)" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeOutAMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                                <!-- AM Time In tile -->
+                                <Border Margin="0,0,6,0"
+                                        Background="#F0FDF4"
+                                        BorderBrush="#86EFAC"
+                                        BorderThickness="2"
+                                        CornerRadius="14"
+                                        Padding="16,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#166534" />
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#22C55E" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="AM TIME IN"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#166534"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding TimeInAMText}"
+                                                   FontSize="28"
+                                                   FontWeight="Bold"
+                                                   Foreground="#14532D"
+                                                   Margin="0,0,0,4" />
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Expected: 8:30 AM"
+                                                   FontSize="11"
+                                                   Foreground="#4ADE80" />
+                                    </Grid>
+                                </Border>
 
-                        <TextBlock Text="Afternoon Session (1:00 PM - 4:30 PM)" FontWeight="SemiBold" FontSize="14" Foreground="#2B6CB0" Margin="0,8,0,6" />
+                                <!-- AM Time Out tile -->
+                                <Border Margin="6,0,0,0"
+                                        Background="#EFF6FF"
+                                        BorderBrush="#93C5FD"
+                                        BorderThickness="2"
+                                        CornerRadius="14"
+                                        Padding="16,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#1E3A8A" />
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#3B82F6" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="AM TIME OUT"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#1E40AF"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding TimeOutAMText}"
+                                                   FontSize="28"
+                                                   FontWeight="Bold"
+                                                   Foreground="#1E3A8A"
+                                                   Margin="0,0,0,4" />
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Expected: 12:00 PM"
+                                                   FontSize="11"
+                                                   Foreground="#60A5FA" />
+                                    </Grid>
+                                </Border>
+                            </UniformGrid>
 
-                        <TextBlock Text="Time In (PM)" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeInPMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                            <TextBlock Text="Afternoon Session  ·  1:00 PM – 5:00 PM"
+                                       FontSize="12"
+                                       Foreground="#64748B"
+                                       Margin="0,8,0,10" />
 
-                        <TextBlock Text="Time Out (PM)" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding TimeOutPMText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                            <!-- PM session tiles -->
+                            <UniformGrid Rows="1" Columns="2" Margin="0,0,0,16">
 
-                        <TextBlock Text="Next Action" FontWeight="SemiBold" />
-                        <TextBox Text="{Binding NextActionText}" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,4,0,10" />
+                                <!-- PM Time In tile -->
+                                <Border Margin="0,0,6,0"
+                                        Background="#FFF7ED"
+                                        BorderBrush="#FCD34D"
+                                        BorderThickness="2"
+                                        CornerRadius="14"
+                                        Padding="16,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#92400E" />
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#F59E0B" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="PM TIME IN"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#92400E"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding TimeInPMText}"
+                                                   FontSize="28"
+                                                   FontWeight="Bold"
+                                                   Foreground="#78350F"
+                                                   Margin="0,0,0,4" />
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Expected: 1:00 PM"
+                                                   FontSize="11"
+                                                   Foreground="#FCD34D" />
+                                    </Grid>
+                                </Border>
 
-                        <Border Background="#EEF2F8" CornerRadius="8" Padding="10" Margin="0,0,0,10">
-                            <TextBlock Text="{Binding StatusText}" Foreground="#2D3748" TextWrapping="Wrap" />
-                        </Border>
+                                <!-- PM Time Out tile -->
+                                <Border Margin="6,0,0,0"
+                                        Background="#FFF1F2"
+                                        BorderBrush="#FCA5A5"
+                                        BorderThickness="2"
+                                        CornerRadius="14"
+                                        Padding="16,14">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#7F1D1D" />
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Border Background="#EF4444" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="PM TIME OUT"
+                                                       FontSize="11"
+                                                       FontWeight="Bold"
+                                                       Foreground="#991B1B"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding TimeOutPMText}"
+                                                   FontSize="28"
+                                                   FontWeight="Bold"
+                                                   Foreground="#7F1D1D"
+                                                   Margin="0,0,0,4" />
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Expected: 5:00 PM"
+                                                   FontSize="11"
+                                                   Foreground="#FCA5A5" />
+                                    </Grid>
+                                </Border>
+                            </UniformGrid>
 
-                        <!-- Admin-only: delete today's attendance record -->
-                        <Button x:Name="DeleteTodayButton"
-                                Visibility="Collapsed"
-                                Style="{StaticResource ModernButton}"
-                                Background="#B91C1C"
-                                Click="DeleteTodayAttendance_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <TextBlock Text="Delete Today's Record" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                            <!-- Next Action tile -->
+                            <Border Background="#0B1929"
+                                    CornerRadius="14"
+                                    Padding="18,14"
+                                    Margin="0,0,0,10">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.18" Color="#000000" />
+                                </Border.Effect>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0"
+                                            Background="#00838F"
+                                            CornerRadius="10"
+                                            Width="42" Height="42"
+                                            Margin="0,0,14,0">
+                                        <materialDesign:PackIcon Kind="ArrowRight" Width="24" Height="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="NEXT ACTION"
+                                                   FontSize="10"
+                                                   FontWeight="Bold"
+                                                   Foreground="#4B7FA3"
+                                                   Margin="0,0,0,4" />
+                                        <TextBlock Text="{Binding NextActionText}"
+                                                   FontSize="16"
+                                                   FontWeight="Bold"
+                                                   Foreground="#00E5FF" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Status message -->
+                            <Border Background="#F8FAFC"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="14,10"
+                                    Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="InformationOutline"
+                                                             Width="16" Height="16"
+                                                             Foreground="#64748B"
+                                                             VerticalAlignment="Center"
+                                                             Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding StatusText}"
+                                               Foreground="#374151"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Admin: delete today -->
+                            <Button x:Name="DeleteTodayButton"
+                                    Visibility="Collapsed"
+                                    Style="{StaticResource ModernButton}"
+                                    Background="#B91C1C"
+                                    HorizontalAlignment="Left"
+                                    Click="DeleteTodayAttendance_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="DeleteOutline" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="Delete Today's Record" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                        </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
 
+                <!-- ── Attendance Records (CRUD) ── -->
                 <TabItem x:Name="AttendanceCrudTab" Header="Attendance Records">
-                    <Grid Margin="8">
+                    <Grid Margin="20,16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -219,7 +544,7 @@
                                   Margin="0,0,0,10">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Date" Binding="{Binding AttendanceDate, StringFormat=yyyy-MM-dd}" Width="100" />
-                                <DataGridTemplateColumn Header="AM In" Width="115">
+                                <DataGridTemplateColumn Header="AM In" Width="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -229,7 +554,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="AM Out" Width="115">
+                                <DataGridTemplateColumn Header="AM Out" Width="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -239,7 +564,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="PM In" Width="115">
+                                <DataGridTemplateColumn Header="PM In" Width="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -249,7 +574,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="PM Out" Width="115">
+                                <DataGridTemplateColumn Header="PM Out" Width="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel>
@@ -259,7 +584,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Method" Width="80" SortMemberPath="IsBiometricVerified">
+                                <DataGridTemplateColumn Header="Method" Width="74" SortMemberPath="IsBiometricVerified">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <materialDesign:PackIcon Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -279,12 +604,13 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="80" />
-                                <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="95" />
+                                <DataGridTextColumn Header="Hours" Binding="{Binding TotalHours, StringFormat=N2}" Width="70" />
+                                <DataGridTextColumn Header="Late (min)" Binding="{Binding TardinessMinutes}" Width="85" />
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="8" Padding="12">
+                        <!-- Edit form when a record is selected -->
+                        <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="12" Padding="14">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -313,30 +639,24 @@
                                     <TextBlock Text="Date" Style="{StaticResource SectionTitle}" />
                                     <DatePicker x:Name="CrudDatePicker" />
                                 </StackPanel>
-
                                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,6,0">
                                     <TextBlock Text="In AM (HH:mm)" Style="{StaticResource SectionTitle}" />
                                     <TextBox x:Name="CrudTimeInAMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
-
                                 <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,6,0">
                                     <TextBlock Text="Out AM (HH:mm)" Style="{StaticResource SectionTitle}" />
                                     <TextBox x:Name="CrudTimeOutAMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
-
                                 <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,6,0">
                                     <TextBlock Text="In PM (HH:mm)" Style="{StaticResource SectionTitle}" />
                                     <TextBox x:Name="CrudTimeInPMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
-
                                 <StackPanel Grid.Row="0" Grid.Column="4" Margin="0,0,6,0">
                                     <TextBlock Text="Out PM (HH:mm)" Style="{StaticResource SectionTitle}" />
                                     <TextBox x:Name="CrudTimeOutPMTextBox" Style="{StaticResource ModernTextBox}" />
                                 </StackPanel>
-
                                 <CheckBox x:Name="CrudBiometricVerifiedCheckBox"
-                                          Grid.Row="0"
-                                          Grid.Column="5"
+                                          Grid.Row="0" Grid.Column="5"
                                           Content="Biometric"
                                           VerticalAlignment="Bottom"
                                           Margin="4,0,0,4" />
@@ -351,15 +671,16 @@
                                         <ComboBoxItem Content="Leave Without Pay" />
                                     </ComboBox>
                                 </StackPanel>
-
-                                <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,8,0,0">
+                                <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="4"
+                                            Orientation="Horizontal" HorizontalAlignment="Right"
+                                            VerticalAlignment="Bottom" Margin="0,8,0,0">
                                     <Button Content="Update" Style="{StaticResource ModernButton}" Click="UpdateAttendanceCrud_Click" />
                                     <Button Content="Delete" Style="{StaticResource ModernButton}" Margin="8,0,0,0" Click="DeleteAttendanceCrud_Click" />
                                 </StackPanel>
                             </Grid>
                         </Border>
 
-                        <Border Grid.Row="2" Background="#EEF2F8" CornerRadius="8" Padding="12">
+                        <Border Grid.Row="2" Background="#EEF2F8" CornerRadius="10" Padding="12">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Visible" />
@@ -370,7 +691,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <TextBlock Text="Select an attendance record to edit or delete it."
+                            <TextBlock Text="Select an attendance record above to edit or delete it."
                                        Foreground="#4E5968"
                                        FontWeight="SemiBold"
                                        TextWrapping="Wrap" />
@@ -380,14 +701,15 @@
             </TabControl>
         </Border>
 
-        <!-- Footer buttons -->
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button Content="Simulate Fingerprint"
-                    Margin="0,0,8,0"
+        <!-- ── Footer ── -->
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,10,0,0">
+            <Button Content="Close"
                     Style="{StaticResource ModernButton}"
-                    IsEnabled="{Binding IsScanButtonEnabled}"
-                    Click="BiometricSimulation_Click" />
-            <Button Content="Close" Style="{StaticResource ModernButton}" Click="Close_Click" />
+                    Background="#475569"
+                    Click="Close_Click" />
         </StackPanel>
     </Grid>
 </Window>

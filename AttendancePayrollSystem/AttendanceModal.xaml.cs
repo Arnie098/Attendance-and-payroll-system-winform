@@ -36,6 +36,7 @@ namespace AttendancePayrollSystem
             };
 
             DataContext = _viewModel;
+            HeaderDateText.Text = DateTime.Now.ToString("MMMM dd, yyyy");
             AttendanceCrudTab.Visibility = _allowCrud ? Visibility.Visible : Visibility.Collapsed;
             DeleteTodayButton.Visibility = _allowCrud ? Visibility.Visible : Visibility.Collapsed;
             if (_allowCrud)
