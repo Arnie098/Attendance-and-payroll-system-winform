@@ -21,6 +21,9 @@ namespace AttendancePayrollSystem
         private readonly AttendanceModalViewModel _viewModel;
         private Attendance? _selectedAttendance;
 
+        private enum AttendanceSlot { TimeInAM, TimeOutAM, TimeInPM, TimeOutPM }
+        private AttendanceSlot? _targetSlot;
+
         public AttendanceModal(Employee employee, bool allowCrud = true)
         {
             InitializeComponent();
@@ -86,7 +89,7 @@ namespace AttendancePayrollSystem
             }
 
             _viewModel.ScanStateText = "Fingerprint verified";
-            RecordAttendance(biometricVerified: true);
+            RecordSelectedSlot(biometricVerified: true);
         }
 
         // ── Barcode fallback ─────────────────────────────────────────────────────
@@ -132,10 +135,9 @@ namespace AttendancePayrollSystem
 
             _viewModel.ScanStateText = "Barcode accepted";
             _viewModel.LastScanText = $"Last Scan: {DateTime.Now:yyyy-MM-dd HH:mm:ss} (barcode)";
-            ShowBarcodeStatus("Barcode accepted. Recording attendance…", isError: false);
+            ShowBarcodeStatus("Barcode accepted. Recording slot…", isError: false);
 
-            RecordAttendance(biometricVerified: false);
-            ShowBarcodeStatus("Attendance recorded via barcode.", isError: false);
+            RecordSelectedSlot(biometricVerified: false);
         }
 
         private void ShowBarcodeStatus(string message, bool isError)
@@ -153,65 +155,113 @@ namespace AttendancePayrollSystem
             modal.ShowDialog();
         }
 
-        // ── Shared recording logic ───────────────────────────────────────────────
+        // ── Tile slot selection ──────────────────────────────────────────────────
 
-        private void RecordAttendance(bool biometricVerified)
+        private void TileTimeInAM_Click(object sender, RoutedEventArgs e)  => SelectSlot(AttendanceSlot.TimeInAM);
+        private void TileTimeOutAM_Click(object sender, RoutedEventArgs e) => SelectSlot(AttendanceSlot.TimeOutAM);
+        private void TileTimeInPM_Click(object sender, RoutedEventArgs e)  => SelectSlot(AttendanceSlot.TimeInPM);
+        private void TileTimeOutPM_Click(object sender, RoutedEventArgs e) => SelectSlot(AttendanceSlot.TimeOutPM);
+
+        private void SelectSlot(AttendanceSlot slot)
         {
-            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
-            var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
-            var method = biometricVerified ? "Biometric" : "Barcode";
+            _targetSlot = slot;
 
-            switch (sessionState)
+            TileTimeInAM.Tag  = null;
+            TileTimeOutAM.Tag = null;
+            TileTimeInPM.Tag  = null;
+            TileTimeOutPM.Tag = null;
+
+            var tileMap = new System.Collections.Generic.Dictionary<AttendanceSlot, Button>
             {
-                case AttendanceSessionState.NeedsMorningTimeIn:
-                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, biometricVerified);
-                    _viewModel.StatusText = $"Morning Time In recorded via {method} (8:30 AM session).";
-                    if (biometricVerified)
-                        MessageBox.Show("Morning Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    break;
+                { AttendanceSlot.TimeInAM,  TileTimeInAM  },
+                { AttendanceSlot.TimeOutAM, TileTimeOutAM },
+                { AttendanceSlot.TimeInPM,  TileTimeInPM  },
+                { AttendanceSlot.TimeOutPM, TileTimeOutPM },
+            };
+            tileMap[slot].Tag = "Selected";
 
-                case AttendanceSessionState.NeedsMorningTimeOut:
-                    _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
-                    _viewModel.StatusText = $"Morning Time Out recorded via {method}.";
-                    if (biometricVerified)
-                        MessageBox.Show("Morning Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    break;
+            var label = slot switch
+            {
+                AttendanceSlot.TimeInAM  => "AM Time In",
+                AttendanceSlot.TimeOutAM => "AM Time Out",
+                AttendanceSlot.TimeInPM  => "PM Time In",
+                AttendanceSlot.TimeOutPM => "PM Time Out",
+                _                        => slot.ToString()
+            };
+            _viewModel.ScanStateText  = $"Ready — scan to record {label}";
+            _viewModel.StatusText     = $"Slot selected: {label}. Scan fingerprint or enter barcode to record.";
+            _viewModel.NextActionText = $"Recording: {label}";
+        }
 
-                case AttendanceSessionState.MorningComplete:
-                    _viewModel.StatusText = "Morning session complete. Afternoon session starts at 1:00 PM.";
-                    if (biometricVerified)
-                        MessageBox.Show("Morning session is complete. Please return at 1:00 PM for the afternoon session.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                    else
-                        ShowBarcodeStatus("Morning session already complete. Return at 1:00 PM.", isError: false);
-                    break;
+        // ── Slot-targeted recording ──────────────────────────────────────────────
 
-                case AttendanceSessionState.NeedsAfternoonTimeIn:
-                    _attendanceRepository.RecordTimeIn(_employee.EmployeeId, biometricVerified);
-                    _viewModel.StatusText = $"Afternoon Time In recorded via {method} (1:00 PM session).";
-                    if (biometricVerified)
-                        MessageBox.Show("Afternoon Time In recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    break;
-
-                case AttendanceSessionState.NeedsAfternoonTimeOut:
-                    _attendanceRepository.RecordTimeOut(todayAttendance!.AttendanceId);
-                    _viewModel.StatusText = $"Afternoon Time Out recorded via {method}.";
-                    if (biometricVerified)
-                        MessageBox.Show("Afternoon Time Out recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                    break;
-
-                case AttendanceSessionState.AllComplete:
-                    _viewModel.StatusText = "Both sessions are complete for today.";
-                    if (biometricVerified)
-                        MessageBox.Show("Attendance already completed for today (both AM and PM sessions).", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                    else
-                        ShowBarcodeStatus("Attendance already completed for today.", isError: false);
-                    break;
+        private void RecordSelectedSlot(bool biometricVerified)
+        {
+            if (_targetSlot == null)
+            {
+                _viewModel.StatusText    = "Click a session tile above to select a slot first.";
+                _viewModel.ScanStateText = "No slot selected";
+                return;
             }
+
+            var slotColumn = _targetSlot.Value.ToString();
+
+            var todayAttendance = _attendanceRepository.GetTodayAttendance(_employee.EmployeeId);
+            if (todayAttendance != null && LeavePolicies.IsLeaveAttendanceStatus(todayAttendance.Status))
+            {
+                _viewModel.StatusText = $"Attendance locked — leave is recorded ({todayAttendance.Status}).";
+                return;
+            }
+
+            if (todayAttendance != null)
+            {
+                var existing = GetSlotValue(todayAttendance, _targetSlot.Value);
+                if (existing.HasValue)
+                {
+                    var confirm = MessageBox.Show(
+                        $"This slot already has {existing.Value:hh:mm tt}.\nOverwrite with current time?",
+                        "Confirm Overwrite",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+                    if (confirm != MessageBoxResult.Yes)
+                        return;
+                }
+            }
+
+            try
+            {
+                _attendanceRepository.RecordSpecificSlot(_employee.EmployeeId, slotColumn, biometricVerified);
+                var method = biometricVerified ? "biometric" : "barcode";
+                _viewModel.StatusText = $"Slot recorded via {method}.";
+                if (biometricVerified)
+                    MessageBox.Show("Slot recorded successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                else
+                    ShowBarcodeStatus("Slot recorded via barcode.", isError: false);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to record slot.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            _targetSlot = null;
+            TileTimeInAM.Tag = TileTimeOutAM.Tag = TileTimeInPM.Tag = TileTimeOutPM.Tag = null;
+            _viewModel.ScanStateText  = "Ready for fingerprint verification";
+            _viewModel.NextActionText = "Select a session tile above";
 
             LoadTodayAttendance();
             if (_allowCrud)
                 LoadAttendanceRecords();
         }
+
+        private static DateTime? GetSlotValue(Attendance a, AttendanceSlot slot) => slot switch
+        {
+            AttendanceSlot.TimeInAM  => a.TimeInAM,
+            AttendanceSlot.TimeOutAM => a.TimeOutAM,
+            AttendanceSlot.TimeInPM  => a.TimeInPM,
+            AttendanceSlot.TimeOutPM => a.TimeOutPM,
+            _                        => null
+        };
 
         private void LoadTodayAttendance()
         {
@@ -228,10 +278,10 @@ namespace AttendancePayrollSystem
                 _viewModel.TimeOutAMText = "-";
                 _viewModel.TimeInPMText = "-";
                 _viewModel.TimeOutPMText = "-";
-                _viewModel.NextActionText = "Morning Time In (8:30 AM)";
+                _viewModel.NextActionText = "Select a session tile above";
                 _viewModel.IsScanButtonEnabled = true;
                 if (string.IsNullOrWhiteSpace(_viewModel.StatusText))
-                    _viewModel.StatusText = "No attendance record yet for today.";
+                    _viewModel.StatusText = "Click a session tile to start recording attendance.";
                 return;
             }
 
@@ -253,37 +303,10 @@ namespace AttendancePayrollSystem
             _viewModel.TimeInPMText = todayAttendance.TimeInPM?.ToString("hh:mm tt") ?? "-";
             _viewModel.TimeOutPMText = todayAttendance.TimeOutPM?.ToString("hh:mm tt") ?? "-";
 
-            var sessionState = _attendanceRepository.GetSessionState(todayAttendance);
-            switch (sessionState)
-            {
-                case AttendanceSessionState.NeedsMorningTimeIn:
-                    _viewModel.NextActionText = "Morning Time In (8:30 AM)";
-                    _viewModel.StatusText = "Waiting for morning time in.";
-                    break;
-                case AttendanceSessionState.NeedsMorningTimeOut:
-                    _viewModel.NextActionText = "Morning Time Out (12:00 PM)";
-                    _viewModel.StatusText = "Employee clocked in for morning session.";
-                    break;
-                case AttendanceSessionState.MorningComplete:
-                    _viewModel.NextActionText = "Afternoon Time In (1:00 PM)";
-                    _viewModel.StatusText = "Morning session complete. Afternoon starts at 1:00 PM.";
-                    break;
-                case AttendanceSessionState.NeedsAfternoonTimeIn:
-                    _viewModel.NextActionText = "Afternoon Time In (1:00 PM)";
-                    _viewModel.StatusText = "Waiting for afternoon time in.";
-                    break;
-                case AttendanceSessionState.NeedsAfternoonTimeOut:
-                    _viewModel.NextActionText = "Afternoon Time Out (4:30 PM)";
-                    _viewModel.StatusText = "Employee clocked in for afternoon session.";
-                    break;
-                case AttendanceSessionState.AllComplete:
-                    _viewModel.NextActionText = "No pending action";
-                    _viewModel.StatusText = "Attendance completed for today (both AM and PM sessions). Delete today's record to re-simulate.";
-                    break;
-            }
-
+            _viewModel.NextActionText = "Select a session tile above";
+            if (_targetSlot == null)
+                _viewModel.StatusText = "Click a session tile to choose which slot to record.";
             _viewModel.ScanStateText = "Ready for fingerprint verification";
-            // Always keep scan enabled — AllComplete shows an informational message instead of blocking
             _viewModel.IsScanButtonEnabled = true;
         }
 

@@ -401,6 +401,110 @@ namespace AttendancePayrollSystem.DataAccess
             }
         }
 
+        public void RecordSpecificSlot(int employeeId, string slotColumn, bool biometricVerified)
+        {
+            var allowed = new HashSet<string> { "TimeInAM", "TimeOutAM", "TimeInPM", "TimeOutPM" };
+            if (!allowed.Contains(slotColumn))
+                throw new ArgumentException($"Unknown slot column: {slotColumn}");
+
+            bool isTimeIn = slotColumn == "TimeInAM" || slotColumn == "TimeInPM";
+            var now = TruncateToMinute(DateTime.Now);
+
+            if (SupabaseConfig.UseApi)
+            {
+                var existing = GetTodayAttendance(employeeId);
+                if (existing != null)
+                {
+                    string updatedStatus = existing.Status;
+                    if (isTimeIn)
+                    {
+                        var amIn = slotColumn == "TimeInAM" ? now : existing.TimeInAM;
+                        var pmIn = slotColumn == "TimeInPM" ? now : existing.TimeInPM;
+                        updatedStatus = DetermineAttendanceStatus(existing.AttendanceDate, amIn, pmIn, existing.Status);
+                    }
+                    var newBio = biometricVerified || existing.IsBiometricVerified;
+                    var updatePayload = slotColumn switch
+                    {
+                        "TimeInAM"  => (object)new { timeinam  = now, status = updatedStatus, isbiometricverified = newBio },
+                        "TimeOutAM" =>         new { timeoutam = now, status = updatedStatus, isbiometricverified = newBio },
+                        "TimeInPM"  =>         new { timeinpm  = now, status = updatedStatus, isbiometricverified = newBio },
+                        _           =>         new { timeoutpm = now, status = updatedStatus, isbiometricverified = newBio },
+                    };
+                    SupabaseRestClient.Update(
+                        "attendancerecords",
+                        updatePayload,
+                        new Dictionary<string, string> { ["attendanceid"] = $"eq.{existing.AttendanceId}" });
+                }
+                else
+                {
+                    if (!isTimeIn)
+                        throw new InvalidOperationException("Cannot record Time Out — no attendance record exists for today.");
+
+                    var status = DetermineAttendanceStatus(
+                        DateTime.Today,
+                        slotColumn == "TimeInAM" ? now : (DateTime?)null,
+                        slotColumn == "TimeInPM" ? now : (DateTime?)null);
+
+                    var insertPayload = slotColumn == "TimeInAM"
+                        ? (object)new { employeeid = employeeId, attendancedate = DateTime.Today, timeinam = now, status, isbiometricverified = biometricVerified }
+                        :          new { employeeid = employeeId, attendancedate = DateTime.Today, timeinpm = now, status, isbiometricverified = biometricVerified };
+                    SupabaseRestClient.InsertAndReturnSingle<Attendance>("attendancerecords", insertPayload);
+                }
+                return;
+            }
+
+            var todayRecord = GetTodayAttendance(employeeId);
+            if (todayRecord != null)
+            {
+                string updatedStatus = todayRecord.Status;
+                if (isTimeIn)
+                {
+                    var amIn = slotColumn == "TimeInAM" ? now : todayRecord.TimeInAM;
+                    var pmIn = slotColumn == "TimeInPM" ? now : todayRecord.TimeInPM;
+                    updatedStatus = DetermineAttendanceStatus(todayRecord.AttendanceDate, amIn, pmIn, todayRecord.Status);
+                }
+                string sql = $@"
+                    UPDATE AttendanceRecords
+                    SET {slotColumn} = @Time,
+                        Status = @Status,
+                        IsBiometricVerified = @Bio
+                    WHERE AttendanceId = @AttendanceId";
+                using var connection = DatabaseHelper.GetConnection();
+                using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@Time", now);
+                command.Parameters.AddWithValue("@Status", updatedStatus);
+                command.Parameters.AddWithValue("@Bio", biometricVerified || todayRecord.IsBiometricVerified);
+                command.Parameters.AddWithValue("@AttendanceId", todayRecord.AttendanceId);
+                connection.Open();
+                command.ExecuteNonQuery();
+                MySqlOfflineSyncService.QueueAttendanceUpsert(todayRecord.AttendanceId, employeeId);
+            }
+            else
+            {
+                if (!isTimeIn)
+                    throw new InvalidOperationException("Cannot record Time Out — no attendance record exists for today.");
+
+                var status = DetermineAttendanceStatus(
+                    DateTime.Today,
+                    slotColumn == "TimeInAM" ? now : (DateTime?)null,
+                    slotColumn == "TimeInPM" ? now : (DateTime?)null);
+
+                string sql = $@"
+                    INSERT INTO AttendanceRecords (EmployeeId, AttendanceDate, {slotColumn}, Status, IsBiometricVerified)
+                    VALUES (@EmployeeId, @AttendanceDate, @Time, @Status, @Bio)";
+                using var connection = DatabaseHelper.GetConnection();
+                using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@EmployeeId", employeeId);
+                command.Parameters.AddWithValue("@AttendanceDate", DateTime.Today);
+                command.Parameters.AddWithValue("@Time", now);
+                command.Parameters.AddWithValue("@Status", status);
+                command.Parameters.AddWithValue("@Bio", biometricVerified);
+                connection.Open();
+                command.ExecuteNonQuery();
+                MySqlOfflineSyncService.QueueAttendanceUpsert(Convert.ToInt32(command.LastInsertedId), employeeId);
+            }
+        }
+
         public void AddAttendance(Attendance attendance)
         {
             if (SupabaseConfig.UseApi)

@@ -281,86 +281,110 @@
                                        Foreground="#64748B"
                                        Margin="0,0,0,14" />
 
-                            <!-- AM session tiles -->
+                            <!-- AM session tiles — clickable buttons -->
                             <UniformGrid Rows="1" Columns="2" Margin="0,0,0,12">
 
-                                <!-- AM Time In tile -->
-                                <Border Margin="0,0,6,0"
-                                        Background="#F0FDF4"
-                                        BorderBrush="#86EFAC"
-                                        BorderThickness="2"
-                                        CornerRadius="14"
-                                        Padding="16,14">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#166534" />
-                                    </Border.Effect>
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Border Background="#22C55E" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
-                                                <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <!-- AM Time In button -->
+                                <Button x:Name="TileTimeInAM"
+                                        Margin="0,0,6,0"
+                                        Padding="0"
+                                        BorderThickness="0"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        Click="TileTimeInAM_Click"
+                                        ToolTip="Click to select AM Time In, then scan to record">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="TileBorder"
+                                                    Background="#F0FDF4"
+                                                    BorderBrush="#86EFAC"
+                                                    BorderThickness="2"
+                                                    CornerRadius="14"
+                                                    Padding="16,14">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#166534" />
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <Border Background="#22C55E" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                            <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Text="AM TIME IN" FontSize="11" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Row="1" Text="{Binding TimeInAMText}" FontSize="28" FontWeight="Bold" Foreground="#14532D" Margin="0,0,0,4" />
+                                                    <TextBlock Grid.Row="2" Text="Expected: 8:30 AM" FontSize="11" Foreground="#4ADE80" />
+                                                </Grid>
                                             </Border>
-                                            <TextBlock Text="AM TIME IN"
-                                                       FontSize="11"
-                                                       FontWeight="Bold"
-                                                       Foreground="#166534"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding TimeInAMText}"
-                                                   FontSize="28"
-                                                   FontWeight="Bold"
-                                                   Foreground="#14532D"
-                                                   Margin="0,0,0,4" />
-                                        <TextBlock Grid.Row="2"
-                                                   Text="Expected: 8:30 AM"
-                                                   FontSize="11"
-                                                   Foreground="#4ADE80" />
-                                    </Grid>
-                                </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#4ADE80" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="Selected">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#16A34A" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                    <Setter TargetName="TileBorder" Property="Background" Value="#DCFCE7" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
 
-                                <!-- AM Time Out tile -->
-                                <Border Margin="6,0,0,0"
-                                        Background="#EFF6FF"
-                                        BorderBrush="#93C5FD"
-                                        BorderThickness="2"
-                                        CornerRadius="14"
-                                        Padding="16,14">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#1E3A8A" />
-                                    </Border.Effect>
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Border Background="#3B82F6" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
-                                                <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <!-- AM Time Out button -->
+                                <Button x:Name="TileTimeOutAM"
+                                        Margin="6,0,0,0"
+                                        Padding="0"
+                                        BorderThickness="0"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        Click="TileTimeOutAM_Click"
+                                        ToolTip="Click to select AM Time Out, then scan to record">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="TileBorder"
+                                                    Background="#EFF6FF"
+                                                    BorderBrush="#93C5FD"
+                                                    BorderThickness="2"
+                                                    CornerRadius="14"
+                                                    Padding="16,14">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#1E3A8A" />
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <Border Background="#3B82F6" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                            <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Text="AM TIME OUT" FontSize="11" FontWeight="Bold" Foreground="#1E40AF" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Row="1" Text="{Binding TimeOutAMText}" FontSize="28" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,4" />
+                                                    <TextBlock Grid.Row="2" Text="Expected: 12:00 PM" FontSize="11" Foreground="#60A5FA" />
+                                                </Grid>
                                             </Border>
-                                            <TextBlock Text="AM TIME OUT"
-                                                       FontSize="11"
-                                                       FontWeight="Bold"
-                                                       Foreground="#1E40AF"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding TimeOutAMText}"
-                                                   FontSize="28"
-                                                   FontWeight="Bold"
-                                                   Foreground="#1E3A8A"
-                                                   Margin="0,0,0,4" />
-                                        <TextBlock Grid.Row="2"
-                                                   Text="Expected: 12:00 PM"
-                                                   FontSize="11"
-                                                   Foreground="#60A5FA" />
-                                    </Grid>
-                                </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#60A5FA" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="Selected">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#2563EB" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                    <Setter TargetName="TileBorder" Property="Background" Value="#DBEAFE" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
                             </UniformGrid>
 
                             <TextBlock Text="Afternoon Session  ·  1:00 PM – 5:00 PM"
@@ -368,86 +392,110 @@
                                        Foreground="#64748B"
                                        Margin="0,8,0,10" />
 
-                            <!-- PM session tiles -->
+                            <!-- PM session tiles — clickable buttons -->
                             <UniformGrid Rows="1" Columns="2" Margin="0,0,0,16">
 
-                                <!-- PM Time In tile -->
-                                <Border Margin="0,0,6,0"
-                                        Background="#FFF7ED"
-                                        BorderBrush="#FCD34D"
-                                        BorderThickness="2"
-                                        CornerRadius="14"
-                                        Padding="16,14">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#92400E" />
-                                    </Border.Effect>
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Border Background="#F59E0B" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
-                                                <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <!-- PM Time In button -->
+                                <Button x:Name="TileTimeInPM"
+                                        Margin="0,0,6,0"
+                                        Padding="0"
+                                        BorderThickness="0"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        Click="TileTimeInPM_Click"
+                                        ToolTip="Click to select PM Time In, then scan to record">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="TileBorder"
+                                                    Background="#FFF7ED"
+                                                    BorderBrush="#FCD34D"
+                                                    BorderThickness="2"
+                                                    CornerRadius="14"
+                                                    Padding="16,14">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#92400E" />
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <Border Background="#F59E0B" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                            <materialDesign:PackIcon Kind="Login" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Text="PM TIME IN" FontSize="11" FontWeight="Bold" Foreground="#92400E" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Row="1" Text="{Binding TimeInPMText}" FontSize="28" FontWeight="Bold" Foreground="#78350F" Margin="0,0,0,4" />
+                                                    <TextBlock Grid.Row="2" Text="Expected: 1:00 PM" FontSize="11" Foreground="#FCD34D" />
+                                                </Grid>
                                             </Border>
-                                            <TextBlock Text="PM TIME IN"
-                                                       FontSize="11"
-                                                       FontWeight="Bold"
-                                                       Foreground="#92400E"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding TimeInPMText}"
-                                                   FontSize="28"
-                                                   FontWeight="Bold"
-                                                   Foreground="#78350F"
-                                                   Margin="0,0,0,4" />
-                                        <TextBlock Grid.Row="2"
-                                                   Text="Expected: 1:00 PM"
-                                                   FontSize="11"
-                                                   Foreground="#FCD34D" />
-                                    </Grid>
-                                </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#FDE68A" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="Selected">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#D97706" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                    <Setter TargetName="TileBorder" Property="Background" Value="#FEF3C7" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
 
-                                <!-- PM Time Out tile -->
-                                <Border Margin="6,0,0,0"
-                                        Background="#FFF1F2"
-                                        BorderBrush="#FCA5A5"
-                                        BorderThickness="2"
-                                        CornerRadius="14"
-                                        Padding="16,14">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#7F1D1D" />
-                                    </Border.Effect>
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Border Background="#EF4444" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
-                                                <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <!-- PM Time Out button -->
+                                <Button x:Name="TileTimeOutPM"
+                                        Margin="6,0,0,0"
+                                        Padding="0"
+                                        BorderThickness="0"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        Click="TileTimeOutPM_Click"
+                                        ToolTip="Click to select PM Time Out, then scan to record">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="TileBorder"
+                                                    Background="#FFF1F2"
+                                                    BorderBrush="#FCA5A5"
+                                                    BorderThickness="2"
+                                                    CornerRadius="14"
+                                                    Padding="16,14">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.07" Color="#7F1D1D" />
+                                                </Border.Effect>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <Border Background="#EF4444" CornerRadius="8" Width="32" Height="32" Margin="0,0,10,0">
+                                                            <materialDesign:PackIcon Kind="Logout" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <TextBlock Text="PM TIME OUT" FontSize="11" FontWeight="Bold" Foreground="#991B1B" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Row="1" Text="{Binding TimeOutPMText}" FontSize="28" FontWeight="Bold" Foreground="#7F1D1D" Margin="0,0,0,4" />
+                                                    <TextBlock Grid.Row="2" Text="Expected: 5:00 PM" FontSize="11" Foreground="#FCA5A5" />
+                                                </Grid>
                                             </Border>
-                                            <TextBlock Text="PM TIME OUT"
-                                                       FontSize="11"
-                                                       FontWeight="Bold"
-                                                       Foreground="#991B1B"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding TimeOutPMText}"
-                                                   FontSize="28"
-                                                   FontWeight="Bold"
-                                                   Foreground="#7F1D1D"
-                                                   Margin="0,0,0,4" />
-                                        <TextBlock Grid.Row="2"
-                                                   Text="Expected: 5:00 PM"
-                                                   FontSize="11"
-                                                   Foreground="#FCA5A5" />
-                                    </Grid>
-                                </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#F87171" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Value="Selected">
+                                                    <Setter TargetName="TileBorder" Property="BorderBrush" Value="#DC2626" />
+                                                    <Setter TargetName="TileBorder" Property="BorderThickness" Value="3" />
+                                                    <Setter TargetName="TileBorder" Property="Background" Value="#FEE2E2" />
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
                             </UniformGrid>
 
                             <!-- Next Action tile -->
